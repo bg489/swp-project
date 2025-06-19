@@ -16,7 +16,7 @@ const __dirname = path.resolve();
 if (process.env.NODE_ENV !== "production") {
   app.use(
     cors({
-      origin: "http://localhost:5173",
+      origin: "http://localhost:3000",
     })
   );
 }
@@ -30,13 +30,27 @@ app.use(express.json()); // this middleware will parse JSON bodies: req.body
 
 app.use("/api/notes", notesRoutes);
 
-if (process.env.NODE_ENV === "production") {
-  app.use(express.static(path.join(__dirname, "../frontend/dist")));
+// if (process.env.NODE_ENV === "production") {
+//   app.use(express.static(path.join(__dirname, "../frontend/dist")));
 
+//   app.get("*", (req, res) => {
+//     res.sendFile(path.join(__dirname, "../frontend", "dist", "index.html"));
+//   });
+// }
+
+
+if (process.env.NODE_ENV === "production") {
+  app.use(express.static(path.join(__dirname, "frontend")));
   app.get("*", (req, res) => {
-    res.sendFile(path.join(__dirname, "../frontend", "dist", "index.html"));
+    res.sendFile(path.join(__dirname, "frontend", "index.html"));
+  });
+} else {
+  app.get("/", (req, res) => {
+    res.send("API is running in development");
   });
 }
+
+
 
 connectDB().then(() => {
   app.listen(PORT, () => {
