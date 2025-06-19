@@ -3,11 +3,14 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "build": "npm install --prefix backend && npm install --prefix frontendtest && npm run build --prefix frontendtest && cp -r frontendtest/out backend/frontend",
+    "build": "npm install --prefix backend && npm install --prefix frontendtest && cross-env NODE_OPTIONS=--trace-uncaught npm run build --prefix frontendtest && cp -r frontendtest/out backend/frontend",
     "start": "npm run start --prefix backend"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": ""
+  "description": "",
+  "devDependencies": {
+    "cross-env": "^7.0.3"
+  }
 }
