@@ -10,7 +10,10 @@ import Link from "next/link"
 import { Header } from "@/components/header"
 import { getCurrentUser, type User } from "@/lib/auth"
 import { useSearchParams } from "next/navigation"
+<<<<<<< HEAD
 import Image from "next/image"
+=======
+>>>>>>> i-make-frontend-pro
 
 export default function HomePage() {
   const [currentUser, setCurrentUser] = useState<User | null>(null)
@@ -88,6 +91,7 @@ export default function HomePage() {
         </div>
       )}
 
+<<<<<<< HEAD
       {/* Hero Section with Background Image */}
       <section className="relative py-20 px-4 overflow-hidden">
         {/* Background Image */}
@@ -104,6 +108,11 @@ export default function HomePage() {
 
         {/* Content */}
         <div className="container mx-auto text-center relative z-10">
+=======
+      {/* Hero Section */}
+      <section className="py-20 px-4">
+        <div className="container mx-auto text-center">
+>>>>>>> i-make-frontend-pro
           <div className="max-w-4xl mx-auto">
             {currentUser && (
               <div className="mb-6">
@@ -115,12 +124,21 @@ export default function HomePage() {
             <Badge className="mb-4 bg-red-100 text-red-800 hover:bg-red-100">
               🩸 Cứu sống một sinh mạng chỉ với một giọt máu
             </Badge>
+<<<<<<< HEAD
             <h1 className="text-5xl md:text-6xl font-bold text-white mb-6">
               Kết nối <span className="text-red-400">trái tim</span>,
               <br />
               cứu sống <span className="text-red-400">sinh mạng</span>
             </h1>
             <p className="text-xl text-gray-200 mb-8 max-w-2xl mx-auto">
+=======
+            <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6">
+              Kết nối <span className="text-red-600">trái tim</span>,
+              <br />
+              cứu sống <span className="text-red-600">sinh mạng</span>
+            </h1>
+            <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
+>>>>>>> i-make-frontend-pro
               Hệ thống quản lý hiến máu hiện đại, kết nối người hiến máu và người cần máu một cách nhanh chóng, an toàn
               và hiệu quả.
             </p>
@@ -133,7 +151,11 @@ export default function HomePage() {
                       Đăng ký hiến máu
                     </Link>
                   </Button>
+<<<<<<< HEAD
                   <Button size="lg" variant="secondary" asChild>
+=======
+                  <Button size="lg" variant="outline" asChild>
+>>>>>>> i-make-frontend-pro
                     <Link href={currentUser.role === "admin" ? "/admin/dashboard" : "/user/dashboard"}>
                       <Activity className="w-5 h-5 mr-2" />
                       Xem Dashboard
@@ -148,7 +170,11 @@ export default function HomePage() {
                       Đăng ký hiến máu
                     </Link>
                   </Button>
+<<<<<<< HEAD
                   <Button size="lg" variant="secondary" asChild>
+=======
+                  <Button size="lg" variant="outline" asChild>
+>>>>>>> i-make-frontend-pro
                     <Link href="/request">
                       <Users className="w-5 h-5 mr-2" />
                       Tìm người hiến máu

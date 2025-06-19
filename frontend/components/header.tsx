@@ -49,7 +49,11 @@ export function Header() {
               <Heart className="w-6 h-6 text-white" />
             </div>
             <div>
+<<<<<<< HEAD
               <h1 className="text-xl font-bold text-gray-900">ScαrletBlood    </h1>
+=======
+              <h1 className="text-xl font-bold text-gray-900">BloodConnect</h1>
+>>>>>>> i-make-frontend-pro
               <p className="text-sm text-gray-600">Trung tâm Hiến máu Nhân đạo</p>
             </div>
           </Link>

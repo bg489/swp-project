@@ -21,6 +21,7 @@ class MockDatabase {
   }
 
   private initializeData() {
+<<<<<<< HEAD
     // Initialize with empty data - no demo accounts
     this.users = []
 
@@ -34,6 +35,51 @@ class MockDatabase {
       { id: "6", blood_type: "B+", units_available: 0, units_reserved: 0 },
       { id: "7", blood_type: "AB-", units_available: 0, units_reserved: 0 },
       { id: "8", blood_type: "AB+", units_available: 0, units_reserved: 0 },
+=======
+    // Initialize with sample data
+    this.users = [
+      {
+        id: "1",
+        email: "admin@bloodconnect.vn",
+        password_hash: "$2b$10$hash_for_123456",
+        name: "Quản trị viên",
+        phone: null,
+        address: null,
+        blood_type: null,
+        role: "admin",
+        is_active: true,
+        last_donation: null,
+        total_donations: 0,
+        created_at: "2024-01-01T00:00:00Z",
+        updated_at: "2024-01-01T00:00:00Z",
+      },
+      {
+        id: "2",
+        email: "user@example.com",
+        password_hash: "$2b$10$hash_for_123456",
+        name: "Nguyễn Văn A",
+        phone: "0901234567",
+        address: "Quận 1, TP.HCM",
+        blood_type: "O+",
+        role: "user",
+        is_active: true,
+        last_donation: "2024-09-15",
+        total_donations: 5,
+        created_at: "2024-03-15T00:00:00Z",
+        updated_at: "2024-09-15T00:00:00Z",
+      },
+    ]
+
+    this.bloodInventory = [
+      { id: "1", blood_type: "O-", units_available: 45, units_reserved: 5 },
+      { id: "2", blood_type: "O+", units_available: 120, units_reserved: 10 },
+      { id: "3", blood_type: "A-", units_available: 78, units_reserved: 8 },
+      { id: "4", blood_type: "A+", units_available: 156, units_reserved: 15 },
+      { id: "5", blood_type: "B-", units_available: 34, units_reserved: 3 },
+      { id: "6", blood_type: "B+", units_available: 89, units_reserved: 9 },
+      { id: "7", blood_type: "AB-", units_available: 23, units_reserved: 2 },
+      { id: "8", blood_type: "AB+", units_available: 67, units_reserved: 7 },
+>>>>>>> i-make-frontend-pro
     ]
   }
 
@@ -70,10 +116,13 @@ class MockDatabase {
     return null
   }
 
+<<<<<<< HEAD
   async getAllUsers() {
     return this.users
   }
 
+=======
+>>>>>>> i-make-frontend-pro
   // Blood inventory operations
   async getBloodInventory() {
     return this.bloodInventory

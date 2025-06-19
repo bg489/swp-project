@@ -26,6 +26,7 @@ INSERT INTO appointments (user_id, appointment_date, appointment_time, location,
 INSERT INTO notifications (user_id, title, message, type) VALUES
 ((SELECT id FROM users WHERE email = 'nguyenvana@email.com'), 'Nhắc nhở hiến máu', 'Bạn có thể hiến máu trở lại từ ngày 15/12/2024', 'reminder'),
 ((SELECT id FROM users WHERE email = 'nguyenvana@email.com'), 'Yêu cầu khẩn cấp', 'Cần gấp nhóm máu O+ tại BV Chợ Rẫy', 'emergency');
+<<<<<<< HEAD
 
 -- Dữ liệu khởi tạo cho hệ thống hiến máu
 -- File này đã được làm sạch, không còn tài khoản demo
@@ -70,3 +71,5 @@ INSERT INTO blood_compatibility (donor_type, recipient_type, compatible) VALUES
 ('AB-', 'AB-', true), ('AB-', 'AB+', true),
 -- AB+ chỉ có thể hiến cho AB+
 ('AB+', 'AB+', true);
+=======
+>>>>>>> i-make-frontend-pro
