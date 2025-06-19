@@ -10,6 +10,7 @@ import Link from "next/link"
 import { Header } from "@/components/header"
 import { getCurrentUser, type User } from "@/lib/auth"
 import { useSearchParams } from "next/navigation"
+import Image from "next/image"
 
 export default function HomePage() {
   const [currentUser, setCurrentUser] = useState<User | null>(null)
@@ -87,9 +88,22 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Hero Section */}
-      <section className="py-20 px-4">
-        <div className="container mx-auto text-center">
+      {/* Hero Section with Background Image */}
+      <section className="relative py-20 px-4 overflow-hidden">
+        {/* Background Image */}
+        <div className="absolute inset-0 z-0">
+          <Image
+            src="/images/blood-donation-hero.png"
+            alt="Hiến máu cứu người"
+            fill
+            className="object-cover"
+            priority
+          />
+          <div className="absolute inset-0 bg-black/50"></div>
+        </div>
+
+        {/* Content */}
+        <div className="container mx-auto text-center relative z-10">
           <div className="max-w-4xl mx-auto">
             {currentUser && (
               <div className="mb-6">
@@ -101,12 +115,12 @@ export default function HomePage() {
             <Badge className="mb-4 bg-red-100 text-red-800 hover:bg-red-100">
               🩸 Cứu sống một sinh mạng chỉ với một giọt máu
             </Badge>
-            <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6">
-              Kết nối <span className="text-red-600">trái tim</span>,
+            <h1 className="text-5xl md:text-6xl font-bold text-white mb-6">
+              Kết nối <span className="text-red-400">trái tim</span>,
               <br />
-              cứu sống <span className="text-red-600">sinh mạng</span>
+              cứu sống <span className="text-red-400">sinh mạng</span>
             </h1>
-            <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
+            <p className="text-xl text-gray-200 mb-8 max-w-2xl mx-auto">
               Hệ thống quản lý hiến máu hiện đại, kết nối người hiến máu và người cần máu một cách nhanh chóng, an toàn
               và hiệu quả.
             </p>
@@ -119,7 +133,7 @@ export default function HomePage() {
                       Đăng ký hiến máu
                     </Link>
                   </Button>
-                  <Button size="lg" variant="outline" asChild>
+                  <Button size="lg" variant="secondary" asChild>
                     <Link href={currentUser.role === "admin" ? "/admin/dashboard" : "/user/dashboard"}>
                       <Activity className="w-5 h-5 mr-2" />
                       Xem Dashboard
@@ -134,7 +148,7 @@ export default function HomePage() {
                       Đăng ký hiến máu
                     </Link>
                   </Button>
-                  <Button size="lg" variant="outline" asChild>
+                  <Button size="lg" variant="secondary" asChild>
                     <Link href="/request">
                       <Users className="w-5 h-5 mr-2" />
                       Tìm người hiến máu

@@ -26,3 +26,47 @@ INSERT INTO appointments (user_id, appointment_date, appointment_time, location,
 INSERT INTO notifications (user_id, title, message, type) VALUES
 ((SELECT id FROM users WHERE email = 'nguyenvana@email.com'), 'Nhắc nhở hiến máu', 'Bạn có thể hiến máu trở lại từ ngày 15/12/2024', 'reminder'),
 ((SELECT id FROM users WHERE email = 'nguyenvana@email.com'), 'Yêu cầu khẩn cấp', 'Cần gấp nhóm máu O+ tại BV Chợ Rẫy', 'emergency');
+
+-- Dữ liệu khởi tạo cho hệ thống hiến máu
+-- File này đã được làm sạch, không còn tài khoản demo
+
+-- Khởi tạo kho máu với số lượng ban đầu là 0
+INSERT INTO blood_inventory (blood_type, units_available, units_reserved, last_updated) VALUES
+('O-', 0, 0, NOW()),
+('O+', 0, 0, NOW()),
+('A-', 0, 0, NOW()),
+('A+', 0, 0, NOW()),
+('B-', 0, 0, NOW()),
+('B+', 0, 0, NOW()),
+('AB-', 0, 0, NOW()),
+('AB+', 0, 0, NOW());
+
+-- Thêm cài đặt hệ thống mặc định
+INSERT INTO system_settings (setting_key, setting_value, description) VALUES
+('min_donation_interval_days', '56', 'Khoảng cách tối thiểu giữa các lần hiến máu (ngày)'),
+('max_donation_per_year', '5', 'Số lần hiến máu tối đa trong một năm'),
+('min_age', '18', 'Tuổi tối thiểu để hiến máu'),
+('max_age', '60', 'Tuổi tối đa để hiến máu'),
+('min_weight', '45', 'Cân nặng tối thiểu để hiến máu (kg)'),
+('notification_enabled', 'true', 'Bật/tắt thông báo hệ thống'),
+('emergency_alert_enabled', 'true', 'Bật/tắt cảnh báo khẩn cấp');
+
+-- Thêm thông tin về tương thích nhóm máu
+INSERT INTO blood_compatibility (donor_type, recipient_type, compatible) VALUES
+-- O- có thể hiến cho tất cả
+('O-', 'O-', true), ('O-', 'O+', true), ('O-', 'A-', true), ('O-', 'A+', true),
+('O-', 'B-', true), ('O-', 'B+', true), ('O-', 'AB-', true), ('O-', 'AB+', true),
+-- O+ có thể hiến cho O+, A+, B+, AB+
+('O+', 'O+', true), ('O+', 'A+', true), ('O+', 'B+', true), ('O+', 'AB+', true),
+-- A- có thể hiến cho A-, A+, AB-, AB+
+('A-', 'A-', true), ('A-', 'A+', true), ('A-', 'AB-', true), ('A-', 'AB+', true),
+-- A+ có thể hiến cho A+, AB+
+('A+', 'A+', true), ('A+', 'AB+', true),
+-- B- có thể hiến cho B-, B+, AB-, AB+
+('B-', 'B-', true), ('B-', 'B+', true), ('B-', 'AB-', true), ('B-', 'AB+', true),
+-- B+ có thể hiến cho B+, AB+
+('B+', 'B+', true), ('B+', 'AB+', true),
+-- AB- có thể hiến cho AB-, AB+
+('AB-', 'AB-', true), ('AB-', 'AB+', true),
+-- AB+ chỉ có thể hiến cho AB+
+('AB+', 'AB+', true);
