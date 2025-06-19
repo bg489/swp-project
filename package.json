@@ -1,0 +1,13 @@
+{
+  "name": "mern-thinkboard",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "build": "npm install --prefix backend && npm install --prefix testfront && npm run build --prefix testfront && cp -r testfront/out backend/frontend",
+    "start": "npm run start --prefix backend"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": ""
+}
