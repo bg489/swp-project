@@ -112,9 +112,7 @@ export default function HomePage() {
                 </Badge>
               </div>
             )}
-            <Badge className="mb-4 bg-red-100 text-red-800 hover:bg-red-100">
-              🩸 Cứu sống một sinh mạng chỉ với một giọt máu
-            </Badge>
+            
             <h1 className="text-5xl md:text-6xl font-bold text-white mb-6">
               Kết nối <span className="text-red-400">trái tim</span>,
               <br />
