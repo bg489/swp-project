@@ -45,8 +45,8 @@ export function Header() {
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           <Link href="/" className="flex items-center space-x-2">
-            <div className="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center">
-              <Heart className="w-6 h-6 text-white" />
+            <div className="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center overflow-hidden">
+              <img src="/images/meo.png" alt="Meo Logo" className="w-full h-full object-cover" />
             </div>
             <div>
               <h1 className="text-xl font-bold text-gray-900">ScαrletBlood    </h1>
