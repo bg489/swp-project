@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Progress } from "@/components/ui/progress"
 import { Heart, Users, Droplets, AlertTriangle, Phone, Plus, BarChart3, PieChart, LineChart } from "lucide-react"
 import Link from "next/link"
+import Image from "next/image"
 
 export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState("overview")
@@ -119,11 +120,17 @@ export default function DashboardPage() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <Link href="/" className="flex items-center space-x-2">
-              <div className="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center">
-                <Heart className="w-6 h-6 text-white" />
+              <div className="w-10 h-10 rounded-full overflow-hidden">
+                <Image
+                  src="/images/logo.webp"
+                  alt="ScαrletBlood Logo"
+                  width={40}
+                  height={40}
+                  className="w-full h-full object-cover"
+                />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">BloodConnect</h1>
+                <h1 className="text-xl font-bold text-gray-900">ScαrletBlood</h1>
                 <p className="text-sm text-gray-600">Dashboard Quản lý</p>
               </div>
             </Link>

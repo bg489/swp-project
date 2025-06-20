@@ -1,9 +1,11 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Heart, Calendar, User, Clock, ArrowRight, Droplets, Shield } from "lucide-react"
+import { Calendar, User, Clock, ArrowRight, Droplets, Shield, BookOpen } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
+import { Header } from "@/components/header"
+import { Footer } from "@/components/footer"
 
 export default function BlogPage() {
   const featuredPost = {
@@ -14,7 +16,6 @@ export default function BlogPage() {
     date: "15/12/2024",
     readTime: "5 phút đọc",
     category: "Hướng dẫn",
-    image: "/placeholder.svg?height=400&width=600",
     featured: true,
   }
 
@@ -28,7 +29,6 @@ export default function BlogPage() {
       date: "12/12/2024",
       readTime: "4 phút đọc",
       category: "Sức khỏe",
-      image: "/placeholder.svg?height=200&width=300",
     },
     {
       id: 3,
@@ -38,7 +38,6 @@ export default function BlogPage() {
       date: "10/12/2024",
       readTime: "6 phút đọc",
       category: "Kiến thức",
-      image: "/placeholder.svg?height=200&width=300",
     },
     {
       id: 4,
@@ -48,7 +47,6 @@ export default function BlogPage() {
       date: "08/12/2024",
       readTime: "3 phút đọc",
       category: "Dinh dưỡng",
-      image: "/placeholder.svg?height=200&width=300",
     },
     {
       id: 5,
@@ -58,7 +56,6 @@ export default function BlogPage() {
       date: "05/12/2024",
       readTime: "7 phút đọc",
       category: "Câu chuyện",
-      image: "/placeholder.svg?height=200&width=300",
     },
     {
       id: 6,
@@ -68,7 +65,6 @@ export default function BlogPage() {
       date: "03/12/2024",
       readTime: "5 phút đọc",
       category: "Công nghệ",
-      image: "/placeholder.svg?height=200&width=300",
     },
   ]
 
@@ -95,35 +91,15 @@ export default function BlogPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-red-50 to-white">
-      {/* Header */}
-      <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <Link href="/" className="flex items-center space-x-2">
-              <div className="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center">
-                <Heart className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">BloodConnect</h1>
-                <p className="text-sm text-gray-600">Blog & Kiến thức</p>
-              </div>
-            </Link>
-            <div className="flex items-center space-x-4">
-              <Button variant="outline" asChild>
-                <Link href="/donate">Hiến máu ngay</Link>
-              </Button>
-              <Button variant="outline" asChild>
-                <Link href="/">← Về trang chủ</Link>
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <Header />
 
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto">
           {/* Hero Section */}
           <div className="text-center mb-12">
+            <div className="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <BookOpen className="w-8 h-8 text-white" />
+            </div>
             <Badge className="mb-4 bg-red-100 text-red-800">📚 Kiến thức & Chia sẻ kinh nghiệm</Badge>
             <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">Blog hiến máu</h1>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
@@ -138,13 +114,14 @@ export default function BlogPage() {
               <Card className="overflow-hidden border-red-200">
                 <div className="md:flex">
                   <div className="md:w-1/2">
-                    <Image
-                      src={featuredPost.image || "/placeholder.svg"}
-                      alt={featuredPost.title}
-                      width={600}
-                      height={400}
-                      className="w-full h-64 md:h-full object-cover"
-                    />
+                    <div className="w-full h-64 md:h-full bg-gradient-to-br from-red-100 to-red-200 flex items-center justify-center">
+                      <div className="text-center">
+                        <div className="w-20 h-20 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <Droplets className="w-10 h-10 text-white" />
+                        </div>
+                        <p className="text-red-700 font-medium">Bài viết nổi bật</p>
+                      </div>
+                    </div>
                   </div>
                   <div className="md:w-1/2 p-6">
                     <Badge className={`mb-3 ${getCategoryColor(featuredPost.category)}`}>{featuredPost.category}</Badge>
@@ -181,13 +158,14 @@ export default function BlogPage() {
                 {blogPosts.map((post) => (
                   <Card key={post.id} className="hover:shadow-lg transition-shadow overflow-hidden">
                     <div className="aspect-video relative">
-                      <Image
-                        src={post.image || "/placeholder.svg"}
-                        alt={post.title}
-                        width={300}
-                        height={200}
-                        className="w-full h-full object-cover"
-                      />
+                      <div className="w-full h-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center">
+                        <div className="text-center">
+                          <div className="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-2">
+                            <BookOpen className="w-8 h-8 text-white" />
+                          </div>
+                          <p className="text-blue-700 text-sm font-medium">{post.category}</p>
+                        </div>
+                      </div>
                       <Badge className={`absolute top-3 left-3 ${getCategoryColor(post.category)}`}>
                         {post.category}
                       </Badge>
@@ -279,7 +257,15 @@ export default function BlogPage() {
               {/* Call to Action */}
               <Card className="bg-gradient-to-br from-red-500 to-red-600 text-white">
                 <CardContent className="p-6 text-center">
-                  <Heart className="w-12 h-12 mx-auto mb-4 text-white" />
+                  <div className="w-12 h-12 mx-auto mb-4 rounded-full overflow-hidden">
+                    <Image
+                      src="/images/logo.webp"
+                      alt="ScαrletBlood Logo"
+                      width={48}
+                      height={48}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
                   <h3 className="text-xl font-bold mb-2">Sẵn sàng hiến máu?</h3>
                   <p className="text-red-100 mb-4">Hãy đăng ký ngay để trở thành người hùng cứu sinh mạng</p>
                   <Button variant="secondary" className="w-full" asChild>
@@ -307,6 +293,8 @@ export default function BlogPage() {
           </div>
         </div>
       </div>
+
+      <Footer />
     </div>
   )
 }

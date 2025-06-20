@@ -13,10 +13,12 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Badge } from "@/components/ui/badge"
-import { Heart, CalendarIcon, User, Droplets, Shield } from "lucide-react"
+import { Heart, CalendarIcon, User, Droplets, Shield, CheckCircle } from "lucide-react"
 import { format } from "date-fns"
 import { vi } from "date-fns/locale"
 import Link from "next/link"
+import { Header } from "@/components/header"
+import { Footer } from "@/components/footer"
 
 export default function DonatePage() {
   const [selectedDate, setSelectedDate] = useState<Date>()
@@ -65,30 +67,15 @@ export default function DonatePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-red-50 to-white">
-      {/* Header */}
-      <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <Link href="/" className="flex items-center space-x-2">
-              <div className="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center">
-                <Heart className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">BloodConnect</h1>
-                <p className="text-sm text-gray-600">Đăng ký hiến máu</p>
-              </div>
-            </Link>
-            <Button variant="outline" asChild>
-              <Link href="/">← Về trang chủ</Link>
-            </Button>
-          </div>
-        </div>
-      </header>
+      <Header />
 
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           {/* Hero Section */}
           <div className="text-center mb-8">
+            <div className="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Heart className="w-8 h-8 text-white" />
+            </div>
             <Badge className="mb-4 bg-red-100 text-red-800">🩸 Trở thành người hùng cứu sinh mạng</Badge>
             <h1 className="text-4xl font-bold text-gray-900 mb-4">Đăng ký hiến máu</h1>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
@@ -116,7 +103,10 @@ export default function DonatePage() {
                     ))}
                   </ul>
                   <div className="mt-6 p-4 bg-red-50 rounded-lg">
-                    <h4 className="font-semibold text-red-800 mb-2">Lưu ý quan trọng</h4>
+                    <div className="flex items-center mb-2">
+                      <CheckCircle className="w-5 h-5 text-red-600 mr-2" />
+                      <h4 className="font-semibold text-red-800">Lưu ý quan trọng</h4>
+                    </div>
                     <p className="text-sm text-red-700">
                       Vui lòng đọc kỹ các điều kiện và tư vấn với bác sĩ nếu có thắc mắc về sức khỏe.
                     </p>
@@ -141,7 +131,10 @@ export default function DonatePage() {
                   <form onSubmit={handleSubmit} className="space-y-6">
                     {/* Personal Information */}
                     <div className="space-y-4">
-                      <h3 className="text-lg font-semibold text-gray-900">Thông tin cá nhân</h3>
+                      <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                        <User className="w-5 h-5 mr-2 text-red-600" />
+                        Thông tin cá nhân
+                      </h3>
                       <div className="grid md:grid-cols-2 gap-4">
                         <div>
                           <Label htmlFor="fullName">Họ và tên *</Label>
@@ -221,7 +214,10 @@ export default function DonatePage() {
 
                     {/* Medical History */}
                     <div className="space-y-4">
-                      <h3 className="text-lg font-semibold text-gray-900">Thông tin y tế</h3>
+                      <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                        <Shield className="w-5 h-5 mr-2 text-red-600" />
+                        Thông tin y tế
+                      </h3>
                       <div>
                         <Label htmlFor="medicalHistory">Tiền sử bệnh lý (nếu có)</Label>
                         <Textarea
@@ -236,7 +232,10 @@ export default function DonatePage() {
 
                     {/* Availability */}
                     <div className="space-y-4">
-                      <h3 className="text-lg font-semibold text-gray-900">Thời gian sẵn sàng</h3>
+                      <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                        <CalendarIcon className="w-5 h-5 mr-2 text-red-600" />
+                        Thời gian sẵn sàng
+                      </h3>
                       <div>
                         <Label>Ngày có thể hiến máu</Label>
                         <Popover>
@@ -317,8 +316,47 @@ export default function DonatePage() {
               </Card>
             </div>
           </div>
+
+          {/* Additional Information Section */}
+          <div className="mt-12 grid md:grid-cols-3 gap-6">
+            <Card className="bg-blue-50 border-blue-200">
+              <CardContent className="p-6 text-center">
+                <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Heart className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="font-semibold text-blue-800 mb-2">Quy trình an toàn</h3>
+                <p className="text-sm text-blue-700">
+                  Tất cả dụng cụ đều vô trùng, sử dụng một lần và được tiêu hủy ngay sau khi sử dụng.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-green-50 border-green-200">
+              <CardContent className="p-6 text-center">
+                <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Shield className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="font-semibold text-green-800 mb-2">Kiểm tra sức khỏe</h3>
+                <p className="text-sm text-green-700">
+                  Bác sĩ sẽ kiểm tra sức khỏe tổng quát trước khi tiến hành hiến máu.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-purple-50 border-purple-200">
+              <CardContent className="p-6 text-center">
+                <div className="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <CheckCircle className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="font-semibold text-purple-800 mb-2">Chăm sóc sau hiến</h3>
+                <p className="text-sm text-purple-700">Được nghỉ ngơi và cung cấp đồ ăn nhẹ để phục hồi sức khỏe.</p>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
+
+      <Footer />
     </div>
   )
 }

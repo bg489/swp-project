@@ -4,22 +4,32 @@ import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Heart, Users, MapPin, Clock, Shield, Activity, Phone, Mail, Calendar, CheckCircle } from "lucide-react"
+import { Heart, Users, MapPin, Clock, Shield, Activity, Phone, Mail, Calendar, CheckCircle, X } from "lucide-react"
 import Link from "next/link"
-import { Header } from "@/components/header"
-import { getCurrentUser, type User } from "@/lib/auth"
-import { useSearchParams } from "next/navigation"
 import Image from "next/image"
+import { Header } from "@/components/header"
+import { Footer } from "@/components/footer"
+import { useAuth } from "@/contexts/auth-context"
+import { useSearchParams } from "next/navigation"
 
 export default function HomePage() {
-  const [currentUser, setCurrentUser] = useState<User | null>(null)
+  const { user } = useAuth()
+  const [showLoginAlert, setShowLoginAlert] = useState(false)
   const searchParams = useSearchParams()
   const loginSuccess = searchParams.get("login") === "success"
 
   useEffect(() => {
-    setCurrentUser(getCurrentUser())
-  }, [])
+    if (loginSuccess) {
+      setShowLoginAlert(true)
+      // Tự động ẩn thông báo sau 5 giây
+      const timer = setTimeout(() => {
+        setShowLoginAlert(false)
+      }, 5000)
+
+      // Cleanup timer khi component unmount
+      return () => clearTimeout(timer)
+    }
+  }, [loginSuccess])
 
   const bloodTypes = [
     { type: "O-", compatibility: "Người hiến vạn năng", color: "bg-red-500" },
@@ -73,46 +83,99 @@ export default function HomePage() {
   ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-red-50 to-white">
+    <div className="min-h-screen bg-white">
       <Header />
 
-      {/* Login Success Alert */}
-      {loginSuccess && (
-        <div className="container mx-auto px-4 pt-4">
-          <Alert className="border-green-200 bg-green-50">
-            <CheckCircle className="h-4 w-4 text-green-600" />
-            <AlertDescription className="text-green-800">
-              Đăng nhập thành công! Chào mừng bạn đến với BloodConnect.
-            </AlertDescription>
-          </Alert>
+      {/* Login Success Modal - Hiển thị ở giữa màn hình */}
+      {showLoginAlert && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm">
+          <div className="relative w-full max-w-md animate-in zoom-in-95 duration-300">
+            <div className="bg-white rounded-2xl shadow-2xl border border-red-200 overflow-hidden">
+              {/* Header với gradient */}
+              <div className="bg-gradient-to-r from-red-500 to-red-600 px-6 py-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                      <CheckCircle className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-white">Đăng nhập thành công!</h3>
+                      <p className="text-red-100 text-sm">Chào mừng bạn trở lại</p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 text-white hover:bg-white/20 rounded-full"
+                    onClick={() => setShowLoginAlert(false)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="px-6 py-6">
+                <div className="text-center space-y-4">
+                  <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto overflow-hidden">
+                    <Image
+                      src="/images/logo.webp"
+                      alt="ScαrletBlood Logo"
+                      width={64}
+                      height={64}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div>
+                    <h4 className="text-xl font-bold text-gray-900 mb-2">Chào mừng đến với ScαrletBlood!</h4>
+                    <p className="text-gray-600 leading-relaxed">
+                      Bạn đã đăng nhập thành công. Hãy cùng chúng tôi kết nối trái tim và cứu sống sinh mạng.
+                    </p>
+                  </div>
+
+                  {/* Progress bar */}
+                  <div className="w-full bg-gray-200 rounded-full h-1">
+                    <div
+                      className="bg-red-500 h-1 rounded-full transition-all duration-5000 ease-linear"
+                      style={{
+                        animation: "progress 5s linear forwards",
+                        width: "0%",
+                      }}
+                    ></div>
+                  </div>
+
+                  {/* Action buttons */}
+                  <div className="flex space-x-3 pt-2">
+                    <Button variant="outline" className="flex-1" onClick={() => setShowLoginAlert(false)}>
+                      Đóng
+                    </Button>
+                    <Button className="flex-1 bg-red-600 hover:bg-red-700" asChild>
+                      <Link href={user?.role === "admin" ? "/admin/dashboard" : "/user/dashboard"}>Xem Dashboard</Link>
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
-      {/* Hero Section with Background Image */}
+      {/* Hero Section với background image */}
       <section className="relative py-20 px-4 overflow-hidden">
         {/* Background Image */}
         <div className="absolute inset-0 z-0">
-          <Image
-            src="/images/blood-donation-hero.png"
-            alt="Hiến máu cứu người"
-            fill
-            className="object-cover"
-            priority
-          />
+          <Image src="/images/hero-bg.png" alt="Blood donation background" fill className="object-cover" priority />
+          {/* Overlay để đảm bảo text dễ đọc */}
           <div className="absolute inset-0 bg-black/50"></div>
         </div>
 
         {/* Content */}
         <div className="container mx-auto text-center relative z-10">
           <div className="max-w-4xl mx-auto">
-            {currentUser && (
-              <div className="mb-6">
-                <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
-                  👋 Xin chào, {currentUser.name}!
-                </Badge>
-              </div>
-            )}
-            
+            {user && <div className="mb-6"></div>}
+            <Badge className="mb-4 bg-red-100 text-red-800 hover:bg-red-100">
+              🩸 Cứu sống một sinh mạng chỉ với một giọt máu
+            </Badge>
             <h1 className="text-5xl md:text-6xl font-bold text-white mb-6">
               Kết nối <span className="text-red-400">trái tim</span>,
               <br />
@@ -123,7 +186,7 @@ export default function HomePage() {
               và hiệu quả.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              {currentUser ? (
+              {user ? (
                 <>
                   <Button size="lg" className="bg-red-600 hover:bg-red-700" asChild>
                     <Link href="/donate">
@@ -131,8 +194,13 @@ export default function HomePage() {
                       Đăng ký hiến máu
                     </Link>
                   </Button>
-                  <Button size="lg" variant="secondary" asChild>
-                    <Link href={currentUser.role === "admin" ? "/admin/dashboard" : "/user/dashboard"}>
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="bg-white/10 border-white text-white hover:bg-white hover:text-gray-900"
+                    asChild
+                  >
+                    <Link href={user.role === "admin" ? "/admin/dashboard" : "/user/dashboard"}>
                       <Activity className="w-5 h-5 mr-2" />
                       Xem Dashboard
                     </Link>
@@ -146,7 +214,12 @@ export default function HomePage() {
                       Đăng ký hiến máu
                     </Link>
                   </Button>
-                  <Button size="lg" variant="secondary" asChild>
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="bg-white/10 border-white text-white hover:bg-white hover:text-gray-900"
+                    asChild
+                  >
                     <Link href="/request">
                       <Users className="w-5 h-5 mr-2" />
                       Tìm người hiến máu
@@ -174,31 +247,31 @@ export default function HomePage() {
       </section>
 
       {/* User Welcome Section */}
-      {currentUser && (
+      {user && (
         <section className="py-16 px-4 bg-blue-50">
           <div className="container mx-auto">
             <div className="max-w-4xl mx-auto text-center">
               <h2 className="text-3xl font-bold text-gray-900 mb-6">
-                Chào mừng {currentUser.role === "admin" ? "Quản trị viên" : "Người hiến máu"} {currentUser.name}!
+                Chào mừng {user.role === "admin" ? "Quản trị viên" : "Người hiến máu"} {user.name}!
               </h2>
               <div className="grid md:grid-cols-3 gap-6">
                 <Card className="hover:shadow-lg transition-shadow">
                   <CardHeader>
                     <CardTitle className="flex items-center">
                       <Heart className="w-5 h-5 mr-2 text-red-600" />
-                      {currentUser.role === "admin" ? "Quản lý hệ thống" : "Thông tin cá nhân"}
+                      {user.role === "admin" ? "Quản lý hệ thống" : "Thông tin cá nhân"}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    {currentUser.role === "admin" ? (
+                    {user.role === "admin" ? (
                       <p className="text-gray-600">Quản lý người dùng, kho máu và yêu cầu khẩn cấp</p>
                     ) : (
                       <div className="space-y-2">
                         <p className="text-gray-600">
-                          Nhóm máu: <strong>{currentUser.bloodType}</strong>
+                          Nhóm máu: <strong>{user.bloodType}</strong>
                         </p>
                         <p className="text-gray-600">
-                          Tổng lần hiến: <strong>{currentUser.totalDonations || 0}</strong>
+                          Tổng lần hiến: <strong>{user.totalDonations || 0}</strong>
                         </p>
                       </div>
                     )}
@@ -214,14 +287,10 @@ export default function HomePage() {
                   </CardHeader>
                   <CardContent>
                     <p className="text-gray-600 mb-4">
-                      {currentUser.role === "admin"
-                        ? "Xem thống kê và quản lý hệ thống"
-                        : "Theo dõi lịch sử và đặt lịch hẹn"}
+                      {user.role === "admin" ? "Xem thống kê và quản lý hệ thống" : "Theo dõi lịch sử và đặt lịch hẹn"}
                     </p>
                     <Button asChild className="w-full">
-                      <Link href={currentUser.role === "admin" ? "/admin/dashboard" : "/user/dashboard"}>
-                        Mở Dashboard
-                      </Link>
+                      <Link href={user.role === "admin" ? "/admin/dashboard" : "/user/dashboard"}>Mở Dashboard</Link>
                     </Button>
                   </CardContent>
                 </Card>
@@ -235,7 +304,7 @@ export default function HomePage() {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
-                      {currentUser.role === "admin" ? (
+                      {user.role === "admin" ? (
                         <>
                           <Button variant="outline" size="sm" className="w-full" asChild>
                             <Link href="/emergency">Xem yêu cầu khẩn cấp</Link>
@@ -264,7 +333,7 @@ export default function HomePage() {
       )}
 
       {/* Blood Types Section */}
-      <section className="py-20 px-4">
+      <section className="py-20 px-4 bg-gray-50">
         <div className="container mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Thông tin nhóm máu</h2>
@@ -293,7 +362,7 @@ export default function HomePage() {
       </section>
 
       {/* Features Section */}
-      <section className="py-20 px-4 bg-gray-50">
+      <section className="py-20 px-4 bg-white">
         <div className="container mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Tính năng nổi bật</h2>
@@ -351,7 +420,7 @@ export default function HomePage() {
       </section>
 
       {/* Contact Section */}
-      <section className="py-20 px-4">
+      <section className="py-20 px-4 bg-gray-50">
         <div className="container mx-auto">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div>
@@ -366,7 +435,7 @@ export default function HomePage() {
                 </div>
                 <div className="flex items-center space-x-3">
                   <Mail className="w-5 h-5 text-red-600" />
-                  <span>Email: info@bloodconnect.vn</span>
+                  <span>Email: admin@scarletblood.vn</span>
                 </div>
                 <div className="flex items-center space-x-3">
                   <MapPin className="w-5 h-5 text-red-600" />
@@ -374,7 +443,7 @@ export default function HomePage() {
                 </div>
               </div>
             </div>
-            <div className="bg-gray-100 rounded-lg p-8">
+            <div className="bg-white rounded-lg p-8 shadow-lg">
               <h3 className="text-2xl font-bold text-gray-900 mb-6">Gửi tin nhắn</h3>
               <form className="space-y-4">
                 <div>
@@ -405,90 +474,14 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12">
-        <div className="container mx-auto px-4">
-          <div className="grid md:grid-cols-4 gap-8">
-            <div>
-              <div className="flex items-center space-x-2 mb-4">
-                <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center">
-                  <Heart className="w-5 h-5 text-white" />
-                </div>
-                <span className="text-xl font-bold">BloodConnect</span>
-              </div>
-              <p className="text-gray-400">
-                Kết nối trái tim, cứu sống sinh mạng. Hệ thống quản lý hiến máu hiện đại và an toàn.
-              </p>
-            </div>
-            <div>
-              <h4 className="text-lg font-semibold mb-4">Dịch vụ</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li>
-                  <Link href="/donate" className="hover:text-white">
-                    Đăng ký hiến máu
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/request" className="hover:text-white">
-                    Tìm người hiến máu
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/emergency" className="hover:text-white">
-                    Yêu cầu khẩn cấp
-                  </Link>
-                </li>
-                {currentUser && (
-                  <li>
-                    <Link
-                      href={currentUser.role === "admin" ? "/admin/dashboard" : "/user/dashboard"}
-                      className="hover:text-white"
-                    >
-                      Dashboard
-                    </Link>
-                  </li>
-                )}
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-lg font-semibold mb-4">Thông tin</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li>
-                  <Link href="/blog" className="hover:text-white">
-                    Blog
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/about" className="hover:text-white">
-                    Về chúng tôi
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/contact" className="hover:text-white">
-                    Liên hệ
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/privacy" className="hover:text-white">
-                    Chính sách bảo mật
-                  </Link>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-lg font-semibold mb-4">Liên hệ</h4>
-              <div className="space-y-2 text-gray-400">
-                <p>📞 1900-1234</p>
-                <p>✉️ info@bloodconnect.vn</p>
-                <p>📍 123 Đường ABC, Quận 1, TP.HCM</p>
-              </div>
-            </div>
-          </div>
-          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 BloodConnect. Tất cả quyền được bảo lưu.</p>
-          </div>
-        </div>
-      </footer>
+      <Footer />
+
+      <style jsx>{`
+        @keyframes progress {
+          from { width: 0%; }
+          to { width: 100%; }
+        }
+      `}</style>
     </div>
   )
 }

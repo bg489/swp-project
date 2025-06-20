@@ -1,6 +1,4 @@
 "use client"
-
-import { useState } from "react"
 import { ProtectedRoute } from "@/components/auth/protected-route"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -25,17 +23,15 @@ import {
   Home,
 } from "lucide-react"
 import Link from "next/link"
-import { getCurrentUser, logout, setCurrentUser } from "@/lib/auth"
-import { useRouter } from "next/navigation"
+import Image from "next/image"
+import { useAuth } from "@/contexts/auth-context"
+import { Footer } from "@/components/footer"
 
 export default function AdminDashboard() {
-  const router = useRouter()
-  const [currentUser, setCurrentUserState] = useState(getCurrentUser())
+  const { user, logout } = useAuth()
 
-  const handleLogout = async () => {
-    await logout()
-    setCurrentUser(null)
-    router.push("/")
+  const handleLogout = () => {
+    logout()
   }
 
   // Mock admin data
@@ -143,18 +139,24 @@ export default function AdminDashboard() {
 
   return (
     <ProtectedRoute requiredRole="admin">
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50 flex flex-col">
         {/* Admin Header */}
         <header className="bg-white border-b sticky top-0 z-50">
           <div className="container mx-auto px-4 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
                 <Link href="/" className="flex items-center space-x-2">
-                  <div className="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center">
-                    <Heart className="w-6 h-6 text-white" />
+                  <div className="w-10 h-10 rounded-full overflow-hidden">
+                    <Image
+                      src="/images/logo.webp"
+                      alt="ScαrletBlood Logo"
+                      width={40}
+                      height={40}
+                      className="w-full h-full object-cover"
+                    />
                   </div>
                   <div>
-                    <h1 className="text-xl font-bold text-gray-900">BloodConnect Admin</h1>
+                    <h1 className="text-xl font-bold text-gray-900">ScαrletBlood Admin</h1>
                     <p className="text-sm text-gray-600">Bảng điều khiển quản trị</p>
                   </div>
                 </Link>
@@ -166,7 +168,7 @@ export default function AdminDashboard() {
 
               <div className="flex items-center space-x-4">
                 <span className="text-sm text-gray-600">
-                  Xin chào, <strong>{currentUser?.name}</strong>
+                  Xin chào, <strong>{user?.name}</strong>
                 </span>
                 <Button variant="outline" size="sm" asChild>
                   <Link href="/">
@@ -183,7 +185,7 @@ export default function AdminDashboard() {
           </div>
         </header>
 
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto px-4 py-8 flex-grow">
           {/* Admin Stats Overview */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <Card>
@@ -461,6 +463,8 @@ export default function AdminDashboard() {
             </TabsContent>
           </Tabs>
         </div>
+
+        <Footer />
       </div>
     </ProtectedRoute>
   )

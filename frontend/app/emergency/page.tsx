@@ -10,8 +10,9 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
-import { AlertTriangle, Phone, Clock, MapPin, Heart, Droplets, User, Hospital } from "lucide-react"
-import Link from "next/link"
+import { AlertTriangle, Phone, Clock, MapPin, Droplets, User, Hospital } from "lucide-react"
+import { Header } from "@/components/header"
+import { Footer } from "@/components/footer"
 
 export default function EmergencyPage() {
   const [formData, setFormData] = useState({
@@ -91,31 +92,7 @@ export default function EmergencyPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-red-50 to-white">
-      {/* Header */}
-      <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <Link href="/" className="flex items-center space-x-2">
-              <div className="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center">
-                <Heart className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">BloodConnect</h1>
-                <p className="text-sm text-gray-600">Yêu cầu khẩn cấp</p>
-              </div>
-            </Link>
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2 text-red-600">
-                <Phone className="w-4 h-4" />
-                <span className="font-semibold">Hotline: 1900-1234</span>
-              </div>
-              <Button variant="outline" asChild>
-                <Link href="/">← Về trang chủ</Link>
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <Header />
 
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto">
@@ -131,6 +108,10 @@ export default function EmergencyPage() {
               Hệ thống xử lý yêu cầu máu khẩn cấp 24/7. Chúng tôi sẽ kết nối với người hiến máu phù hợp trong thời gian
               nhanh nhất.
             </p>
+            <div className="flex items-center justify-center space-x-2 mt-4 text-red-600">
+              <Phone className="w-4 h-4" />
+              <span className="font-semibold">Hotline: 1900-1234</span>
+            </div>
           </div>
 
           <div className="grid lg:grid-cols-3 gap-8">
@@ -383,6 +364,8 @@ export default function EmergencyPage() {
           </div>
         </div>
       </div>
+
+      <Footer />
     </div>
   )
 }

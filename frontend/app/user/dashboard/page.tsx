@@ -1,6 +1,4 @@
 "use client"
-
-import { useState } from "react"
 import { ProtectedRoute } from "@/components/auth/protected-route"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -25,25 +23,22 @@ import {
   Home,
 } from "lucide-react"
 import Link from "next/link"
-import { getCurrentUser, logout, setCurrentUser } from "@/lib/auth"
-import { useRouter } from "next/navigation"
+import { useAuth } from "@/contexts/auth-context"
+import { Footer } from "@/components/footer"
 
 export default function UserDashboard() {
-  const router = useRouter()
-  const [currentUser, setCurrentUserState] = useState(getCurrentUser())
+  const { user, logout } = useAuth()
 
-  const handleLogout = async () => {
-    await logout()
-    setCurrentUser(null)
-    router.push("/")
+  const handleLogout = () => {
+    logout()
   }
 
   // Mock user data
   const userStats = {
-    totalDonations: currentUser?.totalDonations || 5,
+    totalDonations: user?.totalDonations || 5,
     nextEligibleDate: "2024-12-15",
-    bloodType: currentUser?.bloodType || "O+",
-    lastDonation: currentUser?.lastDonation || "2024-09-15",
+    bloodType: user?.bloodType || "O+",
+    lastDonation: user?.lastDonation || "2024-09-15",
     points: 250,
     level: "Người hùng Bạc",
     daysUntilNext: 45,
@@ -193,7 +188,7 @@ export default function UserDashboard() {
 
   return (
     <ProtectedRoute requiredRole="user">
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50 flex flex-col">
         {/* User Header */}
         <header className="bg-white border-b sticky top-0 z-50">
           <div className="container mx-auto px-4 py-4">
@@ -216,7 +211,7 @@ export default function UserDashboard() {
 
               <div className="flex items-center space-x-4">
                 <span className="text-sm text-gray-600">
-                  Xin chào, <strong>{currentUser?.name}</strong>
+                  Xin chào, <strong>{user?.name}</strong>
                 </span>
                 <Button variant="outline" size="sm" asChild>
                   <Link href="/">
@@ -233,7 +228,7 @@ export default function UserDashboard() {
           </div>
         </header>
 
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto px-4 py-8 flex-grow">
           {/* User Stats Overview */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <Card>
@@ -538,19 +533,19 @@ export default function UserDashboard() {
                         <div className="space-y-3">
                           <div>
                             <label className="text-sm text-gray-600">Họ và tên</label>
-                            <p className="font-medium">{currentUser?.name}</p>
+                            <p className="font-medium">{user?.name}</p>
                           </div>
                           <div>
                             <label className="text-sm text-gray-600">Email</label>
-                            <p className="font-medium">{currentUser?.email}</p>
+                            <p className="font-medium">{user?.email}</p>
                           </div>
                           <div>
                             <label className="text-sm text-gray-600">Số điện thoại</label>
-                            <p className="font-medium">{currentUser?.phone}</p>
+                            <p className="font-medium">{user?.phone}</p>
                           </div>
                           <div>
                             <label className="text-sm text-gray-600">Địa chỉ</label>
-                            <p className="font-medium">{currentUser?.address}</p>
+                            <p className="font-medium">{user?.address}</p>
                           </div>
                         </div>
                       </div>
@@ -559,15 +554,15 @@ export default function UserDashboard() {
                         <div className="space-y-3">
                           <div>
                             <label className="text-sm text-gray-600">Nhóm máu</label>
-                            <p className="font-medium text-red-600">{currentUser?.bloodType}</p>
+                            <p className="font-medium text-red-600">{user?.bloodType}</p>
                           </div>
                           <div>
                             <label className="text-sm text-gray-600">Lần hiến cuối</label>
-                            <p className="font-medium">{currentUser?.lastDonation}</p>
+                            <p className="font-medium">{user?.lastDonation}</p>
                           </div>
                           <div>
                             <label className="text-sm text-gray-600">Tổng lần hiến</label>
-                            <p className="font-medium">{currentUser?.totalDonations} lần</p>
+                            <p className="font-medium">{user?.totalDonations} lần</p>
                           </div>
                         </div>
                       </div>
@@ -588,6 +583,8 @@ export default function UserDashboard() {
             </TabsContent>
           </Tabs>
         </div>
+
+        <Footer />
       </div>
     </ProtectedRoute>
   )

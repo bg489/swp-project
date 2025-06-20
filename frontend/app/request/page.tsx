@@ -8,8 +8,9 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Heart, MapPin, Phone, Clock, Droplets, Search, Filter, User, Star } from "lucide-react"
-import Link from "next/link"
+import { MapPin, Phone, Clock, Droplets, Search, Filter, User, Star } from "lucide-react"
+import { Header } from "@/components/header"
+import { Footer } from "@/components/footer"
 
 export default function RequestPage() {
   const [searchFilters, setSearchFilters] = useState({
@@ -130,35 +131,15 @@ export default function RequestPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-red-50 to-white">
-      {/* Header */}
-      <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <Link href="/" className="flex items-center space-x-2">
-              <div className="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center">
-                <Heart className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">BloodConnect</h1>
-                <p className="text-sm text-gray-600">Tìm người hiến máu</p>
-              </div>
-            </Link>
-            <div className="flex items-center space-x-4">
-              <Button variant="outline" asChild>
-                <Link href="/emergency">Yêu cầu khẩn cấp</Link>
-              </Button>
-              <Button variant="outline" asChild>
-                <Link href="/">← Về trang chủ</Link>
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <Header />
 
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto">
           {/* Hero Section */}
           <div className="text-center mb-8">
+            <div className="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Search className="w-8 h-8 text-white" />
+            </div>
             <Badge className="mb-4 bg-blue-100 text-blue-800">🔍 Tìm kiếm người hiến máu phù hợp</Badge>
             <h1 className="text-4xl font-bold text-gray-900 mb-4">Tìm người hiến máu</h1>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
@@ -474,6 +455,8 @@ export default function RequestPage() {
           </Tabs>
         </div>
       </div>
+
+      <Footer />
     </div>
   )
 }

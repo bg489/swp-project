@@ -8,9 +8,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Heart, Mail, Lock, AlertCircle, Eye, EyeOff } from "lucide-react"
-import { setCurrentUser } from "@/lib/auth"
+import { AlertCircle, Eye, EyeOff, Mail, Lock } from "lucide-react"
+import { useAuth } from "@/contexts/auth-context"
 import { useRouter } from "next/navigation"
+import Image from "next/image"
 
 interface LoginFormProps {
   onSuccess?: () => void
@@ -26,6 +27,7 @@ export function LoginForm({ onSuccess, redirectTo }: LoginFormProps) {
   const [error, setError] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const router = useRouter()
+  const { setUser } = useAuth()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -45,7 +47,7 @@ export function LoginForm({ onSuccess, redirectTo }: LoginFormProps) {
       const result = await response.json()
 
       if (result.success && result.user) {
-        setCurrentUser(result.user)
+        setUser(result.user)
         if (onSuccess) {
           onSuccess()
         } else {
@@ -65,12 +67,18 @@ export function LoginForm({ onSuccess, redirectTo }: LoginFormProps) {
   return (
     <Card className="w-full max-w-md mx-auto shadow-lg">
       <CardHeader className="text-center space-y-4">
-        <div className="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center mx-auto">
-          <Heart className="w-8 h-8 text-white" />
+        <div className="w-16 h-16 rounded-full overflow-hidden mx-auto">
+          <Image
+            src="/images/logo.webp"
+            alt="ScαrletBlood Logo"
+            width={64}
+            height={64}
+            className="w-full h-full object-cover"
+          />
         </div>
         <div>
           <CardTitle className="text-2xl font-bold">Đăng nhập</CardTitle>
-          <CardDescription className="text-gray-600">Đăng nhập vào hệ thống BloodConnect</CardDescription>
+          <CardDescription className="text-gray-600">Đăng nhập vào hệ thống ScαrletBlood</CardDescription>
         </div>
       </CardHeader>
       <CardContent>
@@ -89,7 +97,7 @@ export function LoginForm({ onSuccess, redirectTo }: LoginFormProps) {
               <Input
                 id="email"
                 type="email"
-                placeholder="admin@bloodconnect.vn"
+                placeholder="admin@scarletblood.vn"
                 value={formData.email}
                 onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
                 className="pl-10"
@@ -137,7 +145,7 @@ export function LoginForm({ onSuccess, redirectTo }: LoginFormProps) {
           <h4 className="font-semibold mb-2 text-gray-800">Tài khoản demo:</h4>
           <div className="text-sm space-y-1">
             <p className="text-gray-600">
-              <strong>Admin:</strong> admin@bloodconnect.vn / 123456
+              <strong>Admin:</strong> admin@scarletblood.vn / 123456
             </p>
             <p className="text-gray-600">
               <strong>User:</strong> user@example.com / 123456

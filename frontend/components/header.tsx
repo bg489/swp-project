@@ -1,8 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,136 +9,215 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Heart, LogOut, LayoutDashboard, Shield } from "lucide-react"
+import { Heart, LogOut, LayoutDashboard, Shield, Menu, X } from "lucide-react"
 import Link from "next/link"
-import { getCurrentUser, logout, setCurrentUser, type User } from "@/lib/auth"
-import { useRouter } from "next/navigation"
+import Image from "next/image"
+import { usePathname } from "next/navigation"
+import { useAuth } from "@/contexts/auth-context"
 
 export function Header() {
-  const [currentUser, setCurrentUserState] = useState<User | null>(null)
-  const router = useRouter()
+  const { user, logout } = useAuth()
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const pathname = usePathname()
 
-  useEffect(() => {
-    setCurrentUserState(getCurrentUser())
-  }, [])
-
-  const handleLogout = async () => {
-    await logout()
-    setCurrentUser(null)
-    setCurrentUserState(null)
-    router.push("/")
+  const handleLogout = () => {
+    logout()
   }
 
   const getDashboardLink = () => {
-    if (!currentUser) return "/"
-    return currentUser.role === "admin" ? "/admin/dashboard" : "/user/dashboard"
+    if (!user) return "/"
+    return user.role === "admin" ? "/admin/dashboard" : "/user/dashboard"
   }
 
   const getDashboardLabel = () => {
-    if (!currentUser) return "Dashboard"
-    return currentUser.role === "admin" ? "Quản trị" : "Dashboard"
+    if (!user) return "Dashboard"
+    return user.role === "admin" ? "Quản trị" : "Dashboard"
+  }
+
+  const navigationItems = [
+    { href: "/", label: "Trang chủ" },
+    { href: "/donate", label: "Hiến máu" },
+    { href: "/request", label: "Cần máu" },
+    { href: "/emergency", label: "Khẩn cấp" },
+    { href: "/blog", label: "Blog" },
+  ]
+
+  const isActivePath = (href: string) => {
+    if (href === "/") {
+      return pathname === "/"
+    }
+    return pathname.startsWith(href)
   }
 
   return (
-    <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
-      <div className="container mx-auto px-4 py-4">
+    <header className="border-b bg-white/95 backdrop-blur-sm sticky top-0 z-50">
+      <div className="container mx-auto px-4 py-3">
         <div className="flex items-center justify-between">
-          <Link href="/" className="flex items-center space-x-2">
-            <div className="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center overflow-hidden">
-              <img src="/images/meo.png" alt="Meo Logo" className="w-full h-full object-cover" />
+          {/* Logo - Compact */}
+          <Link href="/" className="flex items-center space-x-2 group">
+            <div className="w-8 h-8 rounded-full overflow-hidden group-hover:scale-110 transition-transform duration-200">
+              <Image
+                src="/images/logo.webp"
+                alt="ScαrletBlood Logo"
+                width={32}
+                height={32}
+                className="w-full h-full object-cover"
+              />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-gray-900">ScαrletBlood    </h1>
-              <p className="text-sm text-gray-600">Trung tâm Hiến máu Nhân đạo</p>
+              <h1 className="text-lg font-bold text-gray-900 group-hover:text-red-600 transition-colors duration-200">
+                ScαrletBlood
+              </h1>
             </div>
           </Link>
 
-          <nav className="hidden md:flex items-center space-x-6">
-            <Link href="/" className="text-gray-700 hover:text-red-600 transition-colors">
-              Trang chủ
-            </Link>
-            <Link href="/donate" className="text-gray-700 hover:text-red-600 transition-colors">
-              Hiến máu
-            </Link>
-            <Link href="/request" className="text-gray-700 hover:text-red-600 transition-colors">
-              Cần máu
-            </Link>
-            <Link href="/emergency" className="text-gray-700 hover:text-red-600 transition-colors">
-              Khẩn cấp
-            </Link>
-            <Link href="/blog" className="text-gray-700 hover:text-red-600 transition-colors">
-              Blog
-            </Link>
+          {/* Desktop Navigation - Compact */}
+          <nav className="hidden md:flex items-center space-x-1">
+            {navigationItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`
+                  px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200
+                  ${
+                    isActivePath(item.href)
+                      ? "bg-red-600 text-white shadow-sm"
+                      : "text-gray-700 hover:text-red-600 hover:bg-red-50"
+                  }
+                `}
+              >
+                {item.label}
+              </Link>
+            ))}
           </nav>
 
-          <div className="flex items-center space-x-2">
-            {currentUser ? (
-              <>
-                {/* User Menu */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="flex items-center space-x-2">
-                      <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
-                        <Heart className="w-4 h-4 text-red-600" />
-                      </div>
-                      <div className="hidden sm:block text-left">
-                        <p className="text-sm font-medium">{currentUser.name}</p>
-                        <div className="flex items-center space-x-1">
-                          <Badge
-                            variant="outline"
-                            className={
-                              currentUser.role === "admin"
-                                ? "text-purple-600 border-purple-200"
-                                : "text-blue-600 border-blue-200"
-                            }
-                          >
-                            {currentUser.role === "admin" ? "Quản trị viên" : "Người hiến máu"}
-                          </Badge>
-                          {currentUser.bloodType && (
-                            <Badge variant="outline" className="text-red-600 border-red-200">
-                              {currentUser.bloodType}
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56">
-                    <div className="px-2 py-1.5">
-                      <p className="text-sm font-medium">{currentUser.name}</p>
-                      <p className="text-xs text-gray-500">{currentUser.email}</p>
+          {/* Mobile Menu Button */}
+          <button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors duration-200"
+          >
+            {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
+
+          {/* User Menu - Compact */}
+          <div className="hidden md:flex items-center space-x-2">
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="flex items-center space-x-2 h-9">
+                    <div className="w-7 h-7 bg-red-600 rounded-full flex items-center justify-center">
+                      <Heart className="w-4 h-4 text-white" />
                     </div>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild>
-                      <Link href={getDashboardLink()}>
-                        {currentUser.role === "admin" ? (
-                          <Shield className="w-4 h-4 mr-2" />
-                        ) : (
-                          <LayoutDashboard className="w-4 h-4 mr-2" />
-                        )}
-                        {getDashboardLabel()}
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={handleLogout} className="text-red-600">
-                      <LogOut className="w-4 h-4 mr-2" />
-                      Đăng xuất
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </>
+                    <span className="text-sm font-medium">{user.name}</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <div className="px-3 py-2">
+                    <p className="text-sm font-medium">{user.name}</p>
+                    <p className="text-xs text-gray-500">{user.email}</p>
+                  </div>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href={getDashboardLink()}>
+                      {user.role === "admin" ? (
+                        <Shield className="w-4 h-4 mr-2" />
+                      ) : (
+                        <LayoutDashboard className="w-4 h-4 mr-2" />
+                      )}
+                      {getDashboardLabel()}
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleLogout} className="text-red-600">
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Đăng xuất
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             ) : (
               <>
-                <Button variant="outline" asChild>
+                <Button variant="outline" size="sm" asChild>
                   <Link href="/login">Đăng nhập</Link>
                 </Button>
-                <Button asChild className="bg-red-600 hover:bg-red-700">
+                <Button size="sm" asChild className="bg-red-600 hover:bg-red-700">
                   <Link href="/register">Đăng ký</Link>
                 </Button>
               </>
             )}
           </div>
         </div>
+
+        {/* Mobile Navigation Menu */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden mt-3 pb-3 border-t border-gray-200">
+            <div className="pt-3 space-y-1">
+              {navigationItems.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={`
+                    block px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200
+                    ${
+                      isActivePath(item.href)
+                        ? "bg-red-600 text-white"
+                        : "text-gray-700 hover:text-red-600 hover:bg-red-50"
+                    }
+                  `}
+                >
+                  {item.label}
+                </Link>
+              ))}
+
+              {/* Mobile User Actions */}
+              <div className="pt-3 border-t border-gray-200 space-y-1">
+                {user ? (
+                  <>
+                    <div className="px-3 py-2 bg-gray-50 rounded-lg">
+                      <p className="text-sm font-medium">{user.name}</p>
+                      <p className="text-xs text-gray-500">{user.email}</p>
+                    </div>
+                    <Link
+                      href={getDashboardLink()}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="flex items-center px-3 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg"
+                    >
+                      <LayoutDashboard className="w-4 h-4 mr-2" />
+                      {getDashboardLabel()}
+                    </Link>
+                    <button
+                      onClick={() => {
+                        handleLogout()
+                        setIsMobileMenuOpen(false)
+                      }}
+                      className="flex items-center px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg w-full text-left"
+                    >
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Đăng xuất
+                    </button>
+                  </>
+                ) : (
+                  <div className="space-y-1">
+                    <Link
+                      href="/login"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="block px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg"
+                    >
+                      Đăng nhập
+                    </Link>
+                    <Link
+                      href="/register"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="block px-3 py-2 text-sm font-medium text-white bg-red-600 rounded-lg"
+                    >
+                      Đăng ký
+                    </Link>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </header>
   )

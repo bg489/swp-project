@@ -151,7 +151,8 @@ export const setCurrentUser = (user: User | null): void => {
 
 export const getAllUsers = async (): Promise<User[]> => {
   try {
-    const users = await db.getAllUsers()
+    // This would be an admin-only function
+    const users = (await db.users) || []
     return users.map(formatUser)
   } catch (error) {
     console.error("Get all users error:", error)
