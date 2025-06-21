@@ -101,8 +101,14 @@ export default function AboutPage() {
         <div className="max-w-6xl mx-auto">
           {/* Hero Section */}
           <div className="text-center mb-16">
-            <div className="w-20 h-20 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Heart className="w-10 h-10 text-white" />
+            <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg border-2 border-red-100">
+              <Image
+                src="/images/logo.webp"
+                alt="ScαrletBlood Logo"
+                width={60}
+                height={60}
+                className="w-15 h-15 object-contain"
+              />
             </div>
             <Badge className="mb-4 bg-red-100 text-red-800">❤️ Kết nối trái tim - Cứu sống sinh mạng</Badge>
             <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">Về chúng tôi</h1>
@@ -253,7 +259,7 @@ export default function AboutPage() {
           {/* Contact Section */}
           <Card className="bg-gradient-to-r from-red-500 to-red-600 text-white">
             <CardContent className="p-8 text-center">
-              <div className="w-16 h-16 mx-auto mb-6 rounded-full overflow-hidden bg-white/20">
+              <div className="w-16 h-16 mx-auto mb-6 rounded-full overflow-hidden bg-white">
                 <Image
                   src="/images/logo.webp"
                   alt="ScαrletBlood Logo"
