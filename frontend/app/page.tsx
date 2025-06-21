@@ -1,10 +1,26 @@
 "use client"
 
+import type React from "react"
+
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Heart, Users, MapPin, Clock, Shield, Activity, Phone, Mail, Calendar, CheckCircle, X } from "lucide-react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import {
+  Heart,
+  Users,
+  MapPin,
+  Clock,
+  Shield,
+  Activity,
+  Phone,
+  Mail,
+  Calendar,
+  CheckCircle,
+  X,
+  Send,
+} from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { Header } from "@/components/header"
@@ -15,6 +31,17 @@ import { useSearchParams } from "next/navigation"
 export default function HomePage() {
   const { user } = useAuth()
   const [showLoginAlert, setShowLoginAlert] = useState(false)
+  const [contactForm, setContactForm] = useState({
+    name: "",
+    email: "",
+    message: "",
+  })
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitStatus, setSubmitStatus] = useState<{
+    type: "success" | "error" | null
+    message: string
+  }>({ type: null, message: "" })
+
   const searchParams = useSearchParams()
   const loginSuccess = searchParams.get("login") === "success"
 
@@ -30,6 +57,63 @@ export default function HomePage() {
       return () => clearTimeout(timer)
     }
   }, [loginSuccess])
+
+  const handleContactSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsSubmitting(true)
+    setSubmitStatus({ type: null, message: "" })
+
+    // Validate form
+    if (!contactForm.name.trim() || !contactForm.email.trim() || !contactForm.message.trim()) {
+      setSubmitStatus({
+        type: "error",
+        message: "Vui lòng điền đầy đủ thông tin",
+      })
+      setIsSubmitting(false)
+      return
+    }
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(contactForm.email)) {
+      setSubmitStatus({
+        type: "error",
+        message: "Email không hợp lệ",
+      })
+      setIsSubmitting(false)
+      return
+    }
+
+    try {
+      // Simulate API call
+      await new Promise((resolve) => setTimeout(resolve, 1500))
+
+      // Success
+      setSubmitStatus({
+        type: "success",
+        message: "Cảm ơn bạn đã liên hệ! Chúng tôi sẽ phản hồi trong vòng 24 giờ.",
+      })
+
+      // Reset form
+      setContactForm({
+        name: "",
+        email: "",
+        message: "",
+      })
+
+      // Auto hide success message after 5 seconds
+      setTimeout(() => {
+        setSubmitStatus({ type: null, message: "" })
+      }, 5000)
+    } catch (error) {
+      setSubmitStatus({
+        type: "error",
+        message: "Đã xảy ra lỗi. Vui lòng thử lại sau.",
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
   const bloodTypes = [
     { type: "O-", compatibility: "Người hiến vạn năng", color: "bg-red-500" },
@@ -431,43 +515,92 @@ export default function HomePage() {
               <div className="space-y-4">
                 <div className="flex items-center space-x-3">
                   <Phone className="w-5 h-5 text-red-600" />
-                  <span>Hotline: 1900-1234 (24/7)</span>
+                  <span className="text-gray-700">Hotline: 1900-1234 (24/7)</span>
                 </div>
                 <div className="flex items-center space-x-3">
                   <Mail className="w-5 h-5 text-red-600" />
-                  <span>Email: admin@scarletblood.vn</span>
+                  <span className="text-gray-700">Email: info@scarletblood.vn</span>
                 </div>
                 <div className="flex items-center space-x-3">
                   <MapPin className="w-5 h-5 text-red-600" />
-                  <span>123 Đường ABC, Quận 1, TP.HCM</span>
+                  <span className="text-gray-700">123 Đường ABC, Quận 1, TP.HCM</span>
                 </div>
               </div>
             </div>
-            <div className="bg-white rounded-lg p-8 shadow-lg">
+            <div className="bg-white rounded-lg p-8 shadow-lg border border-gray-200">
               <h3 className="text-2xl font-bold text-gray-900 mb-6">Gửi tin nhắn</h3>
-              <form className="space-y-4">
+
+              {/* Status Messages */}
+              {submitStatus.type && (
+                <Alert
+                  className={`mb-4 ${submitStatus.type === "success" ? "border-green-200 bg-green-50" : "border-red-200 bg-red-50"}`}
+                >
+                  <div className="flex items-center">
+                    {submitStatus.type === "success" ? (
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                    ) : (
+                      <X className="h-4 w-4 text-red-600" />
+                    )}
+                    <AlertDescription
+                      className={`ml-2 ${submitStatus.type === "success" ? "text-green-800" : "text-red-800"}`}
+                    >
+                      {submitStatus.message}
+                    </AlertDescription>
+                  </div>
+                </Alert>
+              )}
+
+              <form onSubmit={handleContactSubmit} className="space-y-4">
                 <div>
+                  <label className="form-label">Họ và tên</label>
                   <input
                     type="text"
-                    placeholder="Họ và tên"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    placeholder="Nhập họ và tên của bạn"
+                    value={contactForm.name}
+                    onChange={(e) => setContactForm((prev) => ({ ...prev, name: e.target.value }))}
+                    className="form-input"
+                    disabled={isSubmitting}
                   />
                 </div>
                 <div>
+                  <label className="form-label">Email</label>
                   <input
                     type="email"
-                    placeholder="Email"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    placeholder="Nhập địa chỉ email của bạn"
+                    value={contactForm.email}
+                    onChange={(e) => setContactForm((prev) => ({ ...prev, email: e.target.value }))}
+                    className="form-input"
+                    disabled={isSubmitting}
                   />
                 </div>
                 <div>
+                  <label className="form-label">Tin nhắn</label>
                   <textarea
-                    placeholder="Tin nhắn"
+                    placeholder="Nhập nội dung tin nhắn..."
                     rows={4}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    value={contactForm.message}
+                    onChange={(e) => setContactForm((prev) => ({ ...prev, message: e.target.value }))}
+                    className="form-textarea"
+                    disabled={isSubmitting}
                   />
                 </div>
-                <Button className="w-full bg-red-600 hover:bg-red-700">Gửi tin nhắn</Button>
+                <Button
+                  type="submit"
+                  className="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-3"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <div className="flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Đang gửi...
+                    </div>
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4 mr-2" />
+                      Gửi tin nhắn
+                    </>
+                  )}
+                </Button>
               </form>
             </div>
           </div>

@@ -49,6 +49,10 @@ export function Header() {
     return pathname.startsWith(href)
   }
 
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" })
+  }
+
   return (
     <header className="border-b bg-white/95 backdrop-blur-sm sticky top-0 z-50">
       <div className="container mx-auto px-4 py-3">
@@ -77,6 +81,7 @@ export function Header() {
               <Link
                 key={item.href}
                 href={item.href}
+                onClick={scrollToTop}
                 className={`
                   px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200
                   ${
@@ -155,7 +160,10 @@ export function Header() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  onClick={() => setIsMobileMenuOpen(false)}
+                  onClick={() => {
+                    setIsMobileMenuOpen(false)
+                    scrollToTop()
+                  }}
                   className={`
                     block px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200
                     ${
@@ -179,7 +187,10 @@ export function Header() {
                     </div>
                     <Link
                       href={getDashboardLink()}
-                      onClick={() => setIsMobileMenuOpen(false)}
+                      onClick={() => {
+                        setIsMobileMenuOpen(false)
+                        scrollToTop()
+                      }}
                       className="flex items-center px-3 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg"
                     >
                       <LayoutDashboard className="w-4 h-4 mr-2" />
@@ -200,14 +211,20 @@ export function Header() {
                   <div className="space-y-1">
                     <Link
                       href="/login"
-                      onClick={() => setIsMobileMenuOpen(false)}
+                      onClick={() => {
+                        setIsMobileMenuOpen(false)
+                        scrollToTop()
+                      }}
                       className="block px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg"
                     >
                       Đăng nhập
                     </Link>
                     <Link
                       href="/register"
-                      onClick={() => setIsMobileMenuOpen(false)}
+                      onClick={() => {
+                        setIsMobileMenuOpen(false)
+                        scrollToTop()
+                      }}
                       className="block px-3 py-2 text-sm font-medium text-white bg-red-600 rounded-lg"
                     >
                       Đăng ký
