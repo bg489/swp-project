@@ -515,19 +515,19 @@ export default function HomePage() {
               <div className="space-y-4">
                 <div className="flex items-center space-x-3">
                   <Phone className="w-5 h-5 text-red-600" />
-                  <span className="text-gray-700">Hotline: 1900-1234 (24/7)</span>
+                  <span>Hotline: 1900-1234 (24/7)</span>
                 </div>
                 <div className="flex items-center space-x-3">
                   <Mail className="w-5 h-5 text-red-600" />
-                  <span className="text-gray-700">Email: info@scarletblood.vn</span>
+                  <span>Email: info@scarletblood.vn</span>
                 </div>
                 <div className="flex items-center space-x-3">
                   <MapPin className="w-5 h-5 text-red-600" />
-                  <span className="text-gray-700">123 Đường ABC, Quận 1, TP.HCM</span>
+                  <span>123 Đường ABC, Quận 1, TP.HCM</span>
                 </div>
               </div>
             </div>
-            <div className="bg-white rounded-lg p-8 shadow-lg border border-gray-200">
+            <div className="bg-white rounded-lg p-8 shadow-lg">
               <h3 className="text-2xl font-bold text-gray-900 mb-6">Gửi tin nhắn</h3>
 
               {/* Status Messages */}
@@ -552,45 +552,38 @@ export default function HomePage() {
 
               <form onSubmit={handleContactSubmit} className="space-y-4">
                 <div>
-                  <label className="form-label">Họ và tên</label>
                   <input
                     type="text"
-                    placeholder="Nhập họ và tên của bạn"
+                    placeholder="Họ và tên"
                     value={contactForm.name}
                     onChange={(e) => setContactForm((prev) => ({ ...prev, name: e.target.value }))}
-                    className="form-input"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
                     disabled={isSubmitting}
                   />
                 </div>
                 <div>
-                  <label className="form-label">Email</label>
                   <input
                     type="email"
-                    placeholder="Nhập địa chỉ email của bạn"
+                    placeholder="Email"
                     value={contactForm.email}
                     onChange={(e) => setContactForm((prev) => ({ ...prev, email: e.target.value }))}
-                    className="form-input"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
                     disabled={isSubmitting}
                   />
                 </div>
                 <div>
-                  <label className="form-label">Tin nhắn</label>
                   <textarea
-                    placeholder="Nhập nội dung tin nhắn..."
+                    placeholder="Tin nhắn"
                     rows={4}
                     value={contactForm.message}
                     onChange={(e) => setContactForm((prev) => ({ ...prev, message: e.target.value }))}
-                    className="form-textarea"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
                     disabled={isSubmitting}
                   />
                 </div>
-                <Button
-                  type="submit"
-                  className="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-3"
-                  disabled={isSubmitting}
-                >
+                <Button type="submit" className="w-full bg-red-600 hover:bg-red-700" disabled={isSubmitting}>
                   {isSubmitting ? (
-                    <div className="flex items-center justify-center">
+                    <div className="flex items-center">
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                       Đang gửi...
                     </div>
