@@ -13,13 +13,13 @@ const PORT = process.env.PORT || 5001;
 const __dirname = path.resolve();
 
 // middleware
-if (process.env.NODE_ENV !== "production") {
-  app.use(
-    cors({
-      origin: "http://localhost:3000",
-    })
-  );
-}
+app.use(
+  cors({
+    origin: "http://localhost:3000",
+    credentials: true, // nếu bạn sử dụng cookie hoặc auth
+  })
+);
+
 app.use(express.json()); // this middleware will parse JSON bodies: req.body
 
 // our simple custom middleware

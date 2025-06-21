@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "build": "npm install --prefix backend && npm install --prefix testfront && npm run build --prefix testfront && cp -r testfront/out backend/frontend",
+    "build": "npm install --prefix backend && npm install --legacy-peer-deps --prefix frontend && npm run build --prefix frontend && cp -r frontend/out backend/frontend",
     "start": "npm run start --prefix backend"
   },
   "keywords": [],
