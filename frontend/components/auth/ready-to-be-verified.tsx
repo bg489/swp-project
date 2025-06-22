@@ -37,7 +37,7 @@ export function ResetForm({ onSuccess, redirectTo }: LoginFormProps) {
       await api.post("/otp/send", {
         email: email
       })
-      router.push(`http://localhost:3000/register/otp?email=${email}`);
+      router.push(`/register/otp?email=${email}`);
     } catch (err) {
       setError("Đã xảy ra lỗi. Vui lòng thử lại. Vui lòng nhập đúng mật khẩu, tài khoản.")
     } finally {
