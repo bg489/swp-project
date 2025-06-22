@@ -313,7 +313,7 @@ export default function RegisterPage() {
 
                   <div className="space-y-2">
                     <ReCAPTCHA
-                      sitekey="6LdatWkrAAAAAOTz65rsnnGCft-lsiIf3uammOOK"
+                      sitekey="6Le19mkrAAAAAKWFaDg-rfWGbuBAGxpt5m5yoXDd"
                       onChange={(val: boolean | ((prevState: boolean) => boolean)) => setCapVal(val)}
                     />
                   </div>
