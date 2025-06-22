@@ -98,7 +98,7 @@ export default function RegisterPage() {
         api.post("/otp/send", {
           email: formData.email
         })
-        router.push(`http://localhost:3000/register/otp?email=${formData.email}`)
+        router.push(`/register/otp?email=${formData.email}`)
       } else {
         setError(result.message)
       }
