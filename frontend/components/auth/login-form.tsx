@@ -188,7 +188,13 @@ export function LoginForm({ onSuccess, redirectTo }: LoginFormProps) {
               <strong>Admin:</strong> admin@scarletblood.vn / 123456
             </p>
             <p className="text-gray-600">
-              <strong>User:</strong> user@example.com / 123456
+              <strong>Donor:</strong> donor@example.com / 123456
+            </p>
+            <p className="text-gray-600">
+              <strong>Recipient:</strong> recipient@example.com / 123456
+            </p>
+            <p className="text-gray-600">
+              <strong>Staff:</strong> staff@example.com / 123456
             </p>
           </div>
         </div>
