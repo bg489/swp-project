@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import toast from "react-hot-toast";
+import toast, { Toaster } from "react-hot-toast";
 
 import api from "../lib/axios";
 import { useEffect, useState } from "react"
@@ -49,6 +49,20 @@ export default function HomePage() {
   const searchParams = useSearchParams()
   const loginSuccess = searchParams.get("login") === "success"
 
+
+  const handleRole = (role: string) => {
+    if(role === "admin"){
+      return "Quản trị viên"
+    } else if(role === "donor"){
+      return "Người hiến máu"
+    } else if(role === "recipient"){
+      return "Người nhận máu"
+    } else if(role === "staff"){
+      return "Nhân viên"
+    } else {
+      return "Vô danh"
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
@@ -379,7 +393,7 @@ export default function HomePage() {
           <div className="container mx-auto">
             <div className="max-w-4xl mx-auto text-center">
               <h2 className="text-3xl font-bold text-gray-900 mb-6">
-                Chào mừng {user.role === "admin" ? "Quản trị viên" : "Người hiến máu"} {user.name}!
+                Chào mừng {handleRole(user.role)} {user.full_name}!
               </h2>
               <div className="grid md:grid-cols-3 gap-6">
                 <Card className="hover:shadow-lg transition-shadow">
@@ -395,10 +409,10 @@ export default function HomePage() {
                     ) : (
                       <div className="space-y-2">
                         <p className="text-gray-600">
-                          Nhóm máu: <strong>{user.bloodType}</strong>
+                          Nhóm máu: <strong>{user.role}</strong>
                         </p>
                         <p className="text-gray-600">
-                          Tổng lần hiến: <strong>{user.totalDonations || 0}</strong>
+                          Tổng lần hiến: <strong>{user.role || 0}</strong>
                         </p>
                       </div>
                     )}
@@ -607,7 +621,8 @@ export default function HomePage() {
                   <input
                     type="email"
                     placeholder="Email"
-                    value={contactForm.email}
+                    value={content}
+                    onChange={(e) => setContent(e.target.value)}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
                     disabled={isSubmitting}
                   />
@@ -648,6 +663,9 @@ export default function HomePage() {
           to { width: 100%; }
         }
       `}</style>
+      <Toaster position="top-center" containerStyle={{
+        top: 80,
+      }}/>
     </div>
   )
 }

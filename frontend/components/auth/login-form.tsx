@@ -12,6 +12,10 @@ import { AlertCircle, Eye, EyeOff, Mail, Lock } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
+import api from "../../lib/axios";
+import Link from "next/link"
+import toast, { Toaster } from "react-hot-toast"
+import ReCAPTCHA from "react-google-recaptcha"
 
 interface LoginFormProps {
   onSuccess?: () => void
@@ -23,11 +27,19 @@ export function LoginForm({ onSuccess, redirectTo }: LoginFormProps) {
     email: "",
     password: "",
   })
+  const [capVal, setCapVal] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const router = useRouter()
   const { setUser } = useAuth()
+
+  const handleResendOTP = async () => {
+    setIsLoading(true)
+    router.push("/login/otp")
+    setIsLoading(false)
+  }
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -36,29 +48,33 @@ export function LoginForm({ onSuccess, redirectTo }: LoginFormProps) {
 
     try {
       // Call API instead of direct function
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      })
+      const response = await api.post("/users/login", {
+          email: formData.email,
+          password: formData.password
+        });
 
-      const result = await response.json()
+      const result = await response.data
 
-      if (result.success && result.user) {
-        setUser(result.user)
+
+      if (result.message && result.user) {
+        console.log(result)
+        if(!result.user.user.is_verified){
+          setError("Tài khoản chưa được xác minh, Hãy xác minh tài khoản!");
+          return;
+        }
+        setUser(result.user.user)
+        toast.success("Chào mừng, " + result.user.user.full_name)
         if (onSuccess) {
-          onSuccess()
+          router.push(redirectTo || "/");
         } else {
           // Always redirect to home page after login
-          router.push(redirectTo || "/")
+          router.push(redirectTo || "/login")
         }
       } else {
         setError(result.message || "Đăng nhập thất bại")
       }
     } catch (err) {
-      setError("Đã xảy ra lỗi. Vui lòng thử lại.")
+      setError("Đã xảy ra lỗi. Vui lòng thử lại. Vui lòng nhập đúng mật khẩu, tài khoản.")
     } finally {
       setIsLoading(false)
     }
@@ -82,7 +98,7 @@ export function LoginForm({ onSuccess, redirectTo }: LoginFormProps) {
         </div>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4 mb-2">
           {error && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
@@ -129,7 +145,14 @@ export function LoginForm({ onSuccess, redirectTo }: LoginFormProps) {
             </div>
           </div>
 
-          <Button type="submit" className="w-full" disabled={isLoading}>
+          <div className="space-y-2">
+            <ReCAPTCHA
+              sitekey="6LdatWkrAAAAAOTz65rsnnGCft-lsiIf3uammOOK"
+              onChange={(val: boolean | ((prevState: boolean) => boolean)) => setCapVal(val)}
+            />
+          </div>
+
+          <Button type="submit" className="w-full" disabled={isLoading || !capVal}>
             {isLoading ? (
               <div className="flex items-center">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
@@ -140,6 +163,23 @@ export function LoginForm({ onSuccess, redirectTo }: LoginFormProps) {
             )}
           </Button>
         </form>
+        <div className="space-y-2">
+          <Button
+            type="button"
+            onClick={handleResendOTP}
+            disabled={isLoading}
+            className="w-full border border-red-500 bg-white text-red-500 hover:bg-red-50"
+          >
+            {isLoading ? (
+              <div className="flex items-center justify-center">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-500 mr-2"></div>
+                Đang chuẩn bị...
+              </div>
+            ) : (
+              "Xác minh tài khoản"
+            )}
+          </Button>
+        </div>
 
         <div className="mt-6 p-4 bg-gray-50 rounded-lg">
           <h4 className="font-semibold mb-2 text-gray-800">Tài khoản demo:</h4>
@@ -152,7 +192,19 @@ export function LoginForm({ onSuccess, redirectTo }: LoginFormProps) {
             </p>
           </div>
         </div>
+
+        <div className="text-center mt-6">
+          <p className="text-sm text-gray-600">
+            Bạn quên mật khẩu?{" "}
+            <Link href="/login/reset" className="text-red-600 hover:underline font-medium">
+              Lấy lại mật khẩu
+            </Link>
+          </p>
+        </div>
       </CardContent>
+      <Toaster position="top-center" containerStyle={{
+              top: 80,
+            }}/>
     </Card>
   )
 }

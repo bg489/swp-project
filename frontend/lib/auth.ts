@@ -1,18 +1,20 @@
 import { db } from "./database"
 
 export interface User {
-  id: string
+  _id: string
+  full_name: string
   email: string
-  name: string
-  role: "admin" | "user"
-  bloodType?: string
-  phone?: string
-  address?: string
-  lastDonation?: string
-  totalDonations?: number
-  isActive: boolean
-  createdAt: string
+  password_hash: string
+  role: "donor" | "recipient" | "staff" | "admin"
+  phone: string | null
+  date_of_birth: string | null // or Date if you're parsing it
+  address: string | null
+  is_active: boolean
+  createdAt: string // or Date if needed
+  updatedAt: string // or Date if needed
+  __v?: number // optional, Mongoose version key
 }
+
 
 export interface AuthState {
   user: User | null
@@ -43,17 +45,18 @@ const verifyPassword = async (password: string, hash: string): Promise<boolean> 
 
 // Convert database user to app user format
 const formatUser = (dbUser: any): User => ({
-  id: dbUser.id,
+  _id: dbUser._id,
+  full_name: dbUser.full_name,
   email: dbUser.email,
-  name: dbUser.name,
+  password_hash: dbUser.password_hash,
   role: dbUser.role,
-  bloodType: dbUser.blood_type,
-  phone: dbUser.phone,
-  address: dbUser.address,
-  lastDonation: dbUser.last_donation,
-  totalDonations: dbUser.total_donations,
-  isActive: dbUser.is_active,
-  createdAt: dbUser.created_at,
+  phone: dbUser.phone ?? null,
+  date_of_birth: dbUser.date_of_birth ?? null,
+  address: dbUser.address ?? null,
+  is_active: dbUser.is_active,
+  createdAt: dbUser.createdAt,
+  updatedAt: dbUser.updatedAt,
+  __v: dbUser.__v,
 })
 
 export const login = async (email: string, password: string): Promise<User | null> => {
@@ -141,7 +144,7 @@ export const setCurrentUser = (user: User | null): void => {
     if (user) {
       localStorage.setItem("currentUser", JSON.stringify(user))
       // In production, also set auth token
-      localStorage.setItem("authToken", `token_${user.id}`)
+      localStorage.setItem("authToken", `token_${user._id}`)
     } else {
       localStorage.removeItem("currentUser")
       localStorage.removeItem("authToken")

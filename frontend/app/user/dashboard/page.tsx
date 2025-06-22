@@ -35,10 +35,10 @@ export default function UserDashboard() {
 
   // Mock user data
   const userStats = {
-    totalDonations: user?.totalDonations || 5,
+    totalDonations: 5,
     nextEligibleDate: "2024-12-15",
-    bloodType: user?.bloodType || "O+",
-    lastDonation: user?.lastDonation || "2024-09-15",
+    bloodType: "O+",
+    lastDonation: "2024-09-15",
     points: 250,
     level: "Người hùng Bạc",
     daysUntilNext: 45,
@@ -211,7 +211,7 @@ export default function UserDashboard() {
 
               <div className="flex items-center space-x-4">
                 <span className="text-sm text-gray-600">
-                  Xin chào, <strong>{user?.name}</strong>
+                  Xin chào, <strong>{user?.full_name}</strong>
                 </span>
                 <Button variant="outline" size="sm" asChild>
                   <Link href="/">
@@ -533,7 +533,7 @@ export default function UserDashboard() {
                         <div className="space-y-3">
                           <div>
                             <label className="text-sm text-gray-600">Họ và tên</label>
-                            <p className="font-medium">{user?.name}</p>
+                            <p className="font-medium">{user?.full_name}</p>
                           </div>
                           <div>
                             <label className="text-sm text-gray-600">Email</label>
@@ -554,15 +554,15 @@ export default function UserDashboard() {
                         <div className="space-y-3">
                           <div>
                             <label className="text-sm text-gray-600">Nhóm máu</label>
-                            <p className="font-medium text-red-600">{user?.bloodType}</p>
+                            <p className="font-medium text-red-600">O+</p>
                           </div>
                           <div>
                             <label className="text-sm text-gray-600">Lần hiến cuối</label>
-                            <p className="font-medium">{user?.lastDonation}</p>
+                            <p className="font-medium">Chưa hiến</p>
                           </div>
                           <div>
                             <label className="text-sm text-gray-600">Tổng lần hiến</label>
-                            <p className="font-medium">{user?.totalDonations} lần</p>
+                            <p className="font-medium">5 lần</p>
                           </div>
                         </div>
                       </div>

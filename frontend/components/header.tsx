@@ -24,6 +24,20 @@ export function Header() {
     logout()
   }
 
+  const handleRole = (role: string) => {
+    if(role === "admin"){
+      return "Quản trị viên"
+    } else if(role === "donor"){
+      return "Người hiến máu"
+    } else if(role === "recipient"){
+      return "Người nhận máu"
+    } else if(role === "staff"){
+      return "Nhân viên"
+    } else {
+      return "Vô danh"
+    }
+  }
+
   const getDashboardLink = () => {
     if (!user) return "/"
     return user.role === "admin" ? "/admin/dashboard" : "/user/dashboard"
@@ -113,12 +127,12 @@ export function Header() {
                     <div className="w-7 h-7 bg-red-600 rounded-full flex items-center justify-center">
                       <Heart className="w-4 h-4 text-white" />
                     </div>
-                    <span className="text-sm font-medium">{user.name}</span>
+                    <span className="text-sm font-medium">{handleRole(user.role)}: {user.full_name}</span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
                   <div className="px-3 py-2">
-                    <p className="text-sm font-medium">{user.name}</p>
+                    <p className="text-sm font-medium">{user.full_name}</p>
                     <p className="text-xs text-gray-500">{user.email}</p>
                   </div>
                   <DropdownMenuSeparator />
@@ -182,7 +196,7 @@ export function Header() {
                 {user ? (
                   <>
                     <div className="px-3 py-2 bg-gray-50 rounded-lg">
-                      <p className="text-sm font-medium">{user.name}</p>
+                      <p className="text-sm font-medium">{user.full_name}</p>
                       <p className="text-xs text-gray-500">{user.email}</p>
                     </div>
                     <Link

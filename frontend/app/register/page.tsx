@@ -10,11 +10,13 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { User, Mail, Lock, Phone, MapPin, Droplets, AlertCircle, Eye, EyeOff, CheckCircle } from "lucide-react"
+import { User, Mail, Lock, Phone, MapPin, Droplets, AlertCircle, Eye, EyeOff, CheckCircle, Calendar } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
+import api from "../../lib/axios";
+import ReCAPTCHA from "react-google-recaptcha"
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -25,8 +27,12 @@ export default function RegisterPage() {
     phone: "",
     address: "",
     bloodType: "",
+    gender: "",
+    date_of_birth: "",
+    role: "",
     agreeTerms: false,
   })
+  const [capVal, setCapVal] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const [showPassword, setShowPassword] = useState(false)
@@ -61,26 +67,38 @@ export default function RegisterPage() {
 
     try {
       // Call API
-      const response = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          password: formData.password,
-          phone: formData.phone,
-          address: formData.address,
-          bloodType: formData.bloodType,
-        }),
+
+      const checkingEmail = await api.get("users/get-all-emails");
+
+      const emailToCheck = formData.email.toLowerCase();
+      const emailList = checkingEmail.data?.emails.map((e: string) => e.toLowerCase());
+
+      if (emailList.includes(emailToCheck)) {
+        setError("Email đã tồn tại.");
+        return;
+      }
+
+
+
+      const response = await api.post("/users/register", {
+        full_name: formData.name,
+        email: formData.email,
+        password: formData.password, // raw password (to be hashed)
+        role: formData.role,
+        phone: formData.phone,
+        gender: formData.gender,
+        date_of_birth: formData.date_of_birth,
+        address: formData.address,
       })
 
-      const result = await response.json()
+      const result = await response.data;
 
-      if (result.success) {
+      if (result.message) {
         // Redirect to login page with success message
-        router.push(`/login?message=${encodeURIComponent(result.message)}`)
+        api.post("/otp/send", {
+          email: formData.email
+        })
+        router.push(`http://localhost:3000/register/otp?email=${formData.email}`)
       } else {
         setError(result.message)
       }
@@ -219,6 +237,12 @@ export default function RegisterPage() {
                         <SelectValue placeholder="Chọn nhóm máu" />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem key="unknown" value="unknown">
+                            <div className="flex items-center">
+                              <Droplets className="w-4 h-4 mr-2 text-red-500" />
+                              Chưa biết
+                            </div>
+                        </SelectItem>
                         {bloodTypes.map((type) => (
                           <SelectItem key={type} value={type}>
                             <div className="flex items-center">
@@ -230,6 +254,71 @@ export default function RegisterPage() {
                       </SelectContent>
                     </Select>
                   </div>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="role">Vai trò *</Label>
+                    <Select
+                      value={formData.role}
+                      onValueChange={(value) => setFormData((prev) => ({ ...prev, role: value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Chọn vai trò" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="donor">Người hiến máu (Donor)</SelectItem>
+                        <SelectItem value="recipient">Người nhận máu (Recipient)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="gender">Giới tính *</Label>
+                    <Select
+                      value={formData.gender}
+                      onValueChange={(value) => setFormData((prev) => ({ ...prev, gender: value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Chọn giới tính" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {["male", "female", "other"].map((gender) => (
+                          <SelectItem key={gender} value={gender}>
+                            <div className="flex items-center capitalize">
+                              {gender === "male" ? "Nam" : gender === "female" ? "Nữ" : "Khác"}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="dob">Ngày sinh *</Label>
+                    <div className="relative">
+                      <Calendar className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                      <Input
+                        id="dob"
+                        type="date"
+                        value={formData.date_of_birth}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, date_of_birth: e.target.value }))}
+                        className="pl-10"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <ReCAPTCHA
+                      sitekey="6LdatWkrAAAAAOTz65rsnnGCft-lsiIf3uammOOK"
+                      onChange={(val: boolean | ((prevState: boolean) => boolean)) => setCapVal(val)}
+                    />
+                  </div>
+
+                  
                 </div>
 
                 <div className="space-y-2">
@@ -267,7 +356,7 @@ export default function RegisterPage() {
                   </Label>
                 </div>
 
-                <Button type="submit" className="w-full" disabled={isLoading}>
+                <Button type="submit" className="w-full" disabled={isLoading || !capVal}>
                   {isLoading ? (
                     <div className="flex items-center">
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
