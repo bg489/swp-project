@@ -53,6 +53,21 @@ class MockDatabase {
         created_at: "2024-03-15T00:00:00Z",
         updated_at: "2024-09-15T00:00:00Z",
       },
+      {
+        id: "3",
+        email: "staff@scarletblood.vn",
+        password_hash: "$2b$10$hash_for_123456",
+        name: "Staff",
+        phone: "0907654321",
+        address: "Trung tâm hiến máu",
+        blood_type: null,
+        role: "staff",
+        is_active: true,
+        last_donation: null,
+        total_donations: 0,
+        created_at: "2024-02-01T00:00:00Z",
+        updated_at: "2024-02-01T00:00:00Z",
+      },
     ]
 
     this.bloodInventory = [
@@ -64,6 +79,52 @@ class MockDatabase {
       { id: "6", blood_type: "B+", units_available: 89, units_reserved: 9 },
       { id: "7", blood_type: "AB-", units_available: 23, units_reserved: 2 },
       { id: "8", blood_type: "AB+", units_available: 67, units_reserved: 7 },
+    ]
+
+    // Add sample blood requests
+    this.bloodRequests = [
+      {
+        id: "REQ001",
+        patient_name: "Nguyễn Văn C",
+        hospital: "Bệnh viện Chợ Rẫy",
+        blood_type: "O-",
+        units_needed: 2,
+        urgency: "Khẩn cấp",
+        contact_phone: "0901111111",
+        doctor_name: "BS. Trần Văn D",
+        reason: "Phẫu thuật tim",
+        status: "pending",
+        created_at: "2024-12-24T08:00:00Z",
+        needed_by: "2024-12-24T14:00:00Z",
+      },
+      {
+        id: "REQ002",
+        patient_name: "Lê Thị E",
+        hospital: "Bệnh viện Bình Dan",
+        blood_type: "A+",
+        units_needed: 1,
+        urgency: "Cao",
+        contact_phone: "0902222222",
+        doctor_name: "BS. Phạm Thị F",
+        reason: "Tai nạn giao thông",
+        status: "approved",
+        created_at: "2024-12-24T09:30:00Z",
+        needed_by: "2024-12-24T16:00:00Z",
+      },
+      {
+        id: "REQ003",
+        patient_name: "Hoàng Văn G",
+        hospital: "Bệnh viện Từ Dũ",
+        blood_type: "B+",
+        units_needed: 3,
+        urgency: "Trung bình",
+        contact_phone: "0903333333",
+        doctor_name: "BS. Nguyễn Văn H",
+        reason: "Sinh con khó",
+        status: "completed",
+        created_at: "2024-12-23T15:00:00Z",
+        needed_by: "2024-12-24T10:00:00Z",
+      },
     ]
   }
 
@@ -129,6 +190,19 @@ class MockDatabase {
 
   async getBloodRequests() {
     return this.bloodRequests
+  }
+
+  async updateBloodRequest(id: string, updateData: any) {
+    const index = this.bloodRequests.findIndex((req) => req.id === id)
+    if (index !== -1) {
+      this.bloodRequests[index] = {
+        ...this.bloodRequests[index],
+        ...updateData,
+        updated_at: new Date().toISOString(),
+      }
+      return this.bloodRequests[index]
+    }
+    return null
   }
 
   // Appointment operations

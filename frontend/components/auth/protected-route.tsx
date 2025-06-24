@@ -10,7 +10,7 @@ import { Heart } from "lucide-react"
 
 interface ProtectedRouteProps {
   children: React.ReactNode
-  requiredRole?: "admin" | "user"
+  requiredRole?: "admin" | "user" | "staff" // Add "staff" role
   redirectTo?: string
 }
 
@@ -31,6 +31,8 @@ export function ProtectedRoute({ children, requiredRole, redirectTo = "/login" }
       // Redirect to appropriate dashboard based on role
       if (currentUser.role === "admin") {
         router.push("/admin/dashboard")
+      } else if (currentUser.role === "staff") {
+        router.push("/staff/dashboard")
       } else {
         router.push("/user/dashboard")
       }

@@ -235,15 +235,18 @@ export default function QnAPage() {
       <Header />
 
       {/* Hero Section */}
-      <section className="py-16 px-4">
+      <section className="py-8 px-4">
         <div className="container mx-auto max-w-4xl text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mb-6">
-            <Heart className="w-8 h-8 text-red-600" />
+          <div className="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Heart className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-red-600 to-red-700 bg-clip-text text-transparent mb-6">
-            Hỏi đáp về hiến máu
-          </h1>
-          <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
+          <div className="mb-4">
+            <span className="inline-block px-3 py-1 bg-red-100 text-red-800 text-sm font-medium rounded-full">
+              ❓ Câu hỏi thường gặp về hiến máu
+            </span>
+          </div>
+          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">Hỏi đáp về hiến máu</h1>
+          <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto leading-relaxed">
             Tìm hiểu tất cả thông tin cần thiết về hiến máu nhân đạo. Những câu hỏi thường gặp và câu trả lời chi tiết
             từ các chuyên gia y tế.
           </p>
