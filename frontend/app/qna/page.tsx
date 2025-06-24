@@ -2,6 +2,7 @@ import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { Badge } from "@/components/ui/badge"
 import { Heart, Users, Shield, Clock, AlertTriangle, CheckCircle, Phone, Mail, MapPin } from "lucide-react"
 
 const qnaData = [
@@ -231,32 +232,25 @@ const categories = [
 
 export default function QnAPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50 to-pink-50">
+    <div className="min-h-screen bg-gradient-to-b from-red-50 to-white">
       <Header />
 
-      {/* Hero Section */}
-      <section className="py-8 px-4">
-        <div className="container mx-auto max-w-4xl text-center">
-          <div className="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Heart className="w-8 h-8 text-white" />
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-4xl mx-auto">
+          {/* Hero Section */}
+          <div className="text-center mb-8">
+            <div className="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Heart className="w-8 h-8 text-white" />
+            </div>
+            <Badge className="mb-4 bg-red-100 text-red-800">❓ Câu hỏi thường gặp về hiến máu</Badge>
+            <h1 className="text-4xl font-bold text-gray-900 mb-4">Hỏi đáp về hiến máu</h1>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              Tìm hiểu tất cả thông tin cần thiết về hiến máu nhân đạo. Những câu hỏi thường gặp và câu trả lời chi tiết
+              từ các chuyên gia y tế.
+            </p>
           </div>
-          <div className="mb-4">
-            <span className="inline-block px-3 py-1 bg-red-100 text-red-800 text-sm font-medium rounded-full">
-              ❓ Câu hỏi thường gặp về hiến máu
-            </span>
-          </div>
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">Hỏi đáp về hiến máu</h1>
-          <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto leading-relaxed">
-            Tìm hiểu tất cả thông tin cần thiết về hiến máu nhân đạo. Những câu hỏi thường gặp và câu trả lời chi tiết
-            từ các chuyên gia y tế.
-          </p>
-        </div>
-      </section>
 
-      {/* Main Content */}
-      <section className="pb-16 px-4">
-        <div className="container mx-auto max-w-6xl">
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+          <div className="grid lg:grid-cols-4 gap-8">
             {/* Sidebar */}
             <div className="lg:col-span-1">
               <div className="sticky top-24 space-y-6">
@@ -411,7 +405,7 @@ export default function QnAPage() {
             </div>
           </div>
         </div>
-      </section>
+      </div>
 
       <Footer />
     </div>

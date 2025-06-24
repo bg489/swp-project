@@ -2,18 +2,30 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Shield, Lock, Eye, Users, FileText, Mail, Phone, MapPin, Clock } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Shield, Lock, Eye, Users, FileText, Mail, Phone, MapPin, Clock, ChevronDown, Heart } from "lucide-react"
 import Link from "next/link"
-import Image from "next/image"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
+import { useState } from "react"
 
 export default function PrivacyPage() {
+  const [expandedSections, setExpandedSections] = useState<string[]>([])
+
+  const toggleSection = (sectionId: string) => {
+    setExpandedSections((prev) =>
+      prev.includes(sectionId) ? prev.filter((id) => id !== sectionId) : [...prev, sectionId],
+    )
+  }
+
   const sections = [
     {
       id: "collection",
       title: "Thu thập thông tin",
       icon: Users,
+      color: "from-blue-500 to-blue-600",
+      bgColor: "bg-blue-50",
+      iconColor: "text-blue-600",
       content: [
         {
           subtitle: "Thông tin cá nhân",
@@ -33,6 +45,9 @@ export default function PrivacyPage() {
       id: "usage",
       title: "Sử dụng thông tin",
       icon: Eye,
+      color: "from-green-500 to-green-600",
+      bgColor: "bg-green-50",
+      iconColor: "text-green-600",
       content: [
         {
           subtitle: "Cung cấp dịch vụ",
@@ -56,6 +71,9 @@ export default function PrivacyPage() {
       id: "sharing",
       title: "Chia sẻ thông tin",
       icon: Users,
+      color: "from-purple-500 to-purple-600",
+      bgColor: "bg-purple-50",
+      iconColor: "text-purple-600",
       content: [
         {
           subtitle: "Đối tác y tế",
@@ -79,6 +97,9 @@ export default function PrivacyPage() {
       id: "security",
       title: "Bảo mật dữ liệu",
       icon: Lock,
+      color: "from-red-500 to-red-600",
+      bgColor: "bg-red-50",
+      iconColor: "text-red-600",
       content: [
         {
           subtitle: "Mã hóa dữ liệu",
@@ -102,6 +123,9 @@ export default function PrivacyPage() {
       id: "rights",
       title: "Quyền của người dùng",
       icon: Shield,
+      color: "from-indigo-500 to-indigo-600",
+      bgColor: "bg-indigo-50",
+      iconColor: "text-indigo-600",
       content: [
         {
           subtitle: "Quyền truy cập",
@@ -129,6 +153,9 @@ export default function PrivacyPage() {
       id: "cookies",
       title: "Chính sách Cookies",
       icon: FileText,
+      color: "from-orange-500 to-orange-600",
+      bgColor: "bg-orange-50",
+      iconColor: "text-orange-600",
       content: [
         {
           subtitle: "Cookies cần thiết",
@@ -148,6 +175,50 @@ export default function PrivacyPage() {
         },
       ],
     },
+    {
+      id: "retention",
+      title: "Thời gian lưu trữ dữ liệu",
+      icon: Clock,
+      color: "from-teal-500 to-teal-600",
+      bgColor: "bg-teal-50",
+      iconColor: "text-teal-600",
+      content: [
+        {
+          subtitle: "Thông tin tài khoản",
+          text: "Được lưu trữ trong suốt thời gian tài khoản còn hoạt động và 2 năm sau khi đóng tài khoản.",
+        },
+        {
+          subtitle: "Lịch sử hiến máu",
+          text: "Được lưu trữ vĩnh viễn để phục vụ mục đích y tế và tuân thủ quy định pháp luật.",
+        },
+        {
+          subtitle: "Dữ liệu phân tích",
+          text: "Được lưu trữ tối đa 24 tháng và được ẩn danh hóa để bảo vệ quyền riêng tư.",
+        },
+      ],
+    },
+    {
+      id: "updates",
+      title: "Cập nhật chính sách",
+      icon: FileText,
+      color: "from-pink-500 to-pink-600",
+      bgColor: "bg-pink-50",
+      iconColor: "text-pink-600",
+      content: [
+        {
+          subtitle: "Email thông báo đến tất cả người dùng đã đăng ký",
+          text: "Chúng tôi sẽ gửi email thông báo đến tất cả người dùng đã đăng ký khi có thay đổi quan trọng trong chính sách bảo mật.",
+        },
+        {
+          subtitle: "Thông báo nổi bật trên website",
+          text: "Các thay đổi quan trọng sẽ được hiển thị dưới dạng thông báo nổi bật trên trang chủ và các trang chính của website.",
+        },
+        {
+          subtitle: "Cập nhật ngày hiệu lực tại đầu tài liệu này",
+          text: "Ngày cập nhật và ngày có hiệu lực mới sẽ được cập nhật rõ ràng tại phần đầu của tài liệu chính sách này.",
+        },
+      ],
+    },
   ]
 
   const contactInfo = [
@@ -156,70 +227,79 @@ export default function PrivacyPage() {
       label: "Email bảo mật",
       value: "privacy@scarletblood.vn",
       description: "Gửi câu hỏi về chính sách bảo mật",
+      color: "bg-blue-100 text-blue-600",
     },
     {
       icon: Phone,
       label: "Hotline",
       value: "1900-1234",
       description: "Hỗ trợ 24/7",
+      color: "bg-green-100 text-green-600",
     },
     {
       icon: MapPin,
       label: "Địa chỉ",
       value: "123 Đường ABC, Quận 1, TP.HCM",
       description: "Văn phòng chính",
+      color: "bg-purple-100 text-purple-600",
     },
     {
       icon: Clock,
       label: "Thời gian phản hồi",
       value: "Trong 48 giờ",
       description: "Cam kết phản hồi nhanh",
+      color: "bg-orange-100 text-orange-600",
     },
   ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50 to-pink-50">
+    <div className="min-h-screen bg-gradient-to-br from-red-50 via-pink-50 to-orange-50">
       <Header />
 
-      <div className="container mx-auto px-4 py-16">
+      <div className="container mx-auto px-4 py-8">
         {/* Hero Section */}
-        <div className="text-center mb-16">
+        <div className="text-center mb-12">
           <div className="flex justify-center mb-6">
-            <div className="w-20 h-20 rounded-full bg-white shadow-lg border-2 border-blue-100 flex items-center justify-center">
-              <Image
-                src="/images/logo.webp"
-                alt="ScαrletBlood Logo"
-                width={48}
-                height={48}
-                className="w-12 h-12 object-cover rounded-full"
-              />
+            <div className="w-20 h-20 rounded-full bg-white shadow-xl border-4 border-red-100 flex items-center justify-center animate-pulse">
+              <Heart className="w-10 h-10 text-red-600" />
             </div>
           </div>
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">Chính sách bảo mật</h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+          <Badge className="mb-4 bg-red-100 text-red-800 px-4 py-2 text-sm font-medium">
+            🔒 Chính sách bảo mật thông tin
+          </Badge>
+          <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-red-600 to-red-700 bg-clip-text text-transparent mb-6">
+            Chính sách bảo mật
+          </h1>
+          <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
             Chúng tôi cam kết bảo vệ thông tin cá nhân của bạn với các biện pháp bảo mật cao nhất. Tìm hiểu cách chúng
             tôi thu thập, sử dụng và bảo vệ dữ liệu của bạn.
           </p>
-          <div className="mt-4 text-sm text-gray-500">
-            <p>Cập nhật lần cuối: 15 tháng 12, 2024 • Có hiệu lực từ: 01 tháng 01, 2024</p>
+          <div className="mt-6 inline-flex items-center space-x-4 text-sm text-gray-500 bg-white px-6 py-3 rounded-full shadow-md">
+            <span>📅 Cập nhật: 15/12/2024</span>
+            <span>•</span>
+            <span>⚡ Hiệu lực: 01/01/2025</span>
           </div>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-8">
+        <div className="max-w-6xl mx-auto grid lg:grid-cols-4 gap-8">
           {/* Contact Information Sidebar */}
           <div className="lg:col-span-1">
-            <div className="space-y-6">
+            <div className="sticky top-24 space-y-4">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">📞 Liên hệ hỗ trợ</h3>
               {contactInfo.map((contact, index) => (
-                <Card key={index} className="hover:shadow-lg transition-shadow">
-                  <CardContent className="p-6">
-                    <div className="flex items-center space-x-4">
-                      <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-                        <contact.icon className="w-6 h-6 text-red-600" />
+                <Card
+                  key={index}
+                  className="hover:shadow-lg transition-all duration-300 hover:scale-105 border-0 shadow-md"
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-center space-x-3">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${contact.color}`}>
+                        <contact.icon className="w-5 h-5" />
                       </div>
                       <div>
-                        <h3 className="font-semibold text-gray-900">{contact.label}</h3>
-                        <p className="text-gray-600">{contact.value}</p>
-                        <p className="text-sm text-gray-500">{contact.description}</p>
+                        <h4 className="font-semibold text-gray-900 text-sm">{contact.label}</h4>
+                        <p className="text-gray-600 text-sm">{contact.value}</p>
+                        <p className="text-xs text-gray-500">{contact.description}</p>
                       </div>
                     </div>
                   </CardContent>
@@ -229,134 +309,121 @@ export default function PrivacyPage() {
           </div>
 
           {/* Main Content */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-3">
             {/* Introduction */}
-            <Card className="shadow-lg mb-8">
-              <CardHeader className="bg-gradient-to-r from-red-600 to-red-700 text-white rounded-t-lg">
+            <Card className="shadow-xl mb-8 border-0 overflow-hidden">
+              <CardHeader className="bg-gradient-to-r from-red-600 to-red-700 text-white p-8">
                 <CardTitle className="text-2xl flex items-center">
-                  <Shield className="w-6 h-6 mr-3" />
+                  <Shield className="w-8 h-8 mr-4" />
                   Cam kết bảo mật thông tin
                 </CardTitle>
               </CardHeader>
-              <CardContent className="p-8">
-                <p className="text-gray-600 leading-relaxed mb-4">
-                  Tại ScαrletBlood, chúng tôi hiểu rằng thông tin cá nhân và y tế của bạn là vô cùng quan trọng và nhạy
-                  cảm. Chúng tôi cam kết áp dụng các tiêu chuẩn bảo mật cao nhất để bảo vệ dữ liệu của bạn.
-                </p>
-                <p className="text-gray-600 leading-relaxed">
-                  Chính sách này áp dụng cho tất cả thông tin được thu thập thông qua website, ứng dụng di động và các
-                  dịch vụ của ScαrletBlood. Bằng cách sử dụng dịch vụ của chúng tôi, bạn đồng ý với các điều khoản được
-                  nêu trong chính sách này.
-                </p>
+              <CardContent className="p-8 bg-gradient-to-br from-white to-red-50">
+                <div className="space-y-4">
+                  <p className="text-gray-700 leading-relaxed text-lg">
+                    Tại <span className="font-semibold text-red-600">ScαrletBlood</span>, chúng tôi hiểu rằng thông tin
+                    cá nhân và y tế của bạn là vô cùng quan trọng và nhạy cảm. Chúng tôi cam kết áp dụng các tiêu chuẩn
+                    bảo mật cao nhất để bảo vệ dữ liệu của bạn.
+                  </p>
+                  <p className="text-gray-700 leading-relaxed">
+                    Chính sách này áp dụng cho tất cả thông tin được thu thập thông qua website, ứng dụng di động và các
+                    dịch vụ của ScαrletBlood. Bằng cách sử dụng dịch vụ của chúng tôi, bạn đồng ý với các điều khoản
+                    được nêu trong chính sách này.
+                  </p>
+                </div>
               </CardContent>
             </Card>
 
             {/* Main Sections */}
             <div className="space-y-6">
               {sections.map((section, index) => (
-                <Card key={section.id} className="hover:shadow-lg transition-shadow">
-                  <CardHeader>
-                    <CardTitle className="flex items-center text-xl">
-                      <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center mr-3">
-                        <section.icon className="w-5 h-5 text-red-600" />
+                <Card
+                  key={section.id}
+                  className="hover:shadow-xl transition-all duration-500 border-0 shadow-lg overflow-hidden"
+                >
+                  <CardHeader
+                    className={`cursor-pointer hover:${section.bgColor} transition-all duration-300 p-6`}
+                    onClick={() => toggleSection(section.id)}
+                  >
+                    <CardTitle className="flex items-center justify-between text-xl">
+                      <div className="flex items-center">
+                        <div
+                          className={`w-12 h-12 ${section.bgColor} rounded-full flex items-center justify-center mr-4 shadow-md`}
+                        >
+                          <section.icon className={`w-6 h-6 ${section.iconColor}`} />
+                        </div>
+                        <div>
+                          <span className="text-2xl font-bold text-gray-800">{index + 1}.</span>
+                          <span className="ml-2 text-gray-800">{section.title}</span>
+                        </div>
                       </div>
-                      {index + 1}. {section.title}
+                      <ChevronDown
+                        className={`w-6 h-6 text-gray-400 transition-all duration-500 ${
+                          expandedSections.includes(section.id) ? "rotate-180 text-red-600" : ""
+                        }`}
+                      />
                     </CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {section.content.map((item, itemIndex) => (
-                        <div key={itemIndex}>
-                          <h4 className="font-semibold text-gray-900 mb-2">{item.subtitle}</h4>
-                          <p className="text-gray-600 leading-relaxed text-sm">{item.text}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
+                  <div
+                    className={`transition-all duration-700 ease-in-out overflow-hidden ${
+                      expandedSections.includes(section.id) ? "max-h-screen opacity-100" : "max-h-0 opacity-0"
+                    }`}
+                  >
+                    <CardContent className="p-6 bg-gradient-to-br from-white to-gray-50">
+                      <div className="space-y-6">
+                        {section.content.map((item, itemIndex) => (
+                          <div
+                            key={itemIndex}
+                            className="border-l-4 border-red-200 pl-4 hover:border-red-400 transition-colors duration-300"
+                          >
+                            <h4 className="font-bold text-gray-900 mb-3 text-lg flex items-center">
+                              <span className="w-2 h-2 bg-red-500 rounded-full mr-3"></span>
+                              {item.subtitle}
+                            </h4>
+                            <p className="text-gray-700 leading-relaxed">{item.text}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </div>
                 </Card>
               ))}
             </div>
-
-            {/* Data Retention */}
-            <Card className="mt-6 border-orange-200">
-              <CardHeader>
-                <CardTitle className="flex items-center text-xl">
-                  <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center mr-3">
-                    <FileText className="w-5 h-5 text-orange-600" />
-                  </div>
-                  7. Thời gian lưu trữ dữ liệu
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="font-semibold text-gray-900 mb-2">Thông tin tài khoản</h4>
-                    <p className="text-gray-600 text-sm">
-                      Được lưu trữ trong suốt thời gian tài khoản còn hoạt động và 2 năm sau khi đóng tài khoản.
-                    </p>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-gray-900 mb-2">Lịch sử hiến máu</h4>
-                    <p className="text-gray-600 text-sm">
-                      Được lưu trữ vĩnh viễn để phục vụ mục đích y tế và tuân thủ quy định pháp luật.
-                    </p>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-gray-900 mb-2">Dữ liệu phân tích</h4>
-                    <p className="text-gray-600 text-sm">
-                      Được lưu trữ tối đa 24 tháng và được ẩn danh hóa để bảo vệ quyền riêng tư.
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Updates */}
-            <Card className="mt-6 border-purple-200">
-              <CardHeader>
-                <CardTitle className="flex items-center text-xl">
-                  <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center mr-3">
-                    <FileText className="w-5 h-5 text-purple-600" />
-                  </div>
-                  8. Cập nhật chính sách
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <p className="text-gray-600 leading-relaxed text-sm">
-                    Chúng tôi có thể cập nhật chính sách bảo mật này theo thời gian để phản ánh các thay đổi trong dịch
-                    vụ hoặc yêu cầu pháp lý. Mọi thay đổi quan trọng sẽ được thông báo qua:
-                  </p>
-                  <ul className="list-disc list-inside text-gray-600 space-y-1 ml-4 text-sm">
-                    <li>Email thông báo đến tất cả người dùng đã đăng ký</li>
-                    <li>Thông báo nổi bật trên website</li>
-                    <li>Cập nhật ngày hiệu lực tại đầu tài liệu này</li>
-                  </ul>
-                  <p className="text-gray-600 leading-relaxed text-sm">
-                    Chúng tôi khuyến khích bạn xem lại chính sách này định kỳ để cập nhật thông tin mới nhất.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
           </div>
         </div>
 
         {/* Legal Notice */}
         <div className="mt-16">
-          <Card className="bg-gradient-to-r from-red-600 to-red-700 text-white">
-            <CardContent className="p-8 text-center">
-              <h3 className="text-2xl font-bold mb-4">Thông báo pháp lý</h3>
-              <p className="text-red-100 mb-6 leading-relaxed">
-                Chính sách bảo mật này được soạn thảo tuân thủ Luật An toàn thông tin mạng 2015, Nghị định 13/2023/NĐ-CP
-                về bảo vệ dữ liệu cá nhân và các quy định pháp luật Việt Nam có liên quan.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button variant="secondary" asChild>
-                  <Link href="/contact">Liên hệ về bảo mật</Link>
-                </Button>
-                <Button variant="outline" className="border-white text-white hover:bg-white hover:text-red-600" asChild>
-                  <Link href="/">Về trang chủ</Link>
-                </Button>
+          <Card className="bg-gradient-to-r from-red-600 via-red-700 to-red-800 text-white border-0 shadow-2xl overflow-hidden">
+            <CardContent className="p-12 text-center relative">
+              <div className="absolute inset-0 bg-black opacity-10"></div>
+              <div className="relative z-10">
+                <div className="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <Shield className="w-8 h-8 text-white" />
+                </div>
+                <h3 className="text-3xl font-bold mb-6">Thông báo pháp lý</h3>
+                <p className="text-red-100 mb-8 leading-relaxed text-lg max-w-4xl mx-auto">
+                  Chính sách bảo mật này được soạn thảo tuân thủ Luật An toàn thông tin mạng 2015, Nghị định
+                  13/2023/NĐ-CP về bảo vệ dữ liệu cá nhân và các quy định pháp luật Việt Nam có liên quan.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <Button
+                    variant="secondary"
+                    size="lg"
+                    className="bg-white text-red-600 hover:bg-gray-100 font-semibold px-8 py-3"
+                    asChild
+                  >
+                    <Link href="/contact">📞 Liên hệ về bảo mật</Link>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    className="border-2 border-white text-white hover:bg-white hover:text-red-600 font-semibold px-8 py-3"
+                    asChild
+                  >
+                    <Link href="/">🏠 Về trang chủ</Link>
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
