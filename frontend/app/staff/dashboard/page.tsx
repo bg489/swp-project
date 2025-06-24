@@ -17,7 +17,6 @@ import {
   LogOut,
   Home,
   ClipboardList,
-  FileText,
   Search,
   Edit,
   Package,
@@ -25,7 +24,6 @@ import {
   Hospital,
   Clock,
   CheckCircle,
-  XCircle,
 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
@@ -99,14 +97,14 @@ export default function StaffDashboard() {
 
   // Mock blood inventory
   const bloodInventory = [
-    { type: "O-", available: 45, reserved: 5, status: "low", expiringSoon: 3 },
-    { type: "O+", available: 120, reserved: 10, status: "good", expiringSoon: 8 },
-    { type: "A-", available: 78, reserved: 8, status: "good", expiringSoon: 5 },
-    { type: "A+", available: 156, reserved: 15, status: "good", expiringSoon: 12 },
-    { type: "B-", available: 34, reserved: 3, status: "low", expiringSoon: 2 },
-    { type: "B+", available: 89, reserved: 9, status: "good", expiringSoon: 7 },
-    { type: "AB-", available: 23, reserved: 2, status: "critical", expiringSoon: 1 },
-    { type: "AB+", available: 67, reserved: 7, status: "good", expiringSoon: 4 },
+    { type: "O-", available: 45, reserved: 5, status: "low", target: 100, color: "bg-red-500" },
+    { type: "O+", available: 120, reserved: 10, status: "good", target: 150, color: "bg-red-400" },
+    { type: "A-", available: 78, reserved: 8, status: "good", target: 100, color: "bg-blue-500" },
+    { type: "A+", available: 156, reserved: 15, status: "good", target: 150, color: "bg-blue-400" },
+    { type: "B-", available: 34, reserved: 3, status: "critical", target: 80, color: "bg-green-500" },
+    { type: "B+", available: 89, reserved: 9, status: "good", target: 120, color: "bg-green-400" },
+    { type: "AB-", available: 23, reserved: 2, status: "critical", target: 60, color: "bg-purple-500" },
+    { type: "AB+", available: 67, reserved: 7, status: "good", target: 80, color: "bg-purple-400" },
   ]
 
   // Mock blood requests
@@ -141,7 +139,7 @@ export default function StaffDashboard() {
     },
     {
       id: "REQ003",
-      patientName: "Hoàng Văn G",
+      name: "Hoàng Văn G",
       hospital: "Bệnh viện Từ Dũ",
       bloodType: "B+",
       unitsNeeded: 3,
@@ -229,7 +227,7 @@ export default function StaffDashboard() {
 
               <div className="flex items-center space-x-4">
                 <span className="text-sm text-gray-600">
-                  Xin chào, <strong>{user?.name}</strong>
+                  Xin chào, <strong>Staff</strong>
                 </span>
                 <Button variant="outline" size="sm" asChild>
                   <Link href="/">
@@ -307,7 +305,7 @@ export default function StaffDashboard() {
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                     <span>Quản lý người hiến máu</span>
-                    <Button>
+                    <Button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
                       <UserPlus className="w-4 h-4 mr-2" />
                       Thêm người hiến
                     </Button>
@@ -374,12 +372,21 @@ export default function StaffDashboard() {
                             <p className="text-gray-600">Lần cuối: {donor.lastDonation}</p>
                             <p className="text-gray-500">Có thể hiến: {donor.nextEligible}</p>
                           </div>
-                          <Button size="sm" variant="outline">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+                          >
                             <Phone className="w-4 h-4 mr-1" />
                             Gọi
                           </Button>
-                          <Button size="sm" variant="outline">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+                          >
                             <Edit className="w-4 h-4" />
+                            Sửa
                           </Button>
                         </div>
                       </div>
@@ -397,7 +404,7 @@ export default function StaffDashboard() {
                       <Package className="w-5 h-5 mr-2" />
                       Quản lý kho máu
                     </span>
-                    <Button>
+                    <Button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
                       <Plus className="w-4 h-4 mr-2" />
                       Nhập máu mới
                     </Button>
@@ -412,7 +419,13 @@ export default function StaffDashboard() {
                           <div className="flex items-center justify-between">
                             <CardTitle className="text-lg font-bold text-red-600">{blood.type}</CardTitle>
                             <Badge className={getBloodStatusColor(blood.status)}>
-                              {blood.status === "good" ? "Đủ" : blood.status === "low" ? "Ít" : "Thiếu"}
+                              {blood.status === "critical"
+                                ? "Rất thấp"
+                                : blood.status === "low"
+                                  ? "Thấp"
+                                  : blood.status === "medium"
+                                    ? "Trung bình"
+                                    : "Tốt"}
                             </Badge>
                           </div>
                         </CardHeader>
@@ -462,7 +475,11 @@ export default function StaffDashboard() {
                                     <p className="text-sm text-gray-600">Còn {blood.available} đơn vị</p>
                                   </div>
                                 </div>
-                                <Button size="sm" variant="outline">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+                                >
                                   Liên hệ người hiến
                                 </Button>
                               </div>
@@ -488,7 +505,11 @@ export default function StaffDashboard() {
                                     <p className="text-sm text-gray-600">{blood.expiringSoon} đơn vị sắp hết hạn</p>
                                   </div>
                                 </div>
-                                <Button size="sm" variant="outline">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+                                >
                                   Ưu tiên sử dụng
                                 </Button>
                               </div>
@@ -501,200 +522,29 @@ export default function StaffDashboard() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="requests" className="space-y-6">
+            <TabsContent value="reports" className="space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span className="flex items-center">
-                      <Hospital className="w-5 h-5 mr-2" />
-                      Quản lý yêu cầu máu
-                    </span>
-                    <Button>
-                      <Plus className="w-4 h-4 mr-2" />
-                      Tạo yêu cầu mới
-                    </Button>
-                  </CardTitle>
-                  <CardDescription>Xử lý yêu cầu máu từ bệnh viện và cơ sở y tế</CardDescription>
+                  <CardTitle>Báo cáo tổng quan</CardTitle>
+                  <CardDescription>Thống kê nhanh về hoạt động của hệ thống</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex items-center space-x-4 mb-6">
-                    <div className="relative flex-1">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                      <Input placeholder="Tìm kiếm theo bệnh viện, bệnh nhân..." className="pl-10" />
-                    </div>
-                    <Select>
-                      <SelectTrigger className="w-40">
-                        <SelectValue placeholder="Mức độ" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Tất cả</SelectItem>
-                        <SelectItem value="emergency">Khẩn cấp</SelectItem>
-                        <SelectItem value="high">Cao</SelectItem>
-                        <SelectItem value="medium">Trung bình</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Select>
-                      <SelectTrigger className="w-40">
-                        <SelectValue placeholder="Trạng thái" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Tất cả</SelectItem>
-                        <SelectItem value="pending">Chờ xử lý</SelectItem>
-                        <SelectItem value="approved">Đã duyệt</SelectItem>
-                        <SelectItem value="completed">Hoàn thành</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
                   <div className="space-y-4">
-                    {bloodRequests.map((request) => (
-                      <div
-                        key={request.id}
-                        className={`p-4 border rounded-lg ${
-                          request.urgency === "Khẩn cấp" ? "border-red-200 bg-red-50" : ""
-                        }`}
-                      >
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-start space-x-4">
-                            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-                              <Hospital className="w-6 h-6 text-red-600" />
-                            </div>
-                            <div className="flex-1">
-                              <div className="flex items-center space-x-2 mb-2">
-                                <h3 className="font-medium">{request.hospital}</h3>
-                                <Badge className={getUrgencyColor(request.urgency)}>{request.urgency}</Badge>
-                                <Badge className={getStatusColor(request.status)}>
-                                  {request.status === "pending"
-                                    ? "Chờ xử lý"
-                                    : request.status === "approved"
-                                      ? "Đã duyệt"
-                                      : "Hoàn thành"}
-                                </Badge>
-                              </div>
-                              <div className="grid md:grid-cols-2 gap-4 text-sm">
-                                <div>
-                                  <p>
-                                    <strong>Bệnh nhân:</strong> {request.patientName}
-                                  </p>
-                                  <p>
-                                    <strong>Bác sĩ:</strong> {request.doctorName}
-                                  </p>
-                                  <p>
-                                    <strong>Lý do:</strong> {request.reason}
-                                  </p>
-                                </div>
-                                <div>
-                                  <p>
-                                    <strong>Nhóm máu:</strong>{" "}
-                                    <span className="text-red-600 font-semibold">{request.bloodType}</span>
-                                  </p>
-                                  <p>
-                                    <strong>Số lượng:</strong> {request.unitsNeeded} đơn vị
-                                  </p>
-                                  <p>
-                                    <strong>Cần trước:</strong> {request.neededBy}
-                                  </p>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="flex space-x-2">
-                            <Button size="sm" variant="outline">
-                              <Phone className="w-4 h-4 mr-1" />
-                              Gọi
-                            </Button>
-                            {request.status === "pending" && (
-                              <>
-                                <Button size="sm">
-                                  <CheckCircle className="w-4 h-4 mr-1" />
-                                  Duyệt
-                                </Button>
-                                <Button size="sm" variant="outline">
-                                  <XCircle className="w-4 h-4 mr-1" />
-                                  Từ chối
-                                </Button>
-                              </>
-                            )}
-                            {request.status === "approved" && (
-                              <Button size="sm">
-                                <Droplets className="w-4 h-4 mr-1" />
-                                Giao máu
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+                    <div>
+                      <h3 className="text-lg font-semibold">Tổng quan</h3>
+                      <p className="text-sm text-gray-600">Thống kê số lượng người dùng, máu và yêu cầu</p>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold">Hoạt động gần đây</h3>
+                      <p className="text-sm text-gray-600">Các hoạt động mới nhất trên hệ thống</p>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold">Thống kê chi tiết</h3>
+                      <p className="text-sm text-gray-600">Báo cáo về người hiến, kho máu và yêu cầu</p>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
-            </TabsContent>
-
-            <TabsContent value="reports" className="space-y-6">
-              <div className="grid md:grid-cols-2 gap-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center">
-                      <FileText className="w-5 h-5 mr-2" />
-                      Báo cáo tổng quan
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div className="flex justify-between items-center p-3 border rounded">
-                        <span>Tổng số người hiến máu:</span>
-                        <span className="font-semibold">{staffStats.totalDonors}</span>
-                      </div>
-                      <div className="flex justify-between items-center p-3 border rounded">
-                        <span>Người hiến đang hoạt động:</span>
-                        <span className="font-semibold text-green-600">{staffStats.activeDonors}</span>
-                      </div>
-                      <div className="flex justify-between items-center p-3 border rounded">
-                        <span>Tổng đơn vị máu trong kho:</span>
-                        <span className="font-semibold text-red-600">{staffStats.totalBloodUnits}</span>
-                      </div>
-                      <div className="flex justify-between items-center p-3 border rounded">
-                        <span>Yêu cầu đang chờ xử lý:</span>
-                        <span className="font-semibold text-orange-600">{staffStats.pendingRequests}</span>
-                      </div>
-                      <div className="flex justify-between items-center p-3 border rounded">
-                        <span>Giao dịch hoàn thành hôm nay:</span>
-                        <span className="font-semibold text-blue-600">{staffStats.completedToday}</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Thao tác nhanh</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      <Button className="w-full justify-start">
-                        <UserPlus className="w-4 h-4 mr-2" />
-                        Đăng ký người hiến mới
-                      </Button>
-                      <Button variant="outline" className="w-full justify-start">
-                        <Plus className="w-4 h-4 mr-2" />
-                        Nhập máu vào kho
-                      </Button>
-                      <Button variant="outline" className="w-full justify-start">
-                        <Hospital className="w-4 h-4 mr-2" />
-                        Tạo yêu cầu máu
-                      </Button>
-                      <Button variant="outline" className="w-full justify-start">
-                        <AlertTriangle className="w-4 h-4 mr-2" />
-                        Cảnh báo tồn kho
-                      </Button>
-                      <Button variant="outline" className="w-full justify-start">
-                        <FileText className="w-4 h-4 mr-2" />
-                        Xuất báo cáo chi tiết
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
             </TabsContent>
           </Tabs>
         </div>

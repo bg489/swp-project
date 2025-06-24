@@ -119,6 +119,13 @@ export default function RequestPage() {
     },
   ]
 
+  const [selectedComponent, setSelectedComponent] = useState("")
+  const [selectedBloodTypeForComponent, setSelectedBloodTypeForComponent] = useState("")
+  const [compatibilityResult, setCompatibilityResult] = useState<{
+    canGiveTo: string[]
+    canReceiveFrom: string[]
+  } | null>(null)
+
   const getAvailabilityColor = (availability: string) => {
     return availability === "Sẵn sàng" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"
   }
@@ -127,6 +134,55 @@ export default function RequestPage() {
     if (!bloodType) return []
     const compatible = bloodCompatibility[bloodType as keyof typeof bloodCompatibility] || []
     return availableDonors.filter((donor) => compatible.includes(donor.bloodType))
+  }
+
+  const checkCompatibility = () => {
+    if (!selectedComponent || !selectedBloodTypeForComponent) return
+
+    let canGiveTo: string[] = []
+    let canReceiveFrom: string[] = []
+
+    if (selectedComponent === "Máu toàn phần" || selectedComponent === "Hồng cầu" || selectedComponent === "Tiểu cầu") {
+      // Same logic as red blood cells
+      canGiveTo = bloodCompatibility[selectedBloodTypeForComponent as keyof typeof bloodCompatibility] || []
+
+      // Find who can donate to this blood type
+      Object.entries(bloodCompatibility).forEach(([donorType, recipients]) => {
+        if (recipients.includes(selectedBloodTypeForComponent)) {
+          canReceiveFrom.push(donorType)
+        }
+      })
+    } else if (selectedComponent === "Huyết tương") {
+      // Plasma compatibility is reversed
+      const plasmaCompatibility = {
+        "O-": ["O-"],
+        "O+": ["O-", "O+"],
+        "A-": ["A-", "O-"],
+        "A+": ["A-", "A+", "O-", "O+"],
+        "B-": ["B-", "O-"],
+        "B+": ["B-", "B+", "O-", "O+"],
+        "AB-": ["AB-", "A-", "B-", "O-"],
+        "AB+": ["AB-", "AB+", "A-", "A+", "B-", "B+", "O-", "O+"],
+      }
+
+      canReceiveFrom = plasmaCompatibility[selectedBloodTypeForComponent as keyof typeof plasmaCompatibility] || []
+
+      // Find who can receive plasma from this blood type
+      Object.entries(plasmaCompatibility).forEach(([recipientType, donors]) => {
+        if (donors.includes(selectedBloodTypeForComponent)) {
+          canGiveTo.push(recipientType)
+        }
+      })
+    }
+
+    setCompatibilityResult({ canGiveTo, canReceiveFrom })
+    // Scroll to compatibility results after a short delay to ensure the component has rendered
+    setTimeout(() => {
+      const resultsElement = document.getElementById("compatibility-results")
+      if (resultsElement) {
+        resultsElement.scrollIntoView({ behavior: "smooth", block: "center" })
+      }
+    }, 100)
   }
 
   return (
@@ -231,11 +287,14 @@ export default function RequestPage() {
                     </div>
                   </div>
                   <div className="flex gap-4 mt-4">
-                    <Button className="bg-blue-600 hover:bg-blue-700">
+                    <Button
+                      className="bg-blue-600 hover:bg-blue-700"
+                      onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+                    >
                       <Search className="w-4 h-4 mr-2" />
                       Tìm kiếm
                     </Button>
-                    <Button variant="outline">
+                    <Button variant="outline" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
                       <Filter className="w-4 h-4 mr-2" />
                       Lọc nâng cao
                     </Button>
@@ -295,11 +354,19 @@ export default function RequestPage() {
                           </div>
 
                           <div className="flex gap-2 mt-4">
-                            <Button size="sm" className="flex-1">
+                            <Button
+                              size="sm"
+                              className="flex-1"
+                              onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+                            >
                               <Phone className="w-4 h-4 mr-1" />
                               Liên hệ
                             </Button>
-                            <Button size="sm" variant="outline">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+                            >
                               Chi tiết
                             </Button>
                           </div>
@@ -326,7 +393,16 @@ export default function RequestPage() {
                           <Button
                             key={type}
                             variant={selectedBloodType === type ? "default" : "outline"}
-                            onClick={() => setSelectedBloodType(type)}
+                            onClick={() => {
+                              setSelectedBloodType(type)
+                              // Scroll down to show the compatibility results after a short delay
+                              setTimeout(() => {
+                                const compatibilitySection = document.querySelector("[data-compatibility-section]")
+                                if (compatibilitySection) {
+                                  compatibilitySection.scrollIntoView({ behavior: "smooth", block: "start" })
+                                }
+                              }, 100)
+                            }}
                             className="h-12"
                           >
                             <Droplets className="w-4 h-4 mr-2" />
@@ -337,7 +413,7 @@ export default function RequestPage() {
                     </div>
 
                     {selectedBloodType && (
-                      <div>
+                      <div data-compatibility-section>
                         <h3 className="text-lg font-semibold mb-4">Nhóm máu {selectedBloodType} có thể nhận từ:</h3>
                         <div className="grid grid-cols-4 gap-4">
                           {bloodTypes.map((type) => {
@@ -411,43 +487,139 @@ export default function RequestPage() {
             <TabsContent value="components" className="space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Tương thích thành phần máu</CardTitle>
-                  <CardDescription>Tra cứu tương thích cho từng thành phần máu cụ thể</CardDescription>
+                  <CardTitle>Chọn thành phần máu</CardTitle>
+                  <CardDescription>Chọn loại thành phần máu và nhóm máu để kiểm tra tương thích</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-6">
-                    {Object.entries(componentCompatibility).map(([component, compatibility]) => (
-                      <div key={component}>
-                        <h3 className="text-lg font-semibold mb-4 flex items-center">
-                          <Droplets className="w-5 h-5 mr-2 text-red-600" />
-                          {component}
-                        </h3>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                          {bloodTypes.map((bloodType) => (
-                            <Card key={bloodType} className="border-blue-200">
-                              <CardContent className="p-4">
-                                <div className="text-center mb-3">
-                                  <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-2">
-                                    <span className="text-lg font-bold text-white">{bloodType}</span>
-                                  </div>
-                                  <p className="font-medium">Nhóm máu {bloodType}</p>
+                    {/* Component Selection */}
+                    <div>
+                      <Label className="text-base font-semibold">Chọn thành phần máu</Label>
+                      <div className="grid gap-4 mt-4">
+                        {Object.entries({
+                          "Máu toàn phần":
+                            "Máu toàn phần bao gồm hồng cầu, huyết tương và tiểu cầu. Tuân theo quy tắc tương thích nhóm máu ABO và Rh.",
+                          "Hồng cầu":
+                            "Hồng cầu chứa hemoglobin, vận chuyển oxy. Người nhận phải tương thích với kháng nguyên trên hồng cầu của người hiến.",
+                          "Huyết tương":
+                            "Huyết tương chứa kháng thể. Quy tắc tương thích ngược với hồng cầu - nhóm AB có thể hiến cho tất cả.",
+                          "Tiểu cầu":
+                            "Tiểu cầu giúp đông máu. Tương thích tương tự như hồng cầu nhưng ưu tiên cùng nhóm máu.",
+                        }).map(([component, description]) => (
+                          <Card
+                            key={component}
+                            className={`cursor-pointer transition-all ${
+                              selectedComponent === component
+                                ? "border-blue-500 bg-blue-50"
+                                : "border-gray-200 hover:border-gray-300"
+                            }`}
+                            onClick={() => {
+                              setSelectedComponent(component)
+                              setCompatibilityResult(null)
+                            }}
+                          >
+                            <CardContent className="p-4">
+                              <div className="flex items-start space-x-3">
+                                <div
+                                  className={`w-4 h-4 rounded-full border-2 mt-1 ${
+                                    selectedComponent === component ? "border-blue-500 bg-blue-500" : "border-gray-300"
+                                  }`}
+                                >
+                                  {selectedComponent === component && (
+                                    <div className="w-2 h-2 bg-white rounded-full m-0.5"></div>
+                                  )}
                                 </div>
-                                <div>
-                                  <p className="text-xs text-gray-600 mb-2">Có thể nhận từ:</p>
-                                  <div className="flex flex-wrap gap-1">
-                                    {compatibility[bloodType as keyof typeof compatibility]?.map((compatibleType) => (
-                                      <Badge key={compatibleType} variant="outline" className="text-xs">
-                                        {compatibleType}
-                                      </Badge>
-                                    ))}
-                                  </div>
+                                <div className="flex-1">
+                                  <h3 className="font-semibold text-lg">{component}</h3>
+                                  <p className="text-sm text-gray-600 mt-1">{description}</p>
                                 </div>
-                              </CardContent>
-                            </Card>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Blood Type Selection */}
+                    {selectedComponent && (
+                      <div>
+                        <Label className="text-base font-semibold">Chọn nhóm máu</Label>
+                        <div className="grid grid-cols-4 gap-3 mt-4">
+                          {bloodTypes.map((type) => (
+                            <Button
+                              key={type}
+                              variant={selectedBloodTypeForComponent === type ? "default" : "outline"}
+                              onClick={() => {
+                                setSelectedBloodTypeForComponent(type)
+                                setCompatibilityResult(null)
+                              }}
+                              className="h-16 text-lg font-bold"
+                            >
+                              {type}
+                            </Button>
                           ))}
                         </div>
                       </div>
-                    ))}
+                    )}
+
+                    {/* Check Compatibility Button */}
+                    {selectedComponent && selectedBloodTypeForComponent && (
+                      <div className="flex justify-center">
+                        <Button
+                          onClick={checkCompatibility}
+                          className="bg-blue-600 hover:bg-blue-700 px-8 py-3 text-lg"
+                        >
+                          Kiểm tra tương thích
+                        </Button>
+                      </div>
+                    )}
+
+                    {/* Compatibility Results */}
+                    {compatibilityResult && (
+                      <Card className="border-blue-200 bg-blue-50" id="compatibility-results">
+                        <CardHeader>
+                          <CardTitle className="text-blue-800">Kết quả tương thích</CardTitle>
+                          <CardDescription className="text-blue-600">
+                            Đang tra cứu {selectedComponent} với nhóm máu {selectedBloodTypeForComponent}
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="grid md:grid-cols-2 gap-6">
+                            {/* Can Give To */}
+                            <div>
+                              <h3 className="font-semibold text-lg mb-4 text-green-800">
+                                <span className="inline-block w-3 h-3 bg-green-500 rounded-full mr-2"></span>
+                                Có thể cho
+                              </h3>
+                              <div className="space-y-2">
+                                {compatibilityResult.canGiveTo.map((bloodType) => (
+                                  <div key={bloodType} className="flex items-center p-3 bg-green-100 rounded-lg">
+                                    <Droplets className="w-5 h-5 text-green-600 mr-3" />
+                                    <span className="font-medium">Nhóm máu: {bloodType}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Can Receive From */}
+                            <div>
+                              <h3 className="font-semibold text-lg mb-4 text-blue-800">
+                                <span className="inline-block w-3 h-3 bg-blue-500 rounded-full mr-2"></span>
+                                Có thể nhận từ
+                              </h3>
+                              <div className="space-y-2">
+                                {compatibilityResult.canReceiveFrom.map((bloodType) => (
+                                  <div key={bloodType} className="flex items-center p-3 bg-blue-100 rounded-lg">
+                                    <Droplets className="w-5 h-5 text-blue-600 mr-3" />
+                                    <span className="font-medium">Nhóm máu: {bloodType}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
                   </div>
                 </CardContent>
               </Card>

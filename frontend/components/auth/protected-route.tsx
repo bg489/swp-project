@@ -2,63 +2,46 @@
 
 import type React from "react"
 
-import { useEffect, useState } from "react"
+import { useAuth } from "@/contexts/auth-context"
 import { useRouter } from "next/navigation"
-import { getCurrentUser, type User } from "@/lib/auth"
-import { Card, CardContent } from "@/components/ui/card"
-import { Heart } from "lucide-react"
+import { useEffect } from "react"
 
 interface ProtectedRouteProps {
   children: React.ReactNode
-  requiredRole?: "admin" | "user" | "staff" // Add "staff" role
-  redirectTo?: string
+  requiredRole: "admin" | "user" | "staff"
 }
 
-export function ProtectedRoute({ children, requiredRole, redirectTo = "/login" }: ProtectedRouteProps) {
-  const [user, setUser] = useState<User | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiredRole }) => {
+  const { user, isLoading } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
-    const currentUser = getCurrentUser()
-
-    if (!currentUser) {
-      router.push(redirectTo)
-      return
-    }
-
-    if (requiredRole && currentUser.role !== requiredRole) {
-      // Redirect to appropriate dashboard based on role
-      if (currentUser.role === "admin") {
-        router.push("/admin/dashboard")
-      } else if (currentUser.role === "staff") {
-        router.push("/staff/dashboard")
-      } else {
-        router.push("/user/dashboard")
+    if (!isLoading) {
+      if (!user) {
+        router.push(`/login?redirectTo=${router.asPath}`)
+      } else if (requiredRole === "admin" && user.role !== "admin") {
+        router.push("/")
+      } else if (requiredRole === "staff" && user.role !== "staff" && user.role !== "admin") {
+        router.push("/")
+      } else if (requiredRole === "user" && user.role !== "user" && user.role !== "admin" && user.role !== "staff") {
+        router.push("/")
       }
-      return
     }
+  }, [user, isLoading, router, requiredRole])
 
-    setUser(currentUser)
-    setIsLoading(false)
-  }, [router, requiredRole, redirectTo])
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Card className="w-full max-w-md">
-          <CardContent className="flex flex-col items-center justify-center p-8">
-            <div className="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center mb-4 animate-pulse">
-              <Heart className="w-8 h-8 text-white" />
-            </div>
-            <p className="text-gray-600">Đang kiểm tra quyền truy cập...</p>
-          </CardContent>
-        </Card>
-      </div>
-    )
+  if (isLoading || !user) {
+    return <div>Loading...</div>
   }
 
-  if (!user) {
+  if (requiredRole === "admin" && user.role !== "admin") {
+    return null // Or render a "Unauthorized" component
+  }
+
+  if (requiredRole === "staff" && user.role !== "staff" && user.role !== "admin") {
+    return null
+  }
+
+  if (requiredRole === "user" && user.role !== "user" && user.role !== "admin" && user.role !== "staff") {
     return null
   }
 

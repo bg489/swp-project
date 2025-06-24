@@ -58,6 +58,10 @@ export default function HomePage() {
     }
   }, [loginSuccess])
 
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" })
+  }
+
   const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
@@ -234,7 +238,12 @@ export default function HomePage() {
                       Đóng
                     </Button>
                     <Button className="flex-1 bg-red-600 hover:bg-red-700" asChild>
-                      <Link href={user?.role === "admin" ? "/admin/dashboard" : "/user/dashboard"}>Xem Dashboard</Link>
+                      <Link
+                        href={user?.role === "admin" ? "/admin/dashboard" : "/user/dashboard"}
+                        onClick={scrollToTop}
+                      >
+                        Xem Dashboard
+                      </Link>
                     </Button>
                   </div>
                 </div>
@@ -273,7 +282,7 @@ export default function HomePage() {
               {user ? (
                 <>
                   <Button size="lg" className="bg-red-600 hover:bg-red-700" asChild>
-                    <Link href="/donate">
+                    <Link href="/donate" onClick={scrollToTop}>
                       <Heart className="w-5 h-5 mr-2" />
                       Đăng ký hiến máu
                     </Link>
@@ -284,7 +293,7 @@ export default function HomePage() {
                     className="bg-white/10 border-white text-white hover:bg-white hover:text-gray-900"
                     asChild
                   >
-                    <Link href={user.role === "admin" ? "/admin/dashboard" : "/user/dashboard"}>
+                    <Link href={user.role === "admin" ? "/admin/dashboard" : "/user/dashboard"} onClick={scrollToTop}>
                       <Activity className="w-5 h-5 mr-2" />
                       Xem Dashboard
                     </Link>
@@ -293,7 +302,7 @@ export default function HomePage() {
               ) : (
                 <>
                   <Button size="lg" className="bg-red-600 hover:bg-red-700" asChild>
-                    <Link href="/register">
+                    <Link href="/register" onClick={scrollToTop}>
                       <Heart className="w-5 h-5 mr-2" />
                       Đăng ký hiến máu
                     </Link>
@@ -304,7 +313,7 @@ export default function HomePage() {
                     className="bg-white/10 border-white text-white hover:bg-white hover:text-gray-900"
                     asChild
                   >
-                    <Link href="/request">
+                    <Link href="/request" onClick={scrollToTop}>
                       <Users className="w-5 h-5 mr-2" />
                       Tìm người hiến máu
                     </Link>
@@ -374,7 +383,9 @@ export default function HomePage() {
                       {user.role === "admin" ? "Xem thống kê và quản lý hệ thống" : "Theo dõi lịch sử và đặt lịch hẹn"}
                     </p>
                     <Button asChild className="w-full">
-                      <Link href={user.role === "admin" ? "/admin/dashboard" : "/user/dashboard"}>Mở Dashboard</Link>
+                      <Link href={user.role === "admin" ? "/admin/dashboard" : "/user/dashboard"} onClick={scrollToTop}>
+                        Mở Dashboard
+                      </Link>
                     </Button>
                   </CardContent>
                 </Card>
@@ -391,19 +402,27 @@ export default function HomePage() {
                       {user.role === "admin" ? (
                         <>
                           <Button variant="outline" size="sm" className="w-full" asChild>
-                            <Link href="/emergency">Xem yêu cầu khẩn cấp</Link>
+                            <Link href="/emergency" onClick={scrollToTop}>
+                              Xem yêu cầu khẩn cấp
+                            </Link>
                           </Button>
                           <Button variant="outline" size="sm" className="w-full" asChild>
-                            <Link href="/admin/users">Quản lý người dùng</Link>
+                            <Link href="/admin/users" onClick={scrollToTop}>
+                              Quản lý người dùng
+                            </Link>
                           </Button>
                         </>
                       ) : (
                         <>
                           <Button variant="outline" size="sm" className="w-full" asChild>
-                            <Link href="/donate">Đăng ký hiến máu</Link>
+                            <Link href="/donate" onClick={scrollToTop}>
+                              Đăng ký hiến máu
+                            </Link>
                           </Button>
                           <Button variant="outline" size="sm" className="w-full" asChild>
-                            <Link href="/emergency">Yêu cầu khẩn cấp</Link>
+                            <Link href="/emergency" onClick={scrollToTop}>
+                              Yêu cầu khẩn cấp
+                            </Link>
                           </Button>
                         </>
                       )}
@@ -482,7 +501,7 @@ export default function HomePage() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button size="lg" variant="secondary" asChild>
-                <Link href="/emergency">
+                <Link href="/emergency" onClick={scrollToTop}>
                   <Phone className="w-5 h-5 mr-2" />
                   Gọi khẩn cấp: 1900-1234
                 </Link>
@@ -493,7 +512,7 @@ export default function HomePage() {
                 className="border-white text-white hover:bg-white hover:text-red-600"
                 asChild
               >
-                <Link href="/emergency">
+                <Link href="/emergency" onClick={scrollToTop}>
                   <Calendar className="w-5 h-5 mr-2" />
                   Đăng ký yêu cầu khẩn cấp
                 </Link>

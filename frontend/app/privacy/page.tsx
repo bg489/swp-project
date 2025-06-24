@@ -4,13 +4,22 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Shield, Lock, Eye, Users, FileText, Mail, Phone, MapPin, Clock, ChevronDown, Heart } from "lucide-react"
-import Link from "next/link"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 
 export default function PrivacyPage() {
   const [expandedSections, setExpandedSections] = useState<string[]>([])
+
+  const router = useRouter()
+
+  const handleNavigation = (href: string) => {
+    window.scrollTo({ top: 0, behavior: "smooth" })
+    setTimeout(() => {
+      router.push(href)
+    }, 300)
+  }
 
   const toggleSection = (sectionId: string) => {
     setExpandedSections((prev) =>
@@ -411,17 +420,17 @@ export default function PrivacyPage() {
                     variant="secondary"
                     size="lg"
                     className="bg-white text-red-600 hover:bg-gray-100 font-semibold px-8 py-3"
-                    asChild
+                    onClick={() => handleNavigation("/contact")}
                   >
-                    <Link href="/contact">📞 Liên hệ về bảo mật</Link>
+                    📞 Liên hệ về bảo mật
                   </Button>
                   <Button
                     variant="outline"
                     size="lg"
                     className="border-2 border-white text-white hover:bg-white hover:text-red-600 font-semibold px-8 py-3"
-                    asChild
+                    onClick={() => handleNavigation("/")}
                   >
-                    <Link href="/">🏠 Về trang chủ</Link>
+                    🏠 Về trang chủ
                   </Button>
                 </div>
               </div>

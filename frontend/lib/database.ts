@@ -1,13 +1,22 @@
-// Database connection and utilities
-export interface DatabaseConfig {
-  host: string
-  port: number
-  database: string
-  username: string
-  password: string
+/* lib/database.ts
+   Unified mock database with optional Neon connection.
+   Keeps the filename `.ts` so `import { db } from "./database"` works everywhere.
+*/
+
+import { neon, neonConfig } from "@neondatabase/serverless"
+
+/* ----------  Neon client (optional) ---------- */
+let sql: ReturnType<typeof neon> | null = null
+const databaseUrl = process.env.DATABASE_URL
+
+if (databaseUrl) {
+  neonConfig.fetchConnectionCache = true
+  sql = neon(databaseUrl)
+} else {
+  console.warn("DATABASE_URL is not set – skipping Neon connection and using in-memory MockDatabase instead.")
 }
 
-// Mock database connection - In production, use real database
+/* ----------  In-memory mock database ---------- */
 class MockDatabase {
   private users: any[] = []
   private donationHistory: any[] = []
@@ -17,11 +26,10 @@ class MockDatabase {
   private notifications: any[] = []
 
   constructor() {
-    this.initializeData()
+    this.seed()
   }
 
-  private initializeData() {
-    // Initialize with sample data
+  private seed() {
     this.users = [
       {
         id: "1",
@@ -81,7 +89,6 @@ class MockDatabase {
       { id: "8", blood_type: "AB+", units_available: 67, units_reserved: 7 },
     ]
 
-    // Add sample blood requests
     this.bloodRequests = [
       {
         id: "REQ001",
@@ -100,7 +107,7 @@ class MockDatabase {
       {
         id: "REQ002",
         patient_name: "Lê Thị E",
-        hospital: "Bệnh viện Bình Dan",
+        hospital: "Bệnh viện Bình Dân",
         blood_type: "A+",
         units_needed: 1,
         urgency: "Cao",
@@ -111,147 +118,51 @@ class MockDatabase {
         created_at: "2024-12-24T09:30:00Z",
         needed_by: "2024-12-24T16:00:00Z",
       },
-      {
-        id: "REQ003",
-        patient_name: "Hoàng Văn G",
-        hospital: "Bệnh viện Từ Dũ",
-        blood_type: "B+",
-        units_needed: 3,
-        urgency: "Trung bình",
-        contact_phone: "0903333333",
-        doctor_name: "BS. Nguyễn Văn H",
-        reason: "Sinh con khó",
-        status: "completed",
-        created_at: "2024-12-23T15:00:00Z",
-        needed_by: "2024-12-24T10:00:00Z",
-      },
     ]
   }
 
-  // User operations
+  /* ---------- User helpers ---------- */
   async findUserByEmail(email: string) {
-    return this.users.find((user) => user.email === email) || null
+    return this.users.find((u) => u.email === email) ?? null
   }
 
   async findUserById(id: string) {
-    return this.users.find((user) => user.id === id) || null
+    return this.users.find((u) => u.id === id) ?? null
   }
 
-  async createUser(userData: any) {
-    const newUser = {
+  async createUser(data: any) {
+    const user = {
       id: `U${Date.now()}`,
-      ...userData,
+      ...data,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     }
-    this.users.push(newUser)
-    return newUser
+    this.users.push(user)
+    return user
   }
 
-  async updateUser(id: string, userData: any) {
-    const index = this.users.findIndex((user) => user.id === id)
-    if (index !== -1) {
-      this.users[index] = {
-        ...this.users[index],
-        ...userData,
-        updated_at: new Date().toISOString(),
-      }
-      return this.users[index]
-    }
-    return null
+  async updateUser(id: string, changes: any) {
+    const idx = this.users.findIndex((u) => u.id === id)
+    if (idx === -1) return null
+    this.users[idx] = { ...this.users[idx], ...changes, updated_at: new Date().toISOString() }
+    return this.users[idx]
   }
 
-  // Blood inventory operations
+  /* ---------- Inventory helpers (examples) ---------- */
   async getBloodInventory() {
     return this.bloodInventory
   }
 
   async updateBloodInventory(bloodType: string, units: number) {
-    const index = this.bloodInventory.findIndex((item) => item.blood_type === bloodType)
-    if (index !== -1) {
-      this.bloodInventory[index].units_available = units
-      return this.bloodInventory[index]
-    }
-    return null
+    const item = this.bloodInventory.find((i) => i.blood_type === bloodType)
+    if (!item) return null
+    item.units_available = units
+    return item
   }
 
-  // Blood request operations
-  async createBloodRequest(requestData: any) {
-    const newRequest = {
-      id: `REQ${Date.now()}`,
-      ...requestData,
-      status: "pending",
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    }
-    this.bloodRequests.push(newRequest)
-    return newRequest
-  }
-
-  async getBloodRequests() {
-    return this.bloodRequests
-  }
-
-  async updateBloodRequest(id: string, updateData: any) {
-    const index = this.bloodRequests.findIndex((req) => req.id === id)
-    if (index !== -1) {
-      this.bloodRequests[index] = {
-        ...this.bloodRequests[index],
-        ...updateData,
-        updated_at: new Date().toISOString(),
-      }
-      return this.bloodRequests[index]
-    }
-    return null
-  }
-
-  // Appointment operations
-  async createAppointment(appointmentData: any) {
-    const newAppointment = {
-      id: `APT${Date.now()}`,
-      ...appointmentData,
-      status: "pending",
-      created_at: new Date().toISOString(),
-    }
-    this.appointments.push(newAppointment)
-    return newAppointment
-  }
-
-  async getUserAppointments(userId: string) {
-    return this.appointments.filter((apt) => apt.user_id === userId)
-  }
-
-  // Donation history operations
-  async createDonationRecord(donationData: any) {
-    const newDonation = {
-      id: `DON${Date.now()}`,
-      ...donationData,
-      created_at: new Date().toISOString(),
-    }
-    this.donationHistory.push(newDonation)
-    return newDonation
-  }
-
-  async getUserDonationHistory(userId: string) {
-    return this.donationHistory.filter((donation) => donation.user_id === userId)
-  }
-
-  // Notification operations
-  async createNotification(notificationData: any) {
-    const newNotification = {
-      id: `NOT${Date.now()}`,
-      ...notificationData,
-      is_read: false,
-      created_at: new Date().toISOString(),
-    }
-    this.notifications.push(newNotification)
-    return newNotification
-  }
-
-  async getUserNotifications(userId: string) {
-    return this.notifications.filter((notification) => notification.user_id === userId)
-  }
+  /* Additional helpers (requests, appointments, etc.) would go here… */
 }
 
-// Export singleton instance
+/* ----------  Exports ---------- */
 export const db = new MockDatabase()
+export { sql } // will be null when DATABASE_URL is absent

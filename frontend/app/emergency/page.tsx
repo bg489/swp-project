@@ -299,7 +299,12 @@ export default function EmergencyPage() {
                         <AlertTriangle className="w-5 h-5 mr-2" />
                         Gửi yêu cầu khẩn cấp
                       </Button>
-                      <Button type="button" variant="outline" className="px-8">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="px-8"
+                        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+                      >
                         Hủy
                       </Button>
                     </div>
