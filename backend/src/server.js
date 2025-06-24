@@ -4,6 +4,11 @@ import dotenv from "dotenv";
 import path from "path";
 
 import notesRoutes from "./routes/notesRoutes.js";
+<<<<<<< HEAD
+=======
+import usersRoutes from "./routes/usersRoutes.js";
+import OTPRoutes from "./routes/OTProutes.js";
+>>>>>>> origin/test
 import { connectDB } from "./config/db.js";
 
 dotenv.config();
@@ -13,6 +18,7 @@ const PORT = process.env.PORT || 5001;
 const __dirname = path.resolve();
 
 // middleware
+<<<<<<< HEAD
 if (process.env.NODE_ENV !== "production") {
   app.use(
     cors({
@@ -20,6 +26,15 @@ if (process.env.NODE_ENV !== "production") {
     })
   );
 }
+=======
+app.use(
+  cors({
+    origin: "http://localhost:3000",
+    credentials: true, // nếu bạn sử dụng cookie hoặc auth
+  })
+);
+
+>>>>>>> origin/test
 app.use(express.json()); // this middleware will parse JSON bodies: req.body
 
 // our simple custom middleware
@@ -29,6 +44,11 @@ app.use(express.json()); // this middleware will parse JSON bodies: req.body
 // });
 
 app.use("/api/notes", notesRoutes);
+<<<<<<< HEAD
+=======
+app.use("/api/users", usersRoutes);
+app.use("/api/otp", OTPRoutes);
+>>>>>>> origin/test
 
 // if (process.env.NODE_ENV === "production") {
 //   app.use(express.static(path.join(__dirname, "../frontend/dist")));
