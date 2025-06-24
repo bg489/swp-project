@@ -1,5 +1,6 @@
 "use client"
 import { ProtectedRoute } from "@/components/auth/protected-route"
+import Image from "next/image"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -58,6 +59,15 @@ export default function UserDashboard() {
     setIsLoading(false)
   }
 
+  const handleResetPassword = async () => {
+    setIsLoading(true)
+    await api.post("/otp/send", {
+              email: user?.email
+            })
+    router.push(`/user/dashboard/otp?email=${user?.email}`)
+    setIsLoading(false)
+  }
+
   useEffect(() => {
     async function fetchProfile() {
       if (user?.role === "donor") {
@@ -113,6 +123,18 @@ export default function UserDashboard() {
       return "Vô danh"
     }
   }
+
+  const handleSecondCard = () => {
+    if(user?.role === "donor"){
+      return donor?.blood_type;
+    } else if (user?.role === "recipient"){
+      return recipient?.hospital_name;
+    } else {
+      return "unknown"
+    }
+  }
+
+
 
   // Mock user data
   const userStats = {
@@ -241,6 +263,50 @@ export default function UserDashboard() {
     },
   ]
 
+  const achievementRecip = [
+    {
+      id: 1,
+      name: "Người nhận đầu tiên",
+      description: "Hoàn tất lần nhận máu đầu tiên",
+      icon: "🩸",
+      earned: true,
+      earnedDate: "15/09/2023",
+    },
+    {
+      id: 2,
+      name: "Người nhận tích cực",
+      description: "Đã xác nhận 3 lần nhận máu đúng hạn",
+      icon: "✅",
+      earned: true,
+      earnedDate: "15/09/2024",
+    },
+    {
+      id: 3,
+      name: "Người nhận kiên trì",
+      description: "Đã nhận máu 5 lần mà không bỏ lỡ lịch hẹn",
+      icon: "💪",
+      earned: false,
+      progress: 60,
+    },
+    {
+      id: 4,
+      name: "Báo cáo đúng lúc",
+      description: "Cập nhật tình trạng sức khỏe sau khi nhận máu trong vòng 24h",
+      icon: "📋",
+      earned: false,
+      progress: 0,
+    },
+    {
+      id: 5,
+      name: "Cộng đồng cùng tiến",
+      description: "Giới thiệu hệ thống cho ít nhất 3 người khác",
+      icon: "🤝",
+      earned: false,
+      progress: 33,
+    },
+  ];
+
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "completed":
@@ -276,11 +342,17 @@ export default function UserDashboard() {
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
                 <Link href="/" className="flex items-center space-x-2">
-                  <div className="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center">
-                    <Heart className="w-6 h-6 text-white" />
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center">
+                    <Image
+                      src="/images/logo.webp"
+                      alt="ScαrletBlood Logo"
+                      width={32}
+                      height={32}
+                      className="w-full h-full object-cover"
+                    />
                   </div>
                   <div>
-                    <h1 className="text-xl font-bold text-gray-900">BloodConnect</h1>
+                    <h1 className="text-xl font-bold text-gray-900">ScαrletBlood</h1>
                     <p className="text-sm text-gray-600">Bảng điều khiển cá nhân</p>
                   </div>
                 </Link>
@@ -334,12 +406,12 @@ export default function UserDashboard() {
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Nhóm máu</CardTitle>
+                <CardTitle className="text-sm font-medium">{(user?.role === "donor") ? "Nhóm máu" : "Cơ sở bệnh viện"}</CardTitle>
                 <Droplets className="h-4 w-4 text-red-500" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{(user?.role === "donor") ? donor?.blood_type : "O+"}</div>
-                <p className="text-xs text-muted-foreground">Nhóm máu của bạn</p>
+                <div className="text-2xl font-bold">{handleSecondCard()}</div>
+                <p className="text-xs text-muted-foreground">{(user?.role === "donor") ? "Nhóm máu của bạn" : "Tên bệnh viện"}</p>
               </CardContent>
             </Card>
 
@@ -574,7 +646,37 @@ export default function UserDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="grid md:grid-cols-2 gap-4">
-                    {achievements.map((achievement) => (
+                    {(user?.role === "donor") && achievements.map((achievement) => (
+                      <div
+                        key={achievement.id}
+                        className={`p-4 border rounded-lg ${
+                          achievement.earned ? "bg-yellow-50 border-yellow-200" : "bg-gray-50 border-gray-200"
+                        }`}
+                      >
+                        <div className="flex items-start space-x-3">
+                          <div className="text-3xl">{achievement.icon}</div>
+                          <div className="flex-1">
+                            <h3 className="font-semibold">{achievement.name}</h3>
+                            <p className="text-sm text-gray-600 mb-2">{achievement.description}</p>
+                            {achievement.earned ? (
+                              <Badge className="bg-yellow-100 text-yellow-800">
+                                <CheckCircle className="w-3 h-3 mr-1" />
+                                Đã đạt được • {achievement.earnedDate}
+                              </Badge>
+                            ) : (
+                              <div>
+                                <div className="flex justify-between text-xs text-gray-500 mb-1">
+                                  <span>Tiến độ</span>
+                                  <span>{achievement.progress}%</span>
+                                </div>
+                                <Progress value={achievement.progress} className="h-2" />
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    {(user?.role === "recipient") && achievementRecip.map((achievement) => (
                       <div
                         key={achievement.id}
                         className={`p-4 border rounded-lg ${
@@ -713,9 +815,10 @@ export default function UserDashboard() {
                         <Edit className="w-4 h-4 mr-2" />
                         Chỉnh sửa thông tin
                       </Button>
-                      <Button variant="outline">
+                      
+                      <Button variant="outline" onClick={handleResetPassword} disabled={isLoading}>
                         <Settings className="w-4 h-4 mr-2" />
-                        Cài đặt tài khoản
+                        Đổi mật khẩu
                       </Button>
                     </div>
                   </div>
