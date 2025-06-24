@@ -7,6 +7,7 @@ export interface User {
   password_hash: string
   role: "donor" | "recipient" | "staff" | "admin"
   phone: string | null
+  gender: "male" | "female" | "other"
   date_of_birth: string | null // or Date if you're parsing it
   address: string | null
   is_active: boolean
@@ -51,6 +52,7 @@ const formatUser = (dbUser: any): User => ({
   password_hash: dbUser.password_hash,
   role: dbUser.role,
   phone: dbUser.phone ?? null,
+  gender: dbUser.gender ?? null,
   date_of_birth: dbUser.date_of_birth ?? null,
   address: dbUser.address ?? null,
   is_active: dbUser.is_active,

@@ -146,13 +146,13 @@ export function LoginForm({ onSuccess, redirectTo }: LoginFormProps) {
           </div>
 
           <div className="space-y-2">
-            <ReCAPTCHA
+            {/* <ReCAPTCHA
               sitekey="6Le19mkrAAAAAKWFaDg-rfWGbuBAGxpt5m5yoXDd"
               onChange={(val: boolean | ((prevState: boolean) => boolean)) => setCapVal(val)}
-            />
+            /> */}
           </div>
 
-          <Button type="submit" className="w-full" disabled={isLoading || !capVal}>
+          <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? (
               <div className="flex items-center">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>

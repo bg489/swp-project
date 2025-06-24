@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
+import { useRouter } from "next/navigation"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Heart,
@@ -25,12 +26,92 @@ import {
 import Link from "next/link"
 import { useAuth } from "@/contexts/auth-context"
 import { Footer } from "@/components/footer"
+import { useEffect, useState } from "react"
+import api from "../../../lib/axios";
 
 export default function UserDashboard() {
+  const router = useRouter()
+  const [isLoading, setIsLoading] = useState(false)
   const { user, logout } = useAuth()
+  type DonorProfile = {
+    blood_type: string;
+    availability_date: string;
+    health_cert_url?: string;
+    cooldown_until?: string;
+    createdAt?: string;
+    updatedAt?: string;
+    // Add other fields if needed
+  };
+
+  const [donor, setDonor] = useState<DonorProfile | null>(null);
+  type RecipientProfile = {
+    medical_doc_url: string;
+    hospital_name: string;
+    createdAt?: string;
+    updatedAt?: string;
+  };
+  const [recipient, setRecipient] = useState<RecipientProfile | null>(null);
+
+  const handleEdit = async () => {
+    setIsLoading(true)
+    router.push("/user/dashboard/edit")
+    setIsLoading(false)
+  }
+
+  useEffect(() => {
+    async function fetchProfile() {
+      if (user?.role === "donor") {
+        try {
+          const response = await api.get(`/users/donor-profile/active/${user._id}`);
+          setDonor(response.data.profile);
+        } catch (error) {
+          console.error("Failed to fetch donor profile:", error);
+        }
+      } else if (user?.role === "recipient") {
+        try {
+          const response = await api.get(`/users/recipient-profile/active/${user._id}`);
+          setRecipient(response.data.profile);
+        } catch (error) {
+          console.error("Failed to fetch recipient profile:", error);
+        }
+      }
+    }
+
+    if (user?._id) {
+      fetchProfile();
+    }
+  }, [user]);
 
   const handleLogout = () => {
     logout()
+  }
+
+  const handleRole = (role?: string): string => {
+    if (!role) return 'Unknown';
+    if(role === "admin"){
+      return "Quản trị viên"
+    } else if(role === "donor"){
+      return "Người hiến máu"
+    } else if(role === "recipient"){
+      return "Người nhận máu"
+    } else if(role === "staff"){
+      return "Nhân viên"
+    } else {
+      return "Vô danh"
+    }
+  }
+
+  const handleGender = (gender?: string): string => {
+    if (!gender) return 'Unknown';
+    if(gender === "male"){
+      return "Nam"
+    } else if(gender === "female"){
+      return "Nữ"
+    } else if(gender === "other"){
+      return "Khác"
+    } else {
+      return "Vô danh"
+    }
   }
 
   // Mock user data
@@ -203,10 +284,19 @@ export default function UserDashboard() {
                     <p className="text-sm text-gray-600">Bảng điều khiển cá nhân</p>
                   </div>
                 </Link>
-                <Badge className="bg-blue-100 text-blue-800">
-                  <User className="w-3 h-3 mr-1" />
-                  Người hiến máu
-                </Badge>
+                {(user?.role === "donor") && (
+                  <Badge className="bg-blue-100 text-blue-800">
+                    <User className="w-3 h-3 mr-1" />
+                    Người hiến máu
+                  </Badge>
+                )}
+                {(user?.role === "recipient") && (
+                  <Badge className="bg-blue-100 text-green-800">
+                    <User className="w-3 h-3 mr-1" />
+                    Người nhận máu
+                  </Badge>
+                )}
+                
               </div>
 
               <div className="flex items-center space-x-4">
@@ -248,7 +338,7 @@ export default function UserDashboard() {
                 <Droplets className="h-4 w-4 text-red-500" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{userStats.bloodType}</div>
+                <div className="text-2xl font-bold">{(user?.role === "donor") ? donor?.blood_type : "O+"}</div>
                 <p className="text-xs text-muted-foreground">Nhóm máu của bạn</p>
               </CardContent>
             </Card>
@@ -540,8 +630,20 @@ export default function UserDashboard() {
                             <p className="font-medium">{user?.email}</p>
                           </div>
                           <div>
+                            <label className="text-sm text-gray-600">Vai trò</label>
+                            <p className="font-medium">{handleRole(user?.role)}</p>
+                          </div>
+                          <div>
                             <label className="text-sm text-gray-600">Số điện thoại</label>
                             <p className="font-medium">{user?.phone}</p>
+                          </div>
+                          <div>
+                            <label className="text-sm text-gray-600">Giới tính</label>
+                            <p className="font-medium">{handleGender(user?.gender)}</p>
+                          </div>
+                          <div>
+                            <label className="text-sm text-gray-600">Ngày sinh</label>
+                            <p className="font-medium">{user?.date_of_birth && new Date(user.date_of_birth).toLocaleDateString("vi-VN")}</p>
                           </div>
                           <div>
                             <label className="text-sm text-gray-600">Địa chỉ</label>
@@ -549,26 +651,65 @@ export default function UserDashboard() {
                           </div>
                         </div>
                       </div>
-                      <div>
-                        <h3 className="font-semibold mb-4">Thông tin y tế</h3>
+                      {(user?.role === "donor") && (
+                        <div>
+                        <h3 className="font-semibold mb-4">Thông tin người hiến máu</h3>
                         <div className="space-y-3">
                           <div>
                             <label className="text-sm text-gray-600">Nhóm máu</label>
-                            <p className="font-medium text-red-600">O+</p>
+                            <p className="font-medium text-red-600">{donor?.blood_type}</p>
                           </div>
                           <div>
-                            <label className="text-sm text-gray-600">Lần hiến cuối</label>
-                            <p className="font-medium">Chưa hiến</p>
+                            <label className="text-sm text-gray-600">Ngày có thể bắt đầu hiến máu</label>
+                            <p className="font-medium">{donor?.availability_date && new Date(donor.availability_date).toLocaleDateString("vi-VN")}</p>
                           </div>
                           <div>
-                            <label className="text-sm text-gray-600">Tổng lần hiến</label>
-                            <p className="font-medium">5 lần</p>
+                            <label className="text-sm text-gray-600">Bằng sức khỏe</label>
+                            <p className="font-medium">{donor?.health_cert_url}</p>
+                          </div>
+                          <div>
+                            <label className="text-sm text-gray-600">Nghỉ ngơi cho đến khi</label>
+                            <p className="font-medium">{donor?.cooldown_until
+                                                          ? new Date(donor.cooldown_until).toLocaleDateString("vi-VN")
+                                                          : "Chưa có"}</p>
+                          </div>
+                          <div>
+                            <label className="text-sm text-gray-600">Ngày được tạo</label>
+                            <p className="font-medium">{donor?.createdAt && new Date(donor.createdAt).toLocaleDateString("vi-VN")}</p>
+                          </div>
+                          <div>
+                            <label className="text-sm text-gray-600">Ngày cập nhật</label>
+                            <p className="font-medium">{donor?.updatedAt && new Date(donor.updatedAt).toLocaleDateString("vi-VN")}</p>
                           </div>
                         </div>
                       </div>
+                      )}
+                      {(user?.role === "recipient") && (
+                        <div>
+                        <h3 className="font-semibold mb-4">Thông tin người nhận máu</h3>
+                        <div className="space-y-3">
+                          <div>
+                            <label className="text-sm text-gray-600">Tên bệnh viện</label>
+                            <p className="font-medium text-red-600">{recipient?.hospital_name}</p>
+                          </div>
+                          <div>
+                            <label className="text-sm text-gray-600">Bằng sức khỏe</label>
+                            <p className="font-medium">{recipient?.medical_doc_url}</p>
+                          </div>
+                          <div>
+                            <label className="text-sm text-gray-600">Ngày được tạo</label>
+                            <p className="font-medium">{recipient?.createdAt && new Date(recipient.createdAt).toLocaleDateString("vi-VN")}</p>
+                          </div>
+                          <div>
+                            <label className="text-sm text-gray-600">Ngày cập nhật</label>
+                            <p className="font-medium">{recipient?.updatedAt && new Date(recipient.updatedAt).toLocaleDateString("vi-VN")}</p>
+                          </div>
+                        </div>
+                      </div>
+                      )}
                     </div>
                     <div className="flex space-x-4">
-                      <Button>
+                      <Button onClick={handleEdit} disabled={isLoading}>
                         <Edit className="w-4 h-4 mr-2" />
                         Chỉnh sửa thông tin
                       </Button>

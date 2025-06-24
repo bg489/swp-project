@@ -30,6 +30,9 @@ export default function RegisterPage() {
     gender: "",
     date_of_birth: "",
     role: "",
+    date_begin_donate: "",
+    certificate: "",
+    hospital_name: "",
     agreeTerms: false,
   })
   const [capVal, setCapVal] = useState(false)
@@ -93,8 +96,25 @@ export default function RegisterPage() {
 
       const result = await response.data;
 
+      
+
       if (result.message) {
         // Redirect to login page with success message
+        if(formData.role === "donor"){
+          await api.post("/users/donor-profile", {
+            user_id: result.user.id,
+            blood_type: formData.bloodType,
+            availability_date: formData.date_begin_donate,
+            health_cert_url: formData.certificate,
+            cooldown_until: ""
+          })
+        } else {
+          await api.post("/users/recipient-profile", {
+            user_id: result.user.id,
+            medical_doc_url: formData.certificate,
+            hospital_name: formData.hospital_name
+          })
+        }
         api.post("/otp/send", {
           email: formData.email
         })
@@ -227,6 +247,7 @@ export default function RegisterPage() {
                     </div>
                   </div>
 
+                  {(formData.role === "donor") && (
                   <div className="space-y-2">
                     <Label htmlFor="bloodType">Nhóm máu *</Label>
                     <Select
@@ -254,6 +275,7 @@ export default function RegisterPage() {
                       </SelectContent>
                     </Select>
                   </div>
+                  )}
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-4">
@@ -312,10 +334,10 @@ export default function RegisterPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <ReCAPTCHA
+                    {/* <ReCAPTCHA
                       sitekey="6Le19mkrAAAAAKWFaDg-rfWGbuBAGxpt5m5yoXDd"
                       onChange={(val: boolean | ((prevState: boolean) => boolean)) => setCapVal(val)}
-                    />
+                    /> */}
                   </div>
 
                   
@@ -335,6 +357,58 @@ export default function RegisterPage() {
                     />
                   </div>
                 </div>
+
+
+                {((formData.role === "donor") || (formData.role === "recipient")) && (
+                <div className="grid md:grid-cols-2 gap-4">
+                  {(formData.role === "donor") && (
+                  <div className="space-y-2">
+                    <Label htmlFor="dbd">Ngày bắt đầu hiến máu *</Label>
+                    <div className="relative">
+                      <Calendar className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                      <Input
+                        id="dbd"
+                        type="date"
+                        value={formData.date_begin_donate}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, date_begin_donate: e.target.value }))}
+                        className="pl-10"
+                        required
+                      />
+                    </div>
+                  </div>
+                  )}
+                  {(formData.role === "recipient") && (
+                  <div className="space-y-2">
+                    <Label htmlFor="hospital_name">Tên bệnh viện *</Label>
+                    <div className="relative">
+                      <MapPin className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                      <Input
+                        id="hospital_name"
+                        placeholder="ex: Bệnh viện Hùng Vương"
+                        value={formData.hospital_name}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, hospital_name: e.target.value }))}
+                        className="pl-10"
+                        required
+                      />
+                    </div>
+                  </div>
+                  )}
+
+                  <div className="space-y-2">
+                    <Label htmlFor="certificate">Bằng sức khỏe *</Label>
+                    <div className="relative">
+                      <Input
+                        id="certificate"
+                        placeholder="url"
+                        value={formData.certificate}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, certificate: e.target.value }))}
+                        className="pl-10"
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+                )}
 
                 <div className="flex items-start space-x-2">
                   <Checkbox
@@ -356,7 +430,7 @@ export default function RegisterPage() {
                   </Label>
                 </div>
 
-                <Button type="submit" className="w-full" disabled={isLoading || !capVal}>
+                <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? (
                     <div className="flex items-center">
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>

@@ -1,6 +1,8 @@
 import User from '../models/User.js';
 import bcrypt from 'bcryptjs';
 import crypto from "crypto";
+import DonorProfile from "../models/DonorProfile.js";
+import RecipientProfile from '../models/RecipientProfile.js';
 
 export async function createUser(req, res) {
   try {
@@ -220,5 +222,248 @@ export async function toggleUserVerification(req, res) {
   } catch (error) {
     console.error("Lỗi khi đổi is_verified:", error)
     res.status(500).json({ message: "Lỗi server" })
+  }
+}
+
+export async function createDonorProfile(req, res) {
+  try {
+    const {
+      user_id,
+      blood_type,
+      availability_date,
+      health_cert_url,
+      cooldown_until,
+    } = req.body;
+
+    if (!user_id || !blood_type || !availability_date) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+
+    const user = await User.findById(user_id);
+    if (!user || user.role !== "donor") {
+      return res.status(404).json({ message: "User is not a donor" });
+    }
+
+    // Deactivate recipient profile if it exists
+    await RecipientProfile.findOneAndUpdate(
+      { user_id },
+      { is_in_the_role: false }
+    );
+
+    // Check if donor profile exists
+    const existingProfile = await DonorProfile.findOne({ user_id });
+
+    if (existingProfile) {
+      existingProfile.is_in_the_role = true;
+      if (blood_type !== undefined) existingProfile.blood_type = blood_type;
+      if (availability_date !== undefined) existingProfile.availability_date = availability_date;
+      if (health_cert_url !== undefined) existingProfile.health_cert_url = health_cert_url;
+      if (cooldown_until !== undefined) existingProfile.cooldown_until = cooldown_until;
+      await existingProfile.save();
+
+      return res.status(200).json({
+        message: "Donor profile re-activated and updated",
+        profile: existingProfile,
+      });
+    }
+
+    const profile = new DonorProfile({
+      user_id,
+      blood_type,
+      availability_date,
+      health_cert_url,
+      cooldown_until,
+      is_in_the_role: true,
+    });
+
+    await profile.save();
+
+    return res.status(201).json({
+      message: "Donor profile created successfully",
+      profile,
+    });
+  } catch (error) {
+    console.error("Error creating donor profile:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+}
+
+
+export async function createRecipientProfile(req, res) {
+  try {
+    const { user_id, medical_doc_url, hospital_name } = req.body;
+
+    if (!user_id || !medical_doc_url || !hospital_name) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+
+    const user = await User.findById(user_id);
+    if (!user || user.role !== "recipient") {
+      return res.status(404).json({ message: "User is not a recipient" });
+    }
+
+    // Deactivate donor profile if it exists
+    await DonorProfile.findOneAndUpdate(
+      { user_id },
+      { is_in_the_role: false }
+    );
+
+    // Check if recipient profile exists
+    const existingProfile = await RecipientProfile.findOne({ user_id });
+
+    if (existingProfile) {
+      existingProfile.is_in_the_role = true;
+      if (medical_doc_url !== undefined) existingProfile.medical_doc_url = medical_doc_url;
+      if (hospital_name !== undefined) existingProfile.hospital_name = hospital_name;
+      await existingProfile.save();
+
+      return res.status(200).json({
+        message: "Recipient profile re-activated and updated",
+        profile: existingProfile,
+      });
+    }
+
+    const profile = new RecipientProfile({
+      user_id,
+      medical_doc_url,
+      hospital_name,
+      is_in_the_role: true,
+    });
+
+    await profile.save();
+
+    return res.status(201).json({
+      message: "Recipient profile created successfully",
+      profile,
+    });
+  } catch (error) {
+    console.error("Error creating recipient profile:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+}
+
+
+export async function getActiveDonorProfile(req, res) {
+  try {
+    const { user_id } = req.params;
+
+    if (!user_id) {
+      return res.status(400).json({ message: "Missing user_id parameter" });
+    }
+
+    const profile = await DonorProfile.findOne({ user_id });
+
+    if (!profile) {
+      return res.status(404).json({ message: "No active donor profile found" });
+    }
+
+    return res.status(200).json({
+      message: "Active donor profile retrieved",
+      profile,
+    });
+  } catch (error) {
+    console.error("Error fetching donor profile:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+}
+
+export async function getActiveRecipientProfile(req, res) {
+  try {
+    const { user_id } = req.params;
+
+    if (!user_id) {
+      return res.status(400).json({ message: "Missing user_id parameter" });
+    }
+
+    const profile = await RecipientProfile.findOne({ user_id });
+
+    if (!profile) {
+      return res.status(404).json({ message: "No active recipient profile found" });
+    }
+
+    return res.status(200).json({
+      message: "Active recipient profile retrieved",
+      profile,
+    });
+  } catch (error) {
+    console.error("Error fetching recipient profile:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+}
+
+export async function updateUserRole(req, res) {
+  try {
+    const { userId } = req.params;
+    const { newRole } = req.body;
+
+    const validRoles = ["donor", "recipient", "staff", "admin"];
+    if (!validRoles.includes(newRole)) {
+      return res.status(400).json({ message: "Invalid role" });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // If same role, no need to update
+    if (user.role === newRole) {
+      return res.status(200).json({ message: "User already has this role" });
+    }
+
+    user.role = newRole;
+    await user.save();
+
+    return res.status(200).json({
+      message: "User role updated successfully",
+      userId: user._id,
+      newRole: user.role,
+    });
+  } catch (error) {
+    console.error("Error updating user role:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+}
+
+
+export async function updateUserById(req, res) {
+  try {
+    const { userId } = req.params;
+    const {
+      full_name,
+      email,
+      phone,
+      gender,
+      date_of_birth,
+      address,
+      is_active,
+      is_verified,
+    } = req.body;
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Only update fields if provided
+    if (full_name !== undefined) user.full_name = full_name;
+    if (email !== undefined) user.email = email;
+    if (phone !== undefined) user.phone = phone;
+    if (gender !== undefined) user.gender = gender;
+    if (date_of_birth !== undefined) user.date_of_birth = date_of_birth;
+    if (address !== undefined) user.address = address;
+    if (is_active !== undefined) user.is_active = is_active;
+    if (is_verified !== undefined) user.is_verified = is_verified;
+
+    await user.save();
+
+    return res.status(200).json({
+      message: "User updated successfully",
+      user,
+    });
+  } catch (error) {
+    console.error("Error updating user:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 }
