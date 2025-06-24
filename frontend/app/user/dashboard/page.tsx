@@ -518,12 +518,14 @@ export default function UserDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="grid md:grid-cols-3 gap-4">
-                    <Button asChild className="h-20 flex-col">
-                      <Link href="/user/donate">
-                        <Heart className="w-6 h-6 mb-2" />
-                        Đặt lịch hiến máu
-                      </Link>
-                    </Button>
+                    {(user?.role === "recipient") && (
+                      <Button asChild className="h-20 flex-col">
+                        <Link href="/reqdonation">
+                          <Heart className="w-6 h-6 mb-2" />
+                          Đặt lịch nhận máu
+                        </Link>
+                      </Button>
+                    )}
                     <Button variant="outline" asChild className="h-20 flex-col">
                       <Link href="/emergency">
                         <AlertCircle className="w-6 h-6 mb-2" />

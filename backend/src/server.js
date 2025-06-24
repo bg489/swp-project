@@ -6,6 +6,7 @@ import path from "path";
 import notesRoutes from "./routes/notesRoutes.js";
 import usersRoutes from "./routes/usersRoutes.js";
 import OTPRoutes from "./routes/OTProutes.js";
+import recipientRoutes from "./routes/recipientRoutes.js";
 import { connectDB } from "./config/db.js";
 
 dotenv.config();
@@ -33,6 +34,7 @@ app.use(express.json()); // this middleware will parse JSON bodies: req.body
 app.use("/api/notes", notesRoutes);
 app.use("/api/users", usersRoutes);
 app.use("/api/otp", OTPRoutes);
+app.use("/api/recipient", recipientRoutes);
 
 // if (process.env.NODE_ENV === "production") {
 //   app.use(express.static(path.join(__dirname, "../frontend/dist")));
