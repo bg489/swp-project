@@ -32,6 +32,7 @@ import api from "../../../lib/axios";
 
 export default function UserDashboard() {
   const router = useRouter()
+  const [bloodRequests, setBloodRequests] = useState([])
   const [isLoading, setIsLoading] = useState(false)
   const { user, logout } = useAuth()
   type DonorProfile = {
@@ -52,6 +53,20 @@ export default function UserDashboard() {
     updatedAt?: string;
   };
   const [recipient, setRecipient] = useState<RecipientProfile | null>(null);
+
+  function translateStatus(status: string) {
+    const map: Record<string, string> = {
+      pending: "Chờ duyệt",
+      approved: "Đã duyệt",
+      matched: "Đã ghép",
+      in_progress: "Đang xử lý",
+      completed: "Hoàn tất",
+      cancelled: "Đã hủy",
+      rejected: "Từ chối",
+    }
+
+    return map[status] || status
+  }
 
   const handleEdit = async () => {
     setIsLoading(true)
@@ -80,6 +95,17 @@ export default function UserDashboard() {
       } else if (user?.role === "recipient") {
         try {
           const response = await api.get(`/users/recipient-profile/active/${user._id}`);
+          const res = await api.get(`/recipient/blood-requests/${user._id}`)
+
+          // res.data là object: { requests: [...] }
+          const requestArray = res.data?.requests || []
+
+          if (Array.isArray(requestArray)) {
+            setBloodRequests(requestArray)
+          } else {
+            console.error("Data is not array:", requestArray)
+            setBloodRequests([]) // fallback nếu sai định dạng
+          }
           setRecipient(response.data.profile);
         } catch (error) {
           console.error("Failed to fetch recipient profile:", error);
@@ -546,38 +572,97 @@ export default function UserDashboard() {
             <TabsContent value="history" className="space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Lịch sử hiến máu</CardTitle>
-                  <CardDescription>Tất cả các lần hiến máu của bạn</CardDescription>
+                  <CardTitle>{user?.role === "donor"? "Lịch sử hiến máu" : "Lịch sử yêu cầu máu"}</CardTitle>
+                  <CardDescription>{user?.role === "donor"? "Tất cả các lần hiến máu của bạn" : "Tất cả các lần yêu cầu của bạn"}</CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {donationHistory.map((donation) => (
-                      <div key={donation.id} className="flex items-center justify-between p-4 border rounded-lg">
-                        <div className="flex items-center space-x-4">
-                          <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-                            <Heart className="w-6 h-6 text-red-600" />
-                          </div>
-                          <div>
-                            <p className="font-medium">Hiến máu #{donation.id}</p>
-                            <p className="text-sm text-gray-600">{donation.location}</p>
-                            <div className="flex items-center space-x-2 mt-1">
-                              <span className="text-xs text-gray-500">{donation.date}</span>
-                              <span className="text-xs text-gray-500">•</span>
-                              <span className="text-xs text-gray-500">{donation.units}ml</span>
+                  {(user?.role === "donor") && (
+                    <CardContent>
+                      <div className="space-y-4">
+                        {donationHistory.map((donation) => (
+                          <div key={donation.id} className="flex items-center justify-between p-4 border rounded-lg">
+                            <div className="flex items-center space-x-4">
+                              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                                <Heart className="w-6 h-6 text-red-600" />
+                              </div>
+                              <div>
+                                <p className="font-medium">Hiến máu #{donation.id}</p>
+                                <p className="text-sm text-gray-600">{donation.location}</p>
+                                <div className="flex items-center space-x-2 mt-1">
+                                  <span className="text-xs text-gray-500">{donation.date}</span>
+                                  <span className="text-xs text-gray-500">•</span>
+                                  <span className="text-xs text-gray-500">{donation.units}ml</span>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <Badge className={getStatusColor(donation.status)}>
+                                <CheckCircle className="w-3 h-3 mr-1" />
+                                Hoàn thành
+                              </Badge>
+                              <p className="text-xs text-gray-500 mt-1">+{donation.points} điểm</p>
                             </div>
                           </div>
-                        </div>
-                        <div className="text-right">
-                          <Badge className={getStatusColor(donation.status)}>
-                            <CheckCircle className="w-3 h-3 mr-1" />
-                            Hoàn thành
-                          </Badge>
-                          <p className="text-xs text-gray-500 mt-1">+{donation.points} điểm</p>
-                        </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                </CardContent>
+                    </CardContent>
+                  )}
+
+                  {(user?.role === "recipient") && (
+                    <CardContent>
+                      <div className="space-y-4">
+                        {bloodRequests.map((request) => (
+                          <div
+                            key={request._id}
+                            className="flex items-center justify-between p-4 border rounded-lg hover:shadow-md transition-shadow"
+                          >
+                            {/* Left Icon + Info */}
+                            <div className="flex items-center space-x-4">
+                              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                                <Droplets className="w-6 h-6 text-red-600" />
+                              </div>
+                              <div>
+                                <p className="font-medium">Yêu cầu máu #{request._id.slice(-5)}</p>
+                                <p className="text-sm text-gray-600">{request.hospital_location}</p>
+                                <div className="flex items-center space-x-2 mt-1 text-xs text-gray-500">
+                                  <span>
+                                    {new Date(request.createdAt).toLocaleDateString("vi-VN")}
+                                  </span>
+                                  <span>•</span>
+                                  <span>{request.amount_needed} đơn vị</span>
+                                  <span>•</span>
+                                  <span>{request.components_needed.join(", ")}</span>
+                                </div>
+                                {request.comment && (
+                                  <p className="text-xs text-gray-500 whitespace-pre-line mt-1">
+                                    💬 {request.comment}
+                                  </p>
+                                )}
+                                {request.is_emergency && (
+                                  <Badge className="mt-1 bg-red-600 text-white text-xs px-2 py-0.5 rounded-full animate-pulse">
+                                    ⚠️ Khẩn cấp
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Right: Status */}
+                            <div className="text-right">
+                              <Badge className={getStatusColor(request.status)}>
+                                {translateStatus(request.status)}
+                              </Badge>
+                              <div className="mt-2">
+                                <Badge className="bg-red-600 text-white px-3 py-1 rounded-full text-sm shadow-sm">
+                                  🩸 {request.blood_type_needed}
+                                </Badge>
+                              </div>
+                            </div>
+
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  )}
+                
               </Card>
             </TabsContent>
 

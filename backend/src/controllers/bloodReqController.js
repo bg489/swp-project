@@ -54,3 +54,25 @@ export async function createBloodRequest(req, res) {
   }
 }
 
+export async function getBloodRequestsByRecipientId(req, res) {
+  try {
+    const { recipientId } = req.params;
+
+    if (!recipientId) {
+      return res.status(400).json({ message: "Recipient ID is required" });
+    }
+
+    const requests = await BloodRequest.find({ recipient_id: recipientId })
+      .populate("recipient_id", "fullName email phone")
+      .sort({ createdAt: -1 });
+
+    if (!requests.length) {
+      return res.status(404).json({ message: "No blood requests found for this recipient" });
+    }
+
+    return res.status(200).json({ requests });
+  } catch (error) {
+    console.error("Error fetching blood requests by recipient ID:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+}

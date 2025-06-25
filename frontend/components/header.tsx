@@ -55,6 +55,7 @@ export function Header() {
     { href: "/reqdonation", label: "Yêu cầu máu" },
     { href: "/emergency", label: "Khẩn cấp" },
     { href: "/blog", label: "Blog" },
+    { href: "/history-recip", label: "Lịch Sử" },
   ]
 
   const isActivePath = (href: string) => {

@@ -35,7 +35,7 @@ export default function RootLayout({
         />
         {/* ✅ Google Maps JavaScript API */}
         <Script
-          src={`https://maps.googleapis.com/maps/api/js?key=AIzaSyBc5ttNvh_OwNs1JimroHz0qAaHukdkpHg&libraries=places`}
+          src={`https://maps.googleapis.com/maps/api/js?key=AIzaSyAvB-XM78BFOIGmATl7os_bBauM4_qodYs&libraries=places`}
           strategy="beforeInteractive"
         />
         <AuthProvider>{children}</AuthProvider>
