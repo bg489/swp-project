@@ -20,6 +20,7 @@ import ReCAPTCHA from "react-google-recaptcha"
 import { useAuth } from "@/contexts/auth-context"
 import toast from "react-hot-toast"
 import UploadCertificate from "@/components/ui/UploadCertificate"
+import AddressAutocomplete from "@/components/ui/AddressAutocomplete"
 
 
 export default function RegisterPage() {
@@ -461,13 +462,9 @@ export default function RegisterPage() {
                   <Label htmlFor="address">Địa chỉ *</Label>
                   <div className="relative">
                     <MapPin className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="address"
-                      placeholder="123 Đường ABC, Quận 1, TP.HCM"
+                    <AddressAutocomplete
                       value={formData.address}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, address: e.target.value }))}
-                      className="pl-10"
-                      required
+                      onChange={(val) => setFormData((prev) => ({ ...prev, address: val }))}
                     />
                   </div>
                 </div>
