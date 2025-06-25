@@ -19,6 +19,18 @@ export default function RootLayout({
 }) {
   return (
     <html lang="vi">
+      <head>
+        {/* 🚩 Uploadcare Widget Styles - Tông đỏ sang trọng */}
+        <link
+          rel="stylesheet"
+          href="https://ucarecdn.com/libs/widget/3.x/uploadcare.full.min.css"
+        />
+        {/* 🧩 Uploadcare Widget Script (JS) */}
+        <script
+          src="https://ucarecdn.com/libs/widget/3.x/uploadcare.full.min.js"
+          defer
+        ></script>
+      </head>
       <body className={inter.className}>
         <AuthProvider>{children}</AuthProvider>
       </body>

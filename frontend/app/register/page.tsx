@@ -17,6 +17,7 @@ import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import api from "../../lib/axios";
 import ReCAPTCHA from "react-google-recaptcha"
+import UploadCertificate from "@/components/ui/UploadCertificate"
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -101,6 +102,9 @@ export default function RegisterPage() {
       if (result.message) {
         // Redirect to login page with success message
         if(formData.role === "donor"){
+          await api.put(`/users/${result.user.id}/role`, {
+            newRole: "donor"
+          })
           await api.post("/users/donor-profile", {
             user_id: result.user.id,
             blood_type: formData.bloodType,
@@ -109,6 +113,9 @@ export default function RegisterPage() {
             cooldown_until: ""
           })
         } else {
+          await api.put(`/users/${result.user.id}/role`, {
+            newRole: "recipient"
+          })
           await api.post("/users/recipient-profile", {
             user_id: result.user.id,
             medical_doc_url: formData.certificate,
@@ -395,17 +402,12 @@ export default function RegisterPage() {
                   )}
 
                   <div className="space-y-2">
-                    <Label htmlFor="certificate">Bằng sức khỏe *</Label>
-                    <div className="relative">
-                      <Input
-                        id="certificate"
-                        placeholder="url"
-                        value={formData.certificate}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, certificate: e.target.value }))}
-                        className="pl-10"
-                        required
-                      />
-                    </div>
+                    <Label htmlFor="certificateDonor">Ảnh giấy chứng nhận sức khỏe *</Label>
+                    <UploadCertificate
+                      id="certificateDonor"
+                      value={formData.certificate}
+                      onChange={(url) => setFormData((prev) => ({ ...prev, certificate: url }))}
+                    />
                   </div>
                 </div>
                 )}

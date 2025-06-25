@@ -19,6 +19,8 @@ import api from "../../../../lib/axios";
 import ReCAPTCHA from "react-google-recaptcha"
 import { useAuth } from "@/contexts/auth-context"
 import toast from "react-hot-toast"
+import UploadCertificate from "@/components/ui/UploadCertificate"
+
 
 export default function RegisterPage() {
   const { user, setUser, logout } = useAuth()
@@ -76,53 +78,61 @@ export default function RegisterPage() {
 
   useEffect(() => {
     async function fetchProfile() {
+      console.log(user._id);
+
+      // ✅ Donor profile
       try {
-        
-          const response1 = await api.get(`/users/donor-profile/active/${user._id}`);
-          const profile1 = response1.data.profile;
-          setDonor(profile1);
+        const response1 = await api.get(`/users/donor-profile/active/${user._id}`);
+        const profile1 = response1.data.profile;
+        setDonor(profile1);
 
-          setFormData((prev) => ({
-            ...prev,
-            bloodType: profile1.blood_type || "",
-            availability_date: profile1.availability_date ? formatDate(profile1.availability_date) : "",
-            certificateDonor: profile1.health_cert_url || "",
-            name: user.full_name || "",
-            email: user.email || "",
-            phone: user.phone || "",
-            address: user.address || "",
-            gender: user.gender as "male" | "female" | "other" | undefined,
-            date_of_birth: user.date_of_birth ? formatDate(user.date_of_birth) : "",
-            role: user.role || "",
-          }));
-        
-          const response2 = await api.get(`/users/recipient-profile/active/${user._id}`);
-          const profile2 = response2.data.profile;
-          setRecipient(profile2);
-
-          setFormData((prev) => ({
-            ...prev,
-            hospital_name: profile2.hospital_name || "",
-            certificateRecipient: profile2.medical_doc_url || "",
-            name: user.full_name || "",
-            email: user.email || "",
-            phone: user.phone || "",
-            address: user.address || "",
-            gender: user.gender as "male" | "female" | "other" | undefined,
-            date_of_birth: user.date_of_birth ? formatDate(user.date_of_birth) : "",
-            role: user.role || "",
-          }));
-        
+        setFormData((prev) => ({
+          ...prev,
+          bloodType: profile1.blood_type || "",
+          availability_date: profile1.availability_date ? formatDate(profile1.availability_date) : "",
+          certificateDonor: profile1.health_cert_url || "",
+          name: user.full_name || "",
+          email: user.email || "",
+          phone: user.phone || "",
+          address: user.address || "",
+          gender: user.gender as "male" | "female" | "other" | undefined,
+          date_of_birth: user.date_of_birth ? formatDate(user.date_of_birth) : "",
+          role: user.role || "",
+        }));
       } catch (error) {
-        console.error("Failed to fetch profile:", error);
+        console.warn("Không tìm thấy donor profile:", error);
       }
+
+      // ✅ Recipient profile
+      try {
+        const response2 = await api.get(`/users/recipient-profile/active/${user._id}`);
+        const profile2 = response2.data.profile;
+        setRecipient(profile2);
+
+        setFormData((prev) => ({
+          ...prev,
+          hospital_name: profile2.hospital_name || "",
+          certificateRecipient: profile2.medical_doc_url || "",
+          name: user.full_name || "",
+          email: user.email || "",
+          phone: user.phone || "",
+          address: user.address || "",
+          gender: user.gender as "male" | "female" | "other" | undefined,
+          date_of_birth: user.date_of_birth ? formatDate(user.date_of_birth) : "",
+          role: user.role || "",
+        }));
+      } catch (error) {
+        console.warn("Không tìm thấy recipient profile:", error);
+      }
+
+      setIsLoading(false);
     }
 
     if (user?._id) {
       fetchProfile();
     }
-    setIsLoading(false)
   }, [user]);
+
 
 
   
@@ -344,37 +354,27 @@ export default function RegisterPage() {
                   
                   <>
                     {(formData.role === "donor") && (
-                    <div className="space-y-2">
-                      <Label htmlFor="certificate">Bằng sức khỏe *</Label>
-                      <div className="relative">
-                        <Input
-                          id="certificate"
-                          placeholder="url"
+                      <div className="space-y-2">
+                        <Label htmlFor="certificateDonor">Ảnh giấy chứng nhận sức khỏe *</Label>
+                        <UploadCertificate
+                          id="certificateDonor"
                           value={formData.certificateDonor}
-                          onChange={(e) => setFormData((prev) => ({ ...prev, certificateDonor: e.target.value }))}
-                          className="pl-10"
-                          required
+                          onChange={(url) => setFormData((prev) => ({ ...prev, certificateDonor: url }))}
                         />
                       </div>
-                    </div>
-
                     )}
+
                     {(formData.role === "recipient") && (
-                    <div className="space-y-2">
-                      <Label htmlFor="certificate">Bằng sức khỏe *</Label>
-                      <div className="relative">
-                        <Input
-                          id="certificate"
-                          placeholder="url"
+                      <div className="space-y-2">
+                        <Label htmlFor="certificateRecipient">Ảnh giấy chứng nhận y tế *</Label>
+                        <UploadCertificate
+                          id="certificateRecipient"
                           value={formData.certificateRecipient}
-                          onChange={(e) => setFormData((prev) => ({ ...prev, certificateRecipient: e.target.value }))}
-                          className="pl-10"
-                          required
+                          onChange={(url) => setFormData((prev) => ({ ...prev, certificateRecipient: url }))}
                         />
                       </div>
-                    </div>
-
                     )}
+
                   </>
                   )}
                   

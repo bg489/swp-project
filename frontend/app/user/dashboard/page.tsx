@@ -769,7 +769,13 @@ export default function UserDashboard() {
                           </div>
                           <div>
                             <label className="text-sm text-gray-600">Bằng sức khỏe</label>
-                            <p className="font-medium">{donor?.health_cert_url}</p>
+                            <Image
+                              src={donor?.health_cert_url}
+                              alt="ScαrletBlood Logo"
+                              width={32}
+                              height={32}
+                              className="w-full h-full object-cover"
+                            />
                           </div>
                           <div>
                             <label className="text-sm text-gray-600">Nghỉ ngơi cho đến khi</label>
@@ -798,7 +804,13 @@ export default function UserDashboard() {
                           </div>
                           <div>
                             <label className="text-sm text-gray-600">Bằng sức khỏe</label>
-                            <p className="font-medium">{recipient?.medical_doc_url}</p>
+                            <Image
+                              src={recipient?.medical_doc_url}
+                              alt="ScαrletBlood Logo"
+                              width={32}
+                              height={32}
+                              className="w-full h-full object-cover"
+                            />
                           </div>
                           <div>
                             <label className="text-sm text-gray-600">Ngày được tạo</label>
