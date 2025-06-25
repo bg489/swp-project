@@ -103,6 +103,7 @@ export default function EmergencyPage() {
                 <AlertTriangle className="w-8 h-8 text-white" />
               </div>
             </div>
+            <Badge className="mb-4 bg-red-100 text-red-800">🚨 Yêu cầu máu khẩn cấp</Badge>
             <h1 className="text-4xl font-bold text-gray-900 mb-4">Yêu cầu máu khẩn cấp</h1>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
               Hệ thống xử lý yêu cầu máu khẩn cấp 24/7. Chúng tôi sẽ kết nối với người hiến máu phù hợp trong thời gian
@@ -298,7 +299,12 @@ export default function EmergencyPage() {
                         <AlertTriangle className="w-5 h-5 mr-2" />
                         Gửi yêu cầu khẩn cấp
                       </Button>
-                      <Button type="button" variant="outline" className="px-8">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="px-8"
+                        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+                      >
                         Hủy
                       </Button>
                     </div>

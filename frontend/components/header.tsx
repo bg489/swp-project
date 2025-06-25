@@ -37,10 +37,19 @@ export function Header() {
       return "Vô danh"
     }
   }
+  const findDashboardByRole = (role: string) => {
+    if(role === "admin") 
+      return "/admin/dashboard" 
+    else if((role === "donor") || (role === "recipient")) 
+      return "/user/dashboard"
+    else{
+      return "/staff/dashboard"
+    }
+  }
 
   const getDashboardLink = () => {
     if (!user) return "/"
-    return user.role === "admin" ? "/admin/dashboard" : "/user/dashboard"
+    return findDashboardByRole(user.role)
   }
 
   const getDashboardLabel = () => {
@@ -56,6 +65,8 @@ export function Header() {
     { href: "/emergency", label: "Khẩn cấp" },
     { href: "/blog", label: "Blog" },
     { href: "/history-recip", label: "Lịch Sử" },
+    { href: "/qna", label: "Hỏi đáp" },
+    { href: "/guide", label: "Hướng dẫn" },
   ]
 
   const isActivePath = (href: string) => {

@@ -307,7 +307,12 @@ export default function DonatePage() {
                         <Heart className="w-4 h-4 mr-2" />
                         Đăng ký hiến máu
                       </Button>
-                      <Button type="button" variant="outline" asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        asChild
+                        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+                      >
                         <Link href="/">Hủy</Link>
                       </Button>
                     </div>

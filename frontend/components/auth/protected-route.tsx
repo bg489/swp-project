@@ -45,6 +45,8 @@ export function ProtectedRoute({ children, requiredRole, redirectTo = "/login" }
         // Redirect to appropriate dashboard
         if (currentUser.role === "admin") {
           router.push("/admin/dashboard")
+        } else if (currentUser.role === "staff") {
+          router.push("/staff/dashboard")
         } else {
           router.push("/user/dashboard")
         }
