@@ -39,6 +39,7 @@ export function Header() {
     { href: "/donate", label: "Hiến máu" },
     { href: "/request", label: "Cần máu" },
     { href: "/emergency", label: "Khẩn cấp" },
+    { href: "/guide", label: "Hướng dẫn" },
     { href: "/qna", label: "Hỏi đáp" },
     { href: "/blog", label: "Blog" },
   ]

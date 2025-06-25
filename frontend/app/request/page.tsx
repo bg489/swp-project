@@ -193,10 +193,10 @@ export default function RequestPage() {
         <div className="max-w-6xl mx-auto">
           {/* Hero Section */}
           <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
               <Search className="w-8 h-8 text-white" />
             </div>
-            <Badge className="mb-4 bg-blue-100 text-blue-800">🔍 Tìm kiếm người hiến máu phù hợp</Badge>
+            <Badge className="mb-4 bg-red-100 text-red-800">🔍 Tìm kiếm người hiến máu phù hợp</Badge>
             <h1 className="text-4xl font-bold text-gray-900 mb-4">Tìm người hiến máu</h1>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
               Tìm kiếm người hiến máu phù hợp theo nhóm máu, vị trí và thành phần máu cần thiết
@@ -215,7 +215,7 @@ export default function RequestPage() {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center">
-                    <Search className="w-5 h-5 mr-2 text-blue-600" />
+                    <Search className="w-5 h-5 mr-2 text-red-600" />
                     Bộ lọc tìm kiếm
                   </CardTitle>
                   <CardDescription>Nhập thông tin để tìm người hiến máu phù hợp</CardDescription>
@@ -288,7 +288,7 @@ export default function RequestPage() {
                   </div>
                   <div className="flex gap-4 mt-4">
                     <Button
-                      className="bg-blue-600 hover:bg-blue-700"
+                      className="bg-red-600 hover:bg-red-700"
                       onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
                     >
                       <Search className="w-4 h-4 mr-2" />
@@ -510,7 +510,7 @@ export default function RequestPage() {
                             key={component}
                             className={`cursor-pointer transition-all ${
                               selectedComponent === component
-                                ? "border-blue-500 bg-blue-50"
+                                ? "border-red-500 bg-red-50"
                                 : "border-gray-200 hover:border-gray-300"
                             }`}
                             onClick={() => {
@@ -522,7 +522,7 @@ export default function RequestPage() {
                               <div className="flex items-start space-x-3">
                                 <div
                                   className={`w-4 h-4 rounded-full border-2 mt-1 ${
-                                    selectedComponent === component ? "border-blue-500 bg-blue-500" : "border-gray-300"
+                                    selectedComponent === component ? "border-red-500 bg-red-500" : "border-gray-300"
                                   }`}
                                 >
                                   {selectedComponent === component && (
@@ -565,10 +565,7 @@ export default function RequestPage() {
                     {/* Check Compatibility Button */}
                     {selectedComponent && selectedBloodTypeForComponent && (
                       <div className="flex justify-center">
-                        <Button
-                          onClick={checkCompatibility}
-                          className="bg-blue-600 hover:bg-blue-700 px-8 py-3 text-lg"
-                        >
+                        <Button onClick={checkCompatibility} className="bg-red-600 hover:bg-red-700 px-8 py-3 text-lg">
                           Kiểm tra tương thích
                         </Button>
                       </div>
@@ -576,10 +573,10 @@ export default function RequestPage() {
 
                     {/* Compatibility Results */}
                     {compatibilityResult && (
-                      <Card className="border-blue-200 bg-blue-50" id="compatibility-results">
+                      <Card className="border-red-200 bg-red-50" id="compatibility-results">
                         <CardHeader>
-                          <CardTitle className="text-blue-800">Kết quả tương thích</CardTitle>
-                          <CardDescription className="text-blue-600">
+                          <CardTitle className="text-red-800">Kết quả tương thích</CardTitle>
+                          <CardDescription className="text-red-600">
                             Đang tra cứu {selectedComponent} với nhóm máu {selectedBloodTypeForComponent}
                           </CardDescription>
                         </CardHeader>
