@@ -189,12 +189,12 @@ export default function RequestPage() {
     <div className="min-h-screen bg-gradient-to-b from-red-50 to-white">
       <Header />
 
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-6 py-12 max-w-7xl">
         <div className="max-w-6xl mx-auto">
           {/* Hero Section */}
-          <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Search className="w-8 h-8 text-white" />
+          <div className="text-center mb-12">
+            <div className="w-20 h-20 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Search className="w-10 h-10 text-white" />
             </div>
             <Badge className="mb-4 bg-red-100 text-red-800">🔍 Tìm kiếm người hiến máu phù hợp</Badge>
             <h1 className="text-4xl font-bold text-gray-900 mb-4">Tìm người hiến máu</h1>
@@ -203,8 +203,8 @@ export default function RequestPage() {
             </p>
           </div>
 
-          <Tabs defaultValue="search" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-3">
+          <Tabs defaultValue="search" className="space-y-8">
+            <TabsList className="grid w-full grid-cols-3 h-14">
               <TabsTrigger value="search">Tìm kiếm</TabsTrigger>
               <TabsTrigger value="compatibility">Tương thích</TabsTrigger>
               <TabsTrigger value="components">Thành phần máu</TabsTrigger>

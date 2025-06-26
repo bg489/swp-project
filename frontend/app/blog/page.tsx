@@ -443,12 +443,12 @@ export default function BlogPage() {
     <div className="min-h-screen bg-gradient-to-b from-red-50 to-white">
       <Header />
 
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-6 py-12 max-w-7xl">
         <div className="max-w-6xl mx-auto">
           {/* Hero Section */}
           <div className="text-center mb-12">
-            <div className="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
-              <BookOpen className="w-8 h-8 text-white" />
+            <div className="w-20 h-20 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
+              <BookOpen className="w-10 h-10 text-white" />
             </div>
             <Badge className="mb-4 bg-red-100 text-red-800">📚 Kiến thức & Chia sẻ kinh nghiệm</Badge>
             <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">Blog ScαrletBlood</h1>
@@ -458,8 +458,8 @@ export default function BlogPage() {
           </div>
 
           {/* Search Bar */}
-          <div className="mb-8">
-            <div className="max-w-2xl mx-auto relative">
+          <div className="mb-12">
+            <div className="max-w-3xl mx-auto relative">
               <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <Input
                 placeholder="Tìm kiếm bài viết, tác giả, chủ đề..."
@@ -486,10 +486,10 @@ export default function BlogPage() {
             )}
           </div>
 
-          <div className="grid lg:grid-cols-4 gap-8">
+          <div className="grid lg:grid-cols-4 gap-12">
             {/* Sidebar */}
             <div className="lg:col-span-1">
-              <div className="space-y-6">
+              <div className="space-y-8">
                 {/* Categories */}
                 <Card>
                   <CardHeader>
@@ -591,7 +591,7 @@ export default function BlogPage() {
               {/* Featured Post */}
               {(activeCategory === "Tất cả" || activeCategory === "Hướng dẫn") && searchTerm === "" && (
                 <div ref={categoryRefs["Hướng dẫn"]}>
-                  <Card className="overflow-hidden border-red-200 shadow-lg">
+                  <Card className="overflow-hidden border-red-200 shadow-xl">
                     <div className="md:flex">
                       <div className="md:w-1/2">
                         <div className="w-full h-64 md:h-full bg-gradient-to-br from-red-100 to-red-200 flex items-center justify-center">
@@ -842,7 +842,7 @@ export default function BlogPage() {
 
           {/* Call to Action */}
           <Card className="mt-16 bg-gradient-to-r from-red-600 to-red-700 text-white">
-            <CardContent className="p-8 text-center">
+            <CardContent className="p-12 text-center">
               <div className="w-12 h-12 mx-auto mb-4 rounded-full overflow-hidden">
                 <Image
                   src="/images/logo.webp"

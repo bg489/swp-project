@@ -69,16 +69,16 @@ export default function DonatePage() {
     <div className="min-h-screen bg-gradient-to-b from-red-50 to-white">
       <Header />
 
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto">
+      <div className="container mx-auto px-6 py-12 max-w-7xl">
+        <div className="max-w-6xl mx-auto">
           {/* Hero Section */}
           <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Heart className="w-8 h-8 text-white" />
+            <div className="w-20 h-20 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Heart className="w-10 h-10 text-white" />
             </div>
-            <Badge className="mb-4 bg-red-100 text-red-800">🩸 Trở thành người hùng cứu sinh mạng</Badge>
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">Đăng ký hiến máu</h1>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            <Badge className="mb-6 bg-red-100 text-red-800">🩸 Trở thành người hùng cứu sinh mạng</Badge>
+            <h1 className="text-4xl font-bold text-gray-900 mb-6">Đăng ký hiến máu</h1>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
               Một giọt máu cho đi, một sinh mạng ở lại. Hãy đăng ký để trở thành người hiến máu tình nguyện.
             </p>
           </div>
@@ -86,24 +86,24 @@ export default function DonatePage() {
           <div className="grid lg:grid-cols-3 gap-8">
             {/* Requirements Card */}
             <div className="lg:col-span-1">
-              <Card className="sticky top-24">
+              <Card className="sticky top-28">
                 <CardHeader>
                   <CardTitle className="flex items-center">
                     <Shield className="w-5 h-5 mr-2 text-red-600" />
                     Điều kiện hiến máu
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <ul className="space-y-3">
+                <CardContent className="p-8">
+                  <ul className="space-y-4">
                     {requirements.map((req, index) => (
-                      <li key={index} className="flex items-start space-x-2">
+                      <li key={index} className="flex items-start space-x-3">
                         <div className="w-2 h-2 bg-red-500 rounded-full mt-2 flex-shrink-0" />
                         <span className="text-sm text-gray-600">{req}</span>
                       </li>
                     ))}
                   </ul>
-                  <div className="mt-6 p-4 bg-red-50 rounded-lg">
-                    <div className="flex items-center mb-2">
+                  <div className="mt-8 p-6 bg-red-50 rounded-lg">
+                    <div className="flex items-center mb-3">
                       <CheckCircle className="w-5 h-5 text-red-600 mr-2" />
                       <h4 className="font-semibold text-red-800">Lưu ý quan trọng</h4>
                     </div>
@@ -127,15 +127,15 @@ export default function DonatePage() {
                     Vui lòng điền đầy đủ thông tin để chúng tôi có thể liên hệ khi cần thiết
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <form onSubmit={handleSubmit} className="space-y-6">
+                <CardContent className="p-8">
+                  <form onSubmit={handleSubmit} className="space-y-8">
                     {/* Personal Information */}
-                    <div className="space-y-4">
+                    <div className="space-y-6">
                       <h3 className="text-lg font-semibold text-gray-900 flex items-center">
                         <User className="w-5 h-5 mr-2 text-red-600" />
                         Thông tin cá nhân
                       </h3>
-                      <div className="grid md:grid-cols-2 gap-4">
+                      <div className="grid md:grid-cols-2 gap-6">
                         <div>
                           <Label htmlFor="fullName">Họ và tên *</Label>
                           <Input
@@ -158,7 +158,7 @@ export default function DonatePage() {
                           />
                         </div>
                       </div>
-                      <div className="grid md:grid-cols-2 gap-4">
+                      <div className="grid md:grid-cols-2 gap-6">
                         <div>
                           <Label htmlFor="email">Email</Label>
                           <Input
@@ -213,7 +213,7 @@ export default function DonatePage() {
                     </div>
 
                     {/* Medical History */}
-                    <div className="space-y-4">
+                    <div className="space-y-6">
                       <h3 className="text-lg font-semibold text-gray-900 flex items-center">
                         <Shield className="w-5 h-5 mr-2 text-red-600" />
                         Thông tin y tế
@@ -225,13 +225,13 @@ export default function DonatePage() {
                           value={formData.medicalHistory}
                           onChange={(e) => setFormData((prev) => ({ ...prev, medicalHistory: e.target.value }))}
                           placeholder="Mô tả các bệnh lý, dị ứng, thuốc đang sử dụng..."
-                          rows={3}
+                          rows={4}
                         />
                       </div>
                     </div>
 
                     {/* Availability */}
-                    <div className="space-y-4">
+                    <div className="space-y-6">
                       <h3 className="text-lg font-semibold text-gray-900 flex items-center">
                         <CalendarIcon className="w-5 h-5 mr-2 text-red-600" />
                         Thời gian sẵn sàng
@@ -258,9 +258,9 @@ export default function DonatePage() {
                       </div>
                       <div>
                         <Label>Khung giờ thuận tiện</Label>
-                        <div className="grid grid-cols-2 gap-2 mt-2">
+                        <div className="grid grid-cols-2 gap-3 mt-3">
                           {timeSlots.map((time) => (
-                            <div key={time} className="flex items-center space-x-2">
+                            <div key={time} className="flex items-center space-x-3">
                               <Checkbox
                                 id={time}
                                 checked={formData.availableTimes.includes(time)}
@@ -276,8 +276,8 @@ export default function DonatePage() {
                     </div>
 
                     {/* Terms and Conditions */}
-                    <div className="space-y-4">
-                      <div className="flex items-start space-x-2">
+                    <div className="space-y-6">
+                      <div className="flex items-start space-x-3">
                         <Checkbox
                           id="agreeTerms"
                           checked={formData.agreeTerms}
@@ -302,7 +302,7 @@ export default function DonatePage() {
                     </div>
 
                     {/* Submit Button */}
-                    <div className="flex gap-4">
+                    <div className="flex gap-6">
                       <Button type="submit" className="flex-1 bg-red-600 hover:bg-red-700">
                         <Heart className="w-4 h-4 mr-2" />
                         Đăng ký hiến máu
@@ -323,13 +323,13 @@ export default function DonatePage() {
           </div>
 
           {/* Additional Information Section */}
-          <div className="mt-12 grid md:grid-cols-3 gap-6">
+          <div className="mt-16 grid md:grid-cols-3 gap-8">
             <Card className="bg-blue-50 border-blue-200">
-              <CardContent className="p-6 text-center">
-                <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Heart className="w-6 h-6 text-white" />
+              <CardContent className="p-8 text-center">
+                <div className="w-14 h-14 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <Heart className="w-7 h-7 text-white" />
                 </div>
-                <h3 className="font-semibold text-blue-800 mb-2">Quy trình an toàn</h3>
+                <h3 className="font-semibold text-blue-800 mb-3">Quy trình an toàn</h3>
                 <p className="text-sm text-blue-700">
                   Tất cả dụng cụ đều vô trùng, sử dụng một lần và được tiêu hủy ngay sau khi sử dụng.
                 </p>
@@ -337,11 +337,11 @@ export default function DonatePage() {
             </Card>
 
             <Card className="bg-green-50 border-green-200">
-              <CardContent className="p-6 text-center">
-                <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Shield className="w-6 h-6 text-white" />
+              <CardContent className="p-8 text-center">
+                <div className="w-14 h-14 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <Shield className="w-7 h-7 text-white" />
                 </div>
-                <h3 className="font-semibold text-green-800 mb-2">Kiểm tra sức khỏe</h3>
+                <h3 className="font-semibold text-green-800 mb-3">Kiểm tra sức khỏe</h3>
                 <p className="text-sm text-green-700">
                   Bác sĩ sẽ kiểm tra sức khỏe tổng quát trước khi tiến hành hiến máu.
                 </p>
@@ -349,11 +349,11 @@ export default function DonatePage() {
             </Card>
 
             <Card className="bg-purple-50 border-purple-200">
-              <CardContent className="p-6 text-center">
-                <div className="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <CheckCircle className="w-6 h-6 text-white" />
+              <CardContent className="p-8 text-center">
+                <div className="w-14 h-14 bg-purple-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <CheckCircle className="w-7 h-7 text-white" />
                 </div>
-                <h3 className="font-semibold text-purple-800 mb-2">Chăm sóc sau hiến</h3>
+                <h3 className="font-semibold text-purple-800 mb-3">Chăm sóc sau hiến</h3>
                 <p className="text-sm text-purple-700">Được nghỉ ngơi và cung cấp đồ ăn nhẹ để phục hồi sức khỏe.</p>
               </CardContent>
             </Card>

@@ -94,13 +94,13 @@ export default function EmergencyPage() {
     <div className="min-h-screen bg-gradient-to-b from-red-50 to-white">
       <Header />
 
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-6 py-12 max-w-7xl">
         <div className="max-w-6xl mx-auto">
           {/* Hero Section */}
-          <div className="text-center mb-8">
-            <div className="flex items-center justify-center mb-4">
-              <div className="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center animate-pulse">
-                <AlertTriangle className="w-8 h-8 text-white" />
+          <div className="text-center mb-12">
+            <div className="flex items-center justify-center mb-6">
+              <div className="w-20 h-20 bg-red-500 rounded-full flex items-center justify-center animate-pulse">
+                <AlertTriangle className="w-10 h-10 text-white" />
               </div>
             </div>
             <Badge className="mb-4 bg-red-100 text-red-800">🚨 Yêu cầu máu khẩn cấp</Badge>
@@ -115,7 +115,7 @@ export default function EmergencyPage() {
             </div>
           </div>
 
-          <div className="grid lg:grid-cols-3 gap-8">
+          <div className="grid lg:grid-cols-3 gap-12">
             {/* Emergency Request Form */}
             <div className="lg:col-span-2">
               <Card className="border-red-200">

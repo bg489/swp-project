@@ -254,7 +254,7 @@ export default function HomePage() {
       )}
 
       {/* Hero Section với background image */}
-      <section className="relative py-20 px-4 overflow-hidden">
+      <section className="relative py-24 px-6 overflow-hidden">
         {/* Background Image */}
         <div className="absolute inset-0 z-0">
           <Image src="/images/hero-bg.png" alt="Blood donation background" fill className="object-cover" priority />
@@ -263,8 +263,8 @@ export default function HomePage() {
         </div>
 
         {/* Content */}
-        <div className="container mx-auto text-center relative z-10">
-          <div className="max-w-4xl mx-auto">
+        <div className="container mx-auto text-center relative z-10 max-w-7xl">
+          <div className="max-w-5xl mx-auto">
             {user && <div className="mb-6"></div>}
             <Badge className="mb-4 bg-red-100 text-red-800 hover:bg-red-100">
               🩸 Cứu sống một sinh mạng chỉ với một giọt máu
@@ -326,9 +326,9 @@ export default function HomePage() {
       </section>
 
       {/* Stats Section */}
-      <section className="py-16 bg-red-600 text-white">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+      <section className="py-20 bg-red-600 text-white">
+        <div className="container mx-auto px-6 max-w-7xl">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-12">
             {stats.map((stat, index) => (
               <div key={index} className="text-center">
                 <div className="text-3xl md:text-4xl font-bold mb-2">{stat.number}</div>
@@ -341,9 +341,9 @@ export default function HomePage() {
 
       {/* User Welcome Section */}
       {user && (
-        <section className="py-16 px-4 bg-blue-50">
-          <div className="container mx-auto">
-            <div className="max-w-4xl mx-auto text-center">
+        <section className="py-20 px-6 bg-blue-50">
+          <div className="container mx-auto max-w-7xl">
+            <div className="max-w-5xl mx-auto text-center">
               <h2 className="text-3xl font-bold text-gray-900 mb-6">
                 Chào mừng {user.role === "admin" ? "Quản trị viên" : "Người hiến máu"} {user.name}!
               </h2>
@@ -436,9 +436,9 @@ export default function HomePage() {
       )}
 
       {/* Blood Types Section */}
-      <section className="py-20 px-4 bg-gray-50">
-        <div className="container mx-auto">
-          <div className="text-center mb-12">
+      <section className="py-24 px-6 bg-gray-50">
+        <div className="container mx-auto max-w-7xl">
+          <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Thông tin nhóm máu</h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
               Hiểu rõ về các nhóm máu và khả năng tương thích để hiến máu hiệu quả nhất
@@ -465,9 +465,9 @@ export default function HomePage() {
       </section>
 
       {/* Features Section */}
-      <section className="py-20 px-4 bg-white">
-        <div className="container mx-auto">
-          <div className="text-center mb-12">
+      <section className="py-24 px-6 bg-white">
+        <div className="container mx-auto max-w-7xl">
+          <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Tính năng nổi bật</h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
               Hệ thống quản lý hiến máu toàn diện với các tính năng hiện đại
@@ -492,8 +492,8 @@ export default function HomePage() {
       </section>
 
       {/* Emergency Section */}
-      <section className="py-20 px-4 bg-red-600 text-white">
-        <div className="container mx-auto text-center">
+      <section className="py-24 px-6 bg-red-600 text-white">
+        <div className="container mx-auto text-center max-w-7xl">
           <div className="max-w-3xl mx-auto">
             <h2 className="text-3xl md:text-4xl font-bold mb-6">Trường hợp khẩn cấp?</h2>
             <p className="text-xl text-red-100 mb-8">
@@ -523,9 +523,9 @@ export default function HomePage() {
       </section>
 
       {/* Contact Section */}
-      <section className="py-20 px-4 bg-gray-50">
-        <div className="container mx-auto">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
+      <section className="py-24 px-6 bg-gray-50">
+        <div className="container mx-auto max-w-7xl">
+          <div className="grid md:grid-cols-2 gap-16 items-center">
             <div>
               <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">Liên hệ với chúng tôi</h2>
               <p className="text-xl text-gray-600 mb-8">

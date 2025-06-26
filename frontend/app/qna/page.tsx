@@ -235,16 +235,16 @@ export default function QnAPage() {
     <div className="min-h-screen bg-gradient-to-b from-red-50 to-white">
       <Header />
 
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto">
+      <div className="container mx-auto px-6 py-12 max-w-7xl">
+        <div className="max-w-6xl mx-auto">
           {/* Hero Section */}
           <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Heart className="w-8 h-8 text-white" />
+            <div className="w-20 h-20 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Heart className="w-10 h-10 text-white" />
             </div>
-            <Badge className="mb-4 bg-red-100 text-red-800">❓ Câu hỏi thường gặp về hiến máu</Badge>
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">Hỏi đáp về hiến máu</h1>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            <Badge className="mb-6 bg-red-100 text-red-800">❓ Câu hỏi thường gặp về hiến máu</Badge>
+            <h1 className="text-4xl font-bold text-gray-900 mb-6">Hỏi đáp về hiến máu</h1>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
               Tìm hiểu tất cả thông tin cần thiết về hiến máu nhân đạo. Những câu hỏi thường gặp và câu trả lời chi tiết
               từ các chuyên gia y tế.
             </p>
@@ -253,34 +253,34 @@ export default function QnAPage() {
           <div className="grid lg:grid-cols-4 gap-8">
             {/* Sidebar */}
             <div className="lg:col-span-1">
-              <div className="sticky top-24 space-y-6">
+              <div className="sticky top-28 space-y-8">
                 {/* Quick Stats */}
                 <Card className="bg-white/80 backdrop-blur-sm border-red-100">
-                  <CardHeader className="pb-3">
+                  <CardHeader className="pb-4">
                     <CardTitle className="text-lg font-semibold text-red-700">Thống kê nhanh</CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-                        <Users className="w-5 h-5 text-red-600" />
+                  <CardContent className="space-y-6">
+                    <div className="flex items-center space-x-4">
+                      <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                        <Users className="w-6 h-6 text-red-600" />
                       </div>
                       <div>
                         <p className="text-sm text-gray-600">Câu hỏi</p>
                         <p className="font-semibold text-gray-900">{qnaData.length} câu hỏi</p>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-                        <Heart className="w-5 h-5 text-red-600" />
+                    <div className="flex items-center space-x-4">
+                      <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                        <Heart className="w-6 h-6 text-red-600" />
                       </div>
                       <div>
                         <p className="text-sm text-gray-600">Nhu cầu hàng năm</p>
                         <p className="font-semibold text-gray-900">1.8 triệu đơn vị</p>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-                        <CheckCircle className="w-5 h-5 text-red-600" />
+                    <div className="flex items-center space-x-4">
+                      <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                        <CheckCircle className="w-6 h-6 text-red-600" />
                       </div>
                       <div>
                         <p className="text-sm text-gray-600">Đáp ứng hiện tại</p>
@@ -292,26 +292,26 @@ export default function QnAPage() {
 
                 {/* Contact Info */}
                 <Card className="bg-white/80 backdrop-blur-sm border-red-100">
-                  <CardHeader className="pb-3">
+                  <CardHeader className="pb-4">
                     <CardTitle className="text-lg font-semibold text-red-700">Liên hệ hỗ trợ</CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex items-start space-x-3">
-                      <Phone className="w-5 h-5 text-red-600 mt-0.5" />
+                  <CardContent className="space-y-6">
+                    <div className="flex items-start space-x-4">
+                      <Phone className="w-6 h-6 text-red-600 mt-0.5" />
                       <div>
                         <p className="font-medium text-gray-900">Hotline 24/7</p>
                         <p className="text-sm text-gray-600">1900 1234</p>
                       </div>
                     </div>
-                    <div className="flex items-start space-x-3">
-                      <Mail className="w-5 h-5 text-red-600 mt-0.5" />
+                    <div className="flex items-start space-x-4">
+                      <Mail className="w-6 h-6 text-red-600 mt-0.5" />
                       <div>
                         <p className="font-medium text-gray-900">Email</p>
                         <p className="text-sm text-gray-600">support@scarletblood.vn</p>
                       </div>
                     </div>
-                    <div className="flex items-start space-x-3">
-                      <MapPin className="w-5 h-5 text-red-600 mt-0.5" />
+                    <div className="flex items-start space-x-4">
+                      <MapPin className="w-6 h-6 text-red-600 mt-0.5" />
                       <div>
                         <p className="font-medium text-gray-900">Địa chỉ</p>
                         <p className="text-sm text-gray-600">123 Đường ABC, Quận 1, TP.HCM</p>
@@ -325,40 +325,40 @@ export default function QnAPage() {
             {/* Main Q&A Content */}
             <div className="lg:col-span-3">
               <Card className="bg-white/80 backdrop-blur-sm border-red-100">
-                <CardHeader>
+                <CardHeader className="p-8">
                   <CardTitle className="text-2xl font-bold bg-gradient-to-r from-red-600 to-red-700 bg-clip-text text-transparent">
                     Câu hỏi thường gặp
                   </CardTitle>
-                  <p className="text-gray-600">
+                  <p className="text-gray-600 mt-2">
                     Tìm hiểu thông tin chi tiết về quy trình hiến máu, điều kiện tham gia và các quyền lợi của người
                     hiến máu.
                   </p>
                 </CardHeader>
-                <CardContent>
-                  <Accordion type="single" collapsible className="space-y-4">
+                <CardContent className="p-8 pt-0">
+                  <Accordion type="single" collapsible className="space-y-6">
                     {qnaData.map((item) => {
                       const IconComponent = item.icon
                       return (
                         <AccordionItem
                           key={item.id}
                           value={item.id}
-                          className="border border-red-100 rounded-lg px-4 bg-white/50"
+                          className="border border-red-100 rounded-lg px-6 bg-white/50"
                         >
-                          <AccordionTrigger className="hover:no-underline py-4">
-                            <div className="flex items-start space-x-3 text-left">
-                              <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
-                                <IconComponent className="w-4 h-4 text-red-600" />
+                          <AccordionTrigger className="hover:no-underline py-6">
+                            <div className="flex items-start space-x-4 text-left">
+                              <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
+                                <IconComponent className="w-5 h-5 text-red-600" />
                               </div>
                               <div className="flex-1">
-                                <h3 className="font-semibold text-gray-900 mb-1">{item.question}</h3>
-                                <span className="inline-block px-2 py-1 bg-red-50 text-red-600 text-xs rounded-full">
+                                <h3 className="font-semibold text-gray-900 mb-2">{item.question}</h3>
+                                <span className="inline-block px-3 py-1 bg-red-50 text-red-600 text-xs rounded-full">
                                   {item.category}
                                 </span>
                               </div>
                             </div>
                           </AccordionTrigger>
-                          <AccordionContent className="pb-4">
-                            <div className="ml-11 text-gray-700 leading-relaxed">
+                          <AccordionContent className="pb-6">
+                            <div className="ml-14 text-gray-700 leading-relaxed">
                               {item.answer.split("\n").map((line, index) => (
                                 <div key={index} className="mb-2">
                                   {line.trim() && (
@@ -376,25 +376,25 @@ export default function QnAPage() {
               </Card>
 
               {/* Call to Action */}
-              <Card className="mt-8 bg-gradient-to-r from-red-600 to-red-700 text-white">
-                <CardContent className="p-8 text-center">
-                  <Heart className="w-12 h-12 mx-auto mb-4 text-white" />
-                  <h3 className="text-2xl font-bold mb-4">Sẵn sàng trở thành người hùng?</h3>
-                  <p className="text-red-100 mb-6 max-w-2xl mx-auto">
+              <Card className="mt-12 bg-gradient-to-r from-red-600 to-red-700 text-white">
+                <CardContent className="p-12 text-center">
+                  <Heart className="w-16 h-16 mx-auto mb-6 text-white" />
+                  <h3 className="text-3xl font-bold mb-6">Sẵn sàng trở thành người hùng?</h3>
+                  <p className="text-red-100 mb-8 max-w-2xl mx-auto text-lg">
                     Mỗi lần hiến máu của bạn có thể cứu sống tới 3 người. Hãy tham gia cùng chúng tôi để mang lại hy
                     vọng cho những người cần máu.
                   </p>
-                  <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <div className="flex flex-col sm:flex-row gap-6 justify-center">
                     <a
                       href="/donate"
-                      className="inline-flex items-center justify-center px-6 py-3 bg-white text-red-600 font-semibold rounded-lg hover:bg-red-50 transition-colors duration-200"
+                      className="inline-flex items-center justify-center px-8 py-4 bg-white text-red-600 font-semibold rounded-lg hover:bg-red-50 transition-colors duration-200"
                     >
                       <Heart className="w-5 h-5 mr-2" />
                       Đăng ký hiến máu
                     </a>
                     <a
                       href="/contact"
-                      className="inline-flex items-center justify-center px-6 py-3 border-2 border-white text-white font-semibold rounded-lg hover:bg-white hover:text-red-600 transition-colors duration-200"
+                      className="inline-flex items-center justify-center px-8 py-4 border-2 border-white text-white font-semibold rounded-lg hover:bg-white hover:text-red-600 transition-colors duration-200"
                     >
                       <Phone className="w-5 h-5 mr-2" />
                       Liên hệ tư vấn
