@@ -374,36 +374,36 @@ export default function QnAPage() {
                   </Accordion>
                 </CardContent>
               </Card>
-
-              {/* Call to Action */}
-              <Card className="mt-12 bg-gradient-to-r from-red-600 to-red-700 text-white">
-                <CardContent className="p-12 text-center">
-                  <Heart className="w-16 h-16 mx-auto mb-6 text-white" />
-                  <h3 className="text-3xl font-bold mb-6">Sẵn sàng trở thành người hùng?</h3>
-                  <p className="text-red-100 mb-8 max-w-2xl mx-auto text-lg">
-                    Mỗi lần hiến máu của bạn có thể cứu sống tới 3 người. Hãy tham gia cùng chúng tôi để mang lại hy
-                    vọng cho những người cần máu.
-                  </p>
-                  <div className="flex flex-col sm:flex-row gap-6 justify-center">
-                    <a
-                      href="/donate"
-                      className="inline-flex items-center justify-center px-8 py-4 bg-white text-red-600 font-semibold rounded-lg hover:bg-red-50 transition-colors duration-200"
-                    >
-                      <Heart className="w-5 h-5 mr-2" />
-                      Đăng ký hiến máu
-                    </a>
-                    <a
-                      href="/contact"
-                      className="inline-flex items-center justify-center px-8 py-4 border-2 border-white text-white font-semibold rounded-lg hover:bg-white hover:text-red-600 transition-colors duration-200"
-                    >
-                      <Phone className="w-5 h-5 mr-2" />
-                      Liên hệ tư vấn
-                    </a>
-                  </div>
-                </CardContent>
-              </Card>
             </div>
           </div>
+
+          {/* Call to Action - Now outside grid to span full width */}
+          <Card className="mt-16 bg-gradient-to-r from-red-600 to-red-700 text-white">
+            <CardContent className="p-12 text-center">
+              <Heart className="w-16 h-16 mx-auto mb-6 text-white" />
+              <h3 className="text-3xl font-bold mb-6">Sẵn sàng trở thành người hùng?</h3>
+              <p className="text-red-100 mb-8 max-w-2xl mx-auto text-lg">
+                Mỗi lần hiến máu của bạn có thể cứu sống tới 3 người. Hãy tham gia cùng chúng tôi để mang lại hy vọng
+                cho những người cần máu.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-6 justify-center">
+                <a
+                  href="/donate"
+                  className="inline-flex items-center justify-center px-8 py-4 bg-white text-red-600 font-semibold rounded-lg hover:bg-red-50 transition-colors duration-200"
+                >
+                  <Heart className="w-5 h-5 mr-2" />
+                  Đăng ký hiến máu
+                </a>
+                <a
+                  href="/contact"
+                  className="inline-flex items-center justify-center px-8 py-4 border-2 border-white text-white font-semibold rounded-lg hover:bg-white hover:text-red-600 transition-colors duration-200"
+                >
+                  <Phone className="w-5 h-5 mr-2" />
+                  Liên hệ tư vấn
+                </a>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
 
