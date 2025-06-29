@@ -12,8 +12,9 @@ const recipientProfileSchema = new mongoose.Schema(
       type: String,
       required: false,
     },
-    hospital_name: {
-      type: String,
+    hospital: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Hospital",
       required: false,
     },
     is_in_the_role: {

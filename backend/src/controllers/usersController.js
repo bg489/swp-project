@@ -291,9 +291,9 @@ export async function createDonorProfile(req, res) {
 
 export async function createRecipientProfile(req, res) {
   try {
-    const { user_id, medical_doc_url, hospital_name } = req.body;
+    const { user_id, medical_doc_url, hospital } = req.body;
 
-    if (!user_id || !medical_doc_url || !hospital_name) {
+    if (!user_id || !medical_doc_url || !hospital) {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
@@ -314,7 +314,7 @@ export async function createRecipientProfile(req, res) {
     if (existingProfile) {
       existingProfile.is_in_the_role = true;
       if (medical_doc_url !== undefined) existingProfile.medical_doc_url = medical_doc_url;
-      if (hospital_name !== undefined) existingProfile.hospital_name = hospital_name;
+      if (hospital !== undefined) existingProfile.hospital = hospital;
       await existingProfile.save();
 
       return res.status(200).json({
@@ -326,7 +326,7 @@ export async function createRecipientProfile(req, res) {
     const profile = new RecipientProfile({
       user_id,
       medical_doc_url,
-      hospital_name,
+      hospital,
       is_in_the_role: true,
     });
 

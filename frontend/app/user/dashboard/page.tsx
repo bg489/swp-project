@@ -34,6 +34,7 @@ export default function UserDashboard() {
   const router = useRouter()
   const [bloodRequests, setBloodRequests] = useState([])
   const [isLoading, setIsLoading] = useState(false)
+  const [hospital, setHospital] = useState<{ name: string; address?: string; phone?: string } | null>(null);
   const { user, logout } = useAuth()
   type DonorProfile = {
     blood_type: string;
@@ -92,23 +93,23 @@ export default function UserDashboard() {
         } catch (error) {
           console.error("Failed to fetch donor profile:", error);
         }
-      } else if (user?.role === "recipient") {
+      } if (user?.role === "recipient") {
         try {
-          const response = await api.get(`/users/recipient-profile/active/${user._id}`);
-          const res = await api.get(`/recipient/blood-requests/${user._id}`)
+          const profileRes = await api.get(`/users/recipient-profile/active/${user._id}`);
+          const reqRes = await api.get(`/recipient/blood-requests/${user._id}`);
+          setRecipient(profileRes.data.profile);
 
-          // res.data là object: { requests: [...] }
-          const requestArray = res.data?.requests || []
-
-          if (Array.isArray(requestArray)) {
-            setBloodRequests(requestArray)
-          } else {
-            console.error("Data is not array:", requestArray)
-            setBloodRequests([]) // fallback nếu sai định dạng
+          // Lấy thông tin bệnh viện bằng ID từ recipient profile
+          const hospitalId = profileRes.data.profile?.hospital; // lưu ý: hospital_name phải là ID
+          if (hospitalId) {
+            const hospitalRes = await api.get(`/hospital/${hospitalId}`);
+            setHospital(hospitalRes.data.hospital);
           }
-          setRecipient(response.data.profile);
+          
+          const requestArray = reqRes.data?.requests || [];
+          setBloodRequests(Array.isArray(requestArray) ? requestArray : []);
         } catch (error) {
-          console.error("Failed to fetch recipient profile:", error);
+          console.error("Failed to fetch recipient profile or hospital:", error);
         }
       }
     }
@@ -154,7 +155,7 @@ export default function UserDashboard() {
     if(user?.role === "donor"){
       return donor?.blood_type;
     } else if (user?.role === "recipient"){
-      return recipient?.hospital_name;
+      return hospital?.name || "Chưa có thông tin";
     } else {
       return "unknown"
     }
@@ -885,8 +886,18 @@ export default function UserDashboard() {
                         <div className="space-y-3">
                           <div>
                             <label className="text-sm text-gray-600">Tên bệnh viện</label>
-                            <p className="font-medium text-red-600">{recipient?.hospital_name}</p>
+                            <p className="font-medium text-red-600">{hospital?.name || "Chưa có thông tin"}</p>
                           </div>
+                          <div>
+                            <label className="text-sm text-gray-600">Địa chỉ bệnh viện</label>
+                            <p className="font-medium">{hospital?.address || "Chưa có thông tin"}</p>
+                          </div>
+                          {hospital?.phone && (
+                            <div>
+                              <label className="text-sm text-gray-600">Số điện thoại bệnh viện</label>
+                              <p className="font-medium">{hospital.phone}</p>
+                            </div>
+                          )}
                           <div>
                             <label className="text-sm text-gray-600">Bằng sức khỏe</label>
                             <Image

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
+import api from "../../lib/axios";
 
 mapboxgl.accessToken = "pk.eyJ1IjoiZ2lhYmFvMTIzOTYzIiwiYSI6ImNtY2J1ejZ6ZTAxYjYybG9wOXJkYnRxMmkifQ.AL0ZjkYXmVV7UsTAPrgVxA";
 
@@ -14,15 +15,31 @@ export default function MapboxMap() {
   const [nearbyMarkers, setNearbyMarkers] = useState([]);
   const suggestionRefs = useRef([]);
   const [selectedIndex, setSelectedIndex] = useState(-1);
-  const [hospitals, setHospitals] = useState([
-    { name: "Bệnh viện Chợ Rẫy", coords: [106.660172, 10.754666] },
-    { name: "Bệnh viện Đại học Y Dược", coords: [106.660995, 10.762913] },
-    { name: "Bệnh viện Nhân dân Gia Định", coords: [106.698334, 10.802169] },
-    { name: "Bệnh viện 115", coords: [106.666, 10.7757] },
-    { name: "Bệnh viện Quận 2", coords: [106.746257, 10.800698] },
-    { name: "Bệnh viện Quận 9", coords: [106.790543, 10.85216] },
-    { name: "Bệnh viện Thủ Đức", coords: [106.765182, 10.870987] },
-  ]);
+  const [hospitals, setHospitals] = useState([]);
+
+  useEffect(() => {
+    const fetchHospitals = async () => {
+      try {
+        const response = await api.get("/hospital/"); // giả sử router bạn đã khai báo ở `/api/hospitals`
+        if (response.data.success) {
+          const hospitalData = response.data.hospitals.map(h => ({
+            name: h.name,
+            coords: [h.longitude, h.latitude], // map về format bạn cần cho Mapbox
+            address: h.address,
+            phone: h.phone,
+          }));
+          setHospitals(hospitalData);
+        } else {
+          console.error("Không lấy được danh sách bệnh viện:", response.data.message);
+        }
+      } catch (error) {
+        console.error("Lỗi khi gọi API danh sách bệnh viện:", error);
+      }
+    };
+
+    fetchHospitals();
+  }, []);
+
 
   const normalizeVietnamese = (str) => str
     .normalize("NFD")
