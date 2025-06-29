@@ -20,6 +20,11 @@ const donorProfileSchema = new mongoose.Schema(
     cooldown_until: {
       type: Date,
     },
+    hospital: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Hospital",
+      required: false,
+    },
     is_in_the_role: {
       type: Boolean,
       default: true,

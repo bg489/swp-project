@@ -90,13 +90,17 @@ export default function UserDashboard() {
         try {
           const response = await api.get(`/users/donor-profile/active/${user._id}`);
           setDonor(response.data.profile);
+          const hospitalId = response.data.profile?.hospital; // lưu ý: hospital_name phải là ID
+          if (hospitalId) {
+            const hospitalRes = await api.get(`/hospital/${hospitalId}`);
+            setHospital(hospitalRes.data.hospital);
+          }
         } catch (error) {
           console.error("Failed to fetch donor profile:", error);
         }
       } if (user?.role === "recipient") {
         try {
           const profileRes = await api.get(`/users/recipient-profile/active/${user._id}`);
-          const reqRes = await api.get(`/recipient/blood-requests/${user._id}`);
           setRecipient(profileRes.data.profile);
 
           // Lấy thông tin bệnh viện bằng ID từ recipient profile
@@ -106,6 +110,7 @@ export default function UserDashboard() {
             setHospital(hospitalRes.data.hospital);
           }
           
+          const reqRes = await api.get(`/recipient/blood-requests/${user._id}`);
           const requestArray = reqRes.data?.requests || [];
           setBloodRequests(Array.isArray(requestArray) ? requestArray : []);
         } catch (error) {
@@ -853,6 +858,20 @@ export default function UserDashboard() {
                             <label className="text-sm text-gray-600">Ngày có thể bắt đầu hiến máu</label>
                             <p className="font-medium">{donor?.availability_date && new Date(donor.availability_date).toLocaleDateString("vi-VN")}</p>
                           </div>
+                          <div>
+                            <label className="text-sm text-gray-600">Tên bệnh viện</label>
+                            <p className="font-medium text-red-600">{hospital?.name || "Chưa có thông tin"}</p>
+                          </div>
+                          <div>
+                            <label className="text-sm text-gray-600">Địa chỉ bệnh viện</label>
+                            <p className="font-medium">{hospital?.address || "Chưa có thông tin"}</p>
+                          </div>
+                          {hospital?.phone && (
+                            <div>
+                              <label className="text-sm text-gray-600">Số điện thoại bệnh viện</label>
+                              <p className="font-medium">{hospital.phone}</p>
+                            </div>
+                          )}
                           <div>
                             <label className="text-sm text-gray-600">Bằng sức khỏe</label>
                             <Image

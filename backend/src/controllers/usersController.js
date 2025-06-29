@@ -233,6 +233,7 @@ export async function createDonorProfile(req, res) {
       availability_date,
       health_cert_url,
       cooldown_until,
+      hospital,
     } = req.body;
 
     if (!user_id || !blood_type || !availability_date) {
@@ -259,6 +260,7 @@ export async function createDonorProfile(req, res) {
       if (availability_date !== undefined) existingProfile.availability_date = availability_date;
       if (health_cert_url !== undefined) existingProfile.health_cert_url = health_cert_url;
       if (cooldown_until !== undefined) existingProfile.cooldown_until = cooldown_until;
+      if (hospital !== undefined) existingProfile.hospital = hospital;
       await existingProfile.save();
 
       return res.status(200).json({
@@ -273,6 +275,7 @@ export async function createDonorProfile(req, res) {
       availability_date,
       health_cert_url,
       cooldown_until,
+      hospital,
       is_in_the_role: true,
     });
 

@@ -18,7 +18,7 @@ import { Footer } from "@/components/footer"
 import api from "../../../../lib/axios";
 import ReCAPTCHA from "react-google-recaptcha"
 import { useAuth } from "@/contexts/auth-context"
-import toast from "react-hot-toast"
+import toast, { Toaster } from "react-hot-toast"
 import UploadCertificate from "@/components/ui/UploadCertificate"
 import AddressAutocomplete from "@/components/ui/AddressAutocomplete"
 
@@ -84,6 +84,7 @@ export default function RegisterPage() {
   const [hospitalInput, setHospitalInput] = useState(""); // Giá trị hiện đang hiển thị trong input -> để hiển thị highlight
 
 
+  
 
 const handleChange = (e: { target: { value: React.SetStateAction<string> } }) => {
   setSearchTerm(e.target.value);    // update giá trị gõ thực tế
@@ -149,12 +150,12 @@ const filteredHospitals = nearbyHospitals.filter((h) =>
     navigator.geolocation.getCurrentPosition(
       (position) => {
         setLocationAllowed(true);
-        toast.success("✅ Đã cho phép định vị!");
+        toast.success("Đã cho phép định vị!");
       },
       (error) => {
         console.error("Từ chối định vị:", error);
         setLocationAllowed(false);
-        toast.error("❌ Bạn đã từ chối quyền định vị, tính năng tìm kiếm sẽ bị khoá.");
+        toast.error("Bạn đã từ chối quyền định vị, tính năng tìm kiếm sẽ bị khoá.");
       }
     );
   };
@@ -214,13 +215,6 @@ const filteredHospitals = nearbyHospitals.filter((h) =>
       toast.error("Trình duyệt không hỗ trợ định vị!");
       return;
     }
-
-  
-
-
-
-    
-
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
@@ -254,9 +248,9 @@ const filteredHospitals = nearbyHospitals.filter((h) =>
           setNearbyHospitals(filtered);
 
           if (filtered.length > 0) {
-            toast.success(`✅ Tìm thấy ${filtered.length} bệnh viện trong ${radiusKm} km!`);
+            toast.success(`Tìm thấy ${filtered.length} bệnh viện trong ${radiusKm} km!`);
           } else {
-            toast.error(`❌ Không tìm thấy bệnh viện nào trong ${radiusKm} km.`);
+            toast.error(`Không tìm thấy bệnh viện nào trong ${radiusKm} km.`);
           }
         } catch (error) {
           console.error("Lỗi lấy danh sách bệnh viện:", error);
@@ -265,7 +259,7 @@ const filteredHospitals = nearbyHospitals.filter((h) =>
       },
       (error) => {
         console.error("Người dùng từ chối chia sẻ vị trí:", error);
-        toast.error("❌ Bạn đã từ chối chia sẻ vị trí, không thể tìm kiếm bệnh viện gần bạn.");
+        toast.error("Bạn đã từ chối chia sẻ vị trí, không thể tìm kiếm bệnh viện gần bạn.");
       }
     );
   };
@@ -277,6 +271,62 @@ const filteredHospitals = nearbyHospitals.filter((h) =>
 
   useEffect(() => {
     async function fetchProfile() {
+      if (!user?._id || !formData.role) return; // đợi user sẵn sàng và role đã chọn
+
+      try {
+        if (formData.role === "donor") {
+          const response = await api.get(`/users/donor-profile/active/${user._id}`);
+          const profile = response.data.profile;
+          setDonor(profile);
+
+          if (profile?.hospital) {
+            const hospitalRes = await api.get(`/hospital/${profile.hospital}`);
+            const hospitalName = hospitalRes.data.hospital.name;
+            setFormData((prev) => ({ ...prev, hospitalId: profile.hospital }));
+            setHospitalInput(hospitalName);
+            setSearchTerm(hospitalName);
+            setShowSuggestions(false);
+            setHighlightIndex(-1);
+          }
+
+          setFormData((prev) => ({
+            ...prev,
+            bloodType: profile.blood_type || "",
+            availability_date: profile.availability_date ? formatDate(profile.availability_date) : "",
+            certificateDonor: profile.health_cert_url || "",
+          }));
+        } else if (formData.role === "recipient") {
+          const response = await api.get(`/users/recipient-profile/active/${user._id}`);
+          const profile = response.data.profile;
+          setRecipient(profile);
+
+          if (profile?.hospital) {
+            const hospitalRes = await api.get(`/hospital/${profile.hospital}`);
+            const hospitalName = hospitalRes.data.hospital.name;
+            setFormData((prev) => ({ ...prev, hospitalId: profile.hospital }));
+            setHospitalInput(hospitalName);
+            setSearchTerm(hospitalName);
+            setShowSuggestions(false);
+            setHighlightIndex(-1);
+          }
+
+          setFormData((prev) => ({
+            ...prev,
+            hospital_name: profile.hospital_name || "",
+            certificateRecipient: profile.medical_doc_url || "",
+          }));
+        }
+      } catch (error) {
+        console.warn("Không tìm thấy profile:", error);
+      }
+    }
+
+    fetchProfile();
+  }, [formData.role]); // thay user?.role bằng formData.role
+
+
+  useEffect(() => {
+    async function fetchProfile() {
       console.log(user._id);
 
       // ✅ Donor profile
@@ -284,6 +334,16 @@ const filteredHospitals = nearbyHospitals.filter((h) =>
         const response1 = await api.get(`/users/donor-profile/active/${user._id}`);
         const profile1 = response1.data.profile;
         setDonor(profile1);
+
+        const hospitalId = response1.data.profile?.hospital; // lưu ý: hospital_name phải là ID
+        if (hospitalId && user?.role === "donor") {
+          const hospitalRes = await api.get(`/hospital/${hospitalId}`);
+          setFormData((prev) => ({ ...prev, hospitalId: profile1.hospital }));
+          setHospitalInput(hospitalRes.data.hospital.name);
+          setSearchTerm(hospitalRes.data.hospital.name);
+          setShowSuggestions(false);
+          setHighlightIndex(-1);
+        }
 
         setFormData((prev) => ({
           ...prev,
@@ -310,7 +370,7 @@ const filteredHospitals = nearbyHospitals.filter((h) =>
 
 
         const hospitalId = response2.data.profile?.hospital; // lưu ý: hospital_name phải là ID
-        if (hospitalId) {
+        if (hospitalId && user?.role === "recipient") {
           const hospitalRes = await api.get(`/hospital/${hospitalId}`);
           setFormData((prev) => ({ ...prev, hospitalId: profile2.hospital }));
           setHospitalInput(hospitalRes.data.hospital.name);
@@ -383,6 +443,7 @@ const filteredHospitals = nearbyHospitals.filter((h) =>
             blood_type: formData.bloodType,
             availability_date: formData.availability_date,
             health_cert_url: formData.certificateDonor,
+            hospital: formData.hospitalId
           });
         } else if (formData.role === "recipient") {
           await api.put(`/users/${user._id}/role`, {
@@ -531,38 +592,6 @@ const filteredHospitals = nearbyHospitals.filter((h) =>
                       </div>
                     </div>
                     )}
-                    {formData.role === "recipient" && (
-                      <div className="space-y-2 relative">
-                        <Label htmlFor="hospital_name">Tên bệnh viện *</Label>
-                        <div className="relative">
-                          <MapPin className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                          <Input
-                            id="hospital_name"
-                            placeholder="ex: Bệnh viện Hùng Vương"
-                            value={hospitalInput}
-                            onChange={handleChange}
-                            onKeyDown={handleKeyDown}
-                            className="pl-10"
-                            required
-                            disabled={locationAllowed === false}
-                          />
-                        </div>
-                        {showSuggestions && filteredHospitals.length > 0 && (
-                          <ul className="absolute z-10 bg-white border border-gray-300 w-full max-h-60 overflow-y-auto shadow-lg rounded">
-                            {filteredHospitals.map((h, idx) => (
-                              <li
-                                key={idx}
-                                className={`px-4 py-2 hover:bg-gray-100 cursor-pointer ${highlightIndex === idx ? "bg-gray-200" : ""}`}
-                                onClick={() => handleSelect(h)}
-                              >
-                                <strong>{h.name}</strong>
-                                {h.address && <div className="text-sm text-gray-500">{h.address}</div>}
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                      </div>
-                    )}
                   </>
                 )}
                 </div>
@@ -632,27 +661,39 @@ const filteredHospitals = nearbyHospitals.filter((h) =>
                     </Select>
                   </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="radiusKm">Khoảng cách tìm bệnh viện (km) *</Label>
+                    
+                  <div className="space-y-2 relative">
+                    <Label htmlFor="hospital_name">Tên bệnh viện *</Label>
+                    <div className="relative">
+                      <MapPin className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                       <Input
-                        id="radiusKm"
-                        type="number"
-                        placeholder="VD: 30"
-                        value={radiusKm}
-                        onChange={(e) => setRadiusKm(Number(e.target.value))}
+                        id="hospital_name"
+                        placeholder="ex: Bệnh viện Hùng Vương"
+                        value={hospitalInput}
+                        onChange={handleChange}
+                        onKeyDown={handleKeyDown}
+                        className="pl-10"
                         required
                         disabled={locationAllowed === false}
                       />
-                      <Button
-                        type="button"
-                        onClick={handleFindHospitalsNearby}
-                        className="w-full"
-                        disabled={locationAllowed === false}
-                      >
-                        Tìm bệnh viện gần bạn
-                      </Button>
-
                     </div>
+                    {showSuggestions && filteredHospitals.length > 0 && (
+                      <ul className="absolute z-10 bg-white border border-gray-300 w-full max-h-60 overflow-y-auto shadow-lg rounded">
+                        {filteredHospitals.map((h, idx) => (
+                          <li
+                            key={idx}
+                            ref={highlightIndex === idx ? (el) => el?.scrollIntoView({ block: "nearest" }) : null}
+                            className={`px-4 py-2 hover:bg-gray-100 cursor-pointer ${highlightIndex === idx ? "bg-gray-200" : ""}`}
+                            onClick={() => handleSelect(h)}
+                          >
+                            <strong>{h.name}</strong>
+                            {h.address && <div className="text-sm text-gray-500">{h.address}</div>}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                    
 
                   
                 </div>
@@ -706,8 +747,26 @@ const filteredHospitals = nearbyHospitals.filter((h) =>
                   </div>
 
                   <div className="space-y-2">
-                    
-                  </div>
+                      <Label htmlFor="radiusKm">Khoảng cách tìm bệnh viện (km) *</Label>
+                      <Input
+                        id="radiusKm"
+                        type="number"
+                        placeholder="VD: 30"
+                        value={radiusKm}
+                        onChange={(e) => setRadiusKm(Number(e.target.value))}
+                        required
+                        disabled={locationAllowed === false}
+                      />
+                      <Button
+                        type="button"
+                        onClick={handleFindHospitalsNearby}
+                        className="w-full"
+                        disabled={locationAllowed === false}
+                      >
+                        Tìm bệnh viện gần bạn
+                      </Button>
+
+                    </div>
 
                   
                 </div>
@@ -778,7 +837,9 @@ const filteredHospitals = nearbyHospitals.filter((h) =>
           </Card>
         </div>
       </div>
-
+      <Toaster position="top-center" containerStyle={{
+        top: 80,
+      }}/>
       <Footer />
     </div>
   )
