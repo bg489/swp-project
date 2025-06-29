@@ -20,9 +20,15 @@ const bloodRequestSchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
-    hospital_location: {
-      type: String,
+    hospital: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Hospital",
       required: true,
+    },
+    distance: {
+      type: Number,
+      required: false,   // hoặc true nếu bắt buộc
+      default: 10,       // mặc định 10km nếu không truyền lên
     },
     is_emergency: {
       type: Boolean,

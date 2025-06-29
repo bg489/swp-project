@@ -35,6 +35,7 @@ export default function UserDashboard() {
   const [bloodRequests, setBloodRequests] = useState([])
   const [isLoading, setIsLoading] = useState(false)
   const [hospital, setHospital] = useState<{ name: string; address?: string; phone?: string } | null>(null);
+  const [hospitalNames, setHospitalNames] = useState<Record<string, string>>({})
   const { user, logout } = useAuth()
   type DonorProfile = {
     blood_type: string;
@@ -110,9 +111,29 @@ export default function UserDashboard() {
             setHospital(hospitalRes.data.hospital);
           }
           
-          const reqRes = await api.get(`/recipient/blood-requests/${user._id}`);
-          const requestArray = reqRes.data?.requests || [];
-          setBloodRequests(Array.isArray(requestArray) ? requestArray : []);
+          const res = await api.get(`/recipient/blood-requests/${user._id}`);
+          const requestArray = res.data?.requests || [];
+          if (Array.isArray(requestArray)) {
+            setBloodRequests(requestArray);
+
+            // Load tên bệnh viện cho từng request
+            const namePromises = requestArray.map(async (req) => {
+              try {
+                const hospitalRes = await api.get(`/hospital/${req.hospital}`);
+                return [req._id, hospitalRes.data.hospital.name];
+              } catch (error) {
+                console.error("Lỗi khi lấy tên bệnh viện:", error);
+                return [req._id, "Không xác định"];
+              }
+            });
+
+            const resolved = await Promise.all(namePromises);
+            const namesObject = Object.fromEntries(resolved);
+            setHospitalNames(namesObject);
+          } else {
+            console.error("Data is not array:", requestArray);
+            setBloodRequests([]);
+          }
         } catch (error) {
           console.error("Failed to fetch recipient profile or hospital:", error);
         }
@@ -628,7 +649,7 @@ export default function UserDashboard() {
                               </div>
                               <div>
                                 <p className="font-medium">Yêu cầu máu #{request._id.slice(-5)}</p>
-                                <p className="text-sm text-gray-600">{request.hospital_location}</p>
+                                <p className="text-sm text-gray-600">{hospitalNames[request._id] || "Đang tải..."}</p>
                                 <div className="flex items-center space-x-2 mt-1 text-xs text-gray-500">
                                   <span>
                                     {new Date(request.createdAt).toLocaleDateString("vi-VN")}
@@ -637,6 +658,8 @@ export default function UserDashboard() {
                                   <span>{request.amount_needed} đơn vị</span>
                                   <span>•</span>
                                   <span>{request.components_needed.join(", ")}</span>
+                                  <span>•</span>
+                                  <span>{request.distance} km</span>
                                 </div>
                                 {request.comment && (
                                   <p className="text-xs text-gray-500 whitespace-pre-line mt-1">

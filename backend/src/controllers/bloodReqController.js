@@ -8,7 +8,8 @@ export async function createBloodRequest(req, res) {
       blood_type_needed,
       components_needed,
       amount_needed,
-      hospital_location,
+      hospital,
+      distance,
       is_emergency,
       comment,
     } = req.body;
@@ -19,7 +20,7 @@ export async function createBloodRequest(req, res) {
       !blood_type_needed ||
       !components_needed ||
       !amount_needed ||
-      !hospital_location
+      !hospital
     ) {
       return res.status(400).json({ message: "Missing required fields" });
     }
@@ -36,7 +37,8 @@ export async function createBloodRequest(req, res) {
       blood_type_needed,
       components_needed,
       amount_needed,
-      hospital_location,
+      hospital,
+      distance: distance || 10,
       is_emergency: is_emergency || false, // default to false if not provided
       status: "pending", // default status
       comment: comment || "",

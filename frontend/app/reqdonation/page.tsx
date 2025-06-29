@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -19,11 +19,11 @@ export default function RequestPage() {
   const initialFilters = {
     bloodType: "",
     comment: "",
-    distance: "10",
+    distance: 10,
     availability: "all",
     amount: 0,
     components_needed: [] as string[],
-    hospital_location: "",
+    hospital: "",
     is_emergency: false,
   }
   const [searchFilters, setSearchFilters] = useState(initialFilters)
@@ -34,6 +34,102 @@ export default function RequestPage() {
   const { user } = useAuth()
 
   const [selectedBloodType, setSelectedBloodType] = useState("")
+  const [hospitalInput, setHospitalInput] = useState(""); // Giá trị hiện đang hiển thị trong input -> để hiển thị highlight
+  const [searchTerm, setSearchTerm] = useState("");  // Giá trị thực người gõ -> để filter
+  const [showSuggestions, setShowSuggestions] = useState(true);
+  const [highlightIndex, setHighlightIndex] = useState(-1);
+  const [nearbyHospitals, setNearbyHospitals] = useState<{ _id: string; name: string, address: string, phone: string }[]>([]);
+  const [locationAllowed, setLocationAllowed] = useState<boolean | null>(null); 
+  const [isFocused, setIsFocused] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+
+  // Đặt listener khi component mount
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsFocused(false);
+        setShowSuggestions(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  useEffect(() => {
+    // Lấy vị trí người dùng
+
+    async function use() {
+      try {
+          const response = await api.get("/hospital/");
+          const hospitals = response.data.hospitals;
+
+          const filtered = hospitals.map((h: any) => ({
+            _id: h._id,
+            name: h.name,
+            address: h.address,
+            phone: h.phone,
+          }));
+
+          setNearbyHospitals(filtered);
+        } catch (error) {
+          console.error("Lỗi khi lấy danh sách bệnh viện:", error);
+        }
+      }
+      use();
+    }
+  , []);
+    
+
+  const handleSelect = (hospital: { _id: string; name: any; address?: string; phone?: string }) => {
+    setSearchFilters((prev) => ({ ...prev, hospital: hospital._id }));
+    setHospitalInput(hospital.name);
+    setSearchTerm(hospital.name);
+    setShowSuggestions(false);
+    setHighlightIndex(-1);
+  };
+
+  const normalizeVietnamese = (str: string) => str
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D");
+
+  const filteredHospitals = searchTerm.trim() === ""
+  ? nearbyHospitals // khi rỗng mà focus thì show tất cả
+  : nearbyHospitals.filter((h) =>
+      normalizeVietnamese(h.name.toLowerCase()).includes(normalizeVietnamese(searchTerm.toLowerCase()))
+    );
+
+
+  const handleKeyDown = (e: { key: string; preventDefault: () => void }) => {
+    if (!showSuggestions) return;
+    if (e.key === "ArrowDown") {
+      const newIndex = (highlightIndex + 1) % filteredHospitals.length;
+      setHighlightIndex(newIndex);
+      setHospitalInput(filteredHospitals[newIndex].name); // chỉ thay đổi hiển thị, searchTerm vẫn giữ nguyên
+      e.preventDefault();
+    } else if (e.key === "ArrowUp") {
+      const newIndex =
+        (highlightIndex - 1 + filteredHospitals.length) % filteredHospitals.length;
+      setHighlightIndex(newIndex);
+      setHospitalInput(filteredHospitals[newIndex].name);
+      e.preventDefault();
+    } else if (e.key === "Enter" && highlightIndex >= 0) {
+      handleSelect(filteredHospitals[highlightIndex]);
+      e.preventDefault();
+    }
+  };
+
+
+  const handleChange = (e: { target: { value: React.SetStateAction<string> } }) => {
+    setSearchTerm(e.target.value);    // update giá trị gõ thực tế
+    setHospitalInput(e.target.value); // input hiển thị đồng bộ giá trị gõ
+    setShowSuggestions(true);
+    setHighlightIndex(-1);
+  };
 
   const bloodTypes = ["O-", "O+", "A-", "A+", "B-", "B+", "AB-", "AB+"]
 
@@ -154,7 +250,8 @@ export default function RequestPage() {
           blood_type_needed: searchFilters.bloodType,
           components_needed: searchFilters.components_needed,
           amount_needed: searchFilters.amount,
-          hospital_location: searchFilters.hospital_location,
+          hospital: searchFilters.hospital,
+          distance: searchFilters.distance,
           comment: searchFilters.comment,
           is_emergency: searchFilters.is_emergency
         });
@@ -236,19 +333,45 @@ export default function RequestPage() {
                         </Select>
                       </div>
                       <div>
-                        <Label htmlFor="location">Khu vực</Label>
-                        <Input
-                          id="location"
-                          value={searchFilters.hospital_location}
-                          onChange={(e) => setSearchFilters((prev) => ({ ...prev, hospital_location: e.target.value }))}
-                          placeholder="Quận 1, TP.HCM"
-                        />
+                        <Label htmlFor="hospital_name">Tên bệnh viện *</Label>
+                          <div className="relative" ref={containerRef}>
+                            <MapPin className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                            <Input
+                              id="hospital_name"
+                              placeholder="ex: Bệnh viện Hùng Vương"
+                              value={hospitalInput}
+                              onChange={handleChange}
+                              onKeyDown={handleKeyDown}
+                              onFocus={() => {
+                                setIsFocused(true);
+                                setShowSuggestions(true); // hiện suggestions khi nhấp
+                              }}
+                              className="pl-10"
+                              required
+                              disabled={locationAllowed === false}
+                            />
+                            {showSuggestions && isFocused && filteredHospitals.length > 0 && (
+                              <ul className="absolute z-10 bg-white border border-gray-300 w-full max-h-60 overflow-y-auto shadow-lg rounded">
+                                {filteredHospitals.map((h, idx) => (
+                                  <li
+                                    key={idx}
+                                    ref={highlightIndex === idx ? (el) => el?.scrollIntoView({ block: "nearest" }) : null}
+                                    className={`px-4 py-2 hover:bg-gray-100 cursor-pointer ${highlightIndex === idx ? "bg-gray-200" : ""}`}
+                                    onClick={() => handleSelect(h)}
+                                  >
+                                    <strong>{h.name}</strong>
+                                    {h.address && <div className="text-sm text-gray-500">{h.address}</div>}
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
                       </div>
                       <div>
                         <Label htmlFor="distance">Bán kính (km)</Label>
                         <Select
                           value={searchFilters.distance}
-                          onValueChange={(value) => setSearchFilters((prev) => ({ ...prev, distance: value }))}
+                          onValueChange={(value) => setSearchFilters((prev) => ({ ...prev, distance: Number(value) }))}
                         >
                           <SelectTrigger>
                             <SelectValue />

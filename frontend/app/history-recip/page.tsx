@@ -11,31 +11,51 @@ import { useAuth } from "@/contexts/auth-context"
 
 export default function RequestHistoryPage() {
   const [bloodRequests, setBloodRequests] = useState([])
+  const [hospitalNames, setHospitalNames] = useState<Record<string, string>>({})
   const { user } = useAuth()
 
   useEffect(() => {
     const fetchRequests = async () => {
-      if (!user?._id) return
+      if (!user?._id) return;
 
       try {
-        const res = await api.get(`/recipient/blood-requests/${user._id}`)
-
-        // res.data là object: { requests: [...] }
-        const requestArray = res.data?.requests || []
-
+        const res = await api.get(`/recipient/blood-requests/${user._id}`);
+        const requestArray = res.data?.requests || [];
         if (Array.isArray(requestArray)) {
-          setBloodRequests(requestArray)
+          setBloodRequests(requestArray);
+
+          // Load tên bệnh viện cho từng request
+          const namePromises = requestArray.map(async (req) => {
+            try {
+              const hospitalRes = await api.get(`/hospital/${req.hospital}`);
+              return [req._id, hospitalRes.data.hospital.name];
+            } catch (error) {
+              console.error("Lỗi khi lấy tên bệnh viện:", error);
+              return [req._id, "Không xác định"];
+            }
+          });
+
+          const resolved = await Promise.all(namePromises);
+          const namesObject = Object.fromEntries(resolved);
+          setHospitalNames(namesObject);
         } else {
-          console.error("Data is not array:", requestArray)
-          setBloodRequests([]) // fallback nếu sai định dạng
+          console.error("Data is not array:", requestArray);
+          setBloodRequests([]);
         }
       } catch (error) {
-        console.error("Lỗi khi lấy yêu cầu máu:", error)
+        console.error("Lỗi khi lấy yêu cầu máu:", error);
       }
-    }
+    };
 
-    fetchRequests()
-  }, [user])
+    fetchRequests();
+  }, [user]);
+
+
+  async function handleHospitalName(hospitalId: any) {
+    const hospitalRes = await api.get(`/hospital/${hospitalId}`);
+    const hospitalName = hospitalRes.data.hospital.name;
+    return hospitalName;
+  }
 
   function translateStatus(status: string) {
     const map: Record<string, string> = {
@@ -111,7 +131,7 @@ export default function RequestHistoryPage() {
                     <div className="text-sm text-gray-700 space-y-1">
                       <div className="flex items-center">
                         <MapPin className="w-4 h-4 mr-2" />
-                        {request.hospital_location}
+                        <span>{hospitalNames[request._id] || "Đang tải..."}</span>
                       </div>
                       <div className="flex items-center">
                         <Droplets className="w-4 h-4 mr-2" />
@@ -121,6 +141,12 @@ export default function RequestHistoryPage() {
                         <Droplets className="w-4 h-4 mr-2" />
                         Số lượng: {request.amount_needed} đơn vị
                       </div>
+                      {request.distance && (
+                        <div className="flex items-center">
+                          <Droplets className="w-4 h-4 mr-2" />
+                          Khoảng cách: {request.distance} km
+                        </div>
+                      )}
                       {request.comment && (
                         <div className="flex items-start text-gray-600">
                           <span className="font-medium mr-2">💬 Ghi chú:</span>
