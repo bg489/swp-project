@@ -8,6 +8,7 @@ import usersRoutes from "./routes/usersRoutes.js";
 import OTPRoutes from "./routes/OTProutes.js";
 import recipientRoutes from "./routes/recipientRoutes.js";
 import hospitalsRoutes from "./routes/hospitalsRoutes.js";
+import staffRoutes from "./routes/staffRoutes.js";
 import { connectDB } from "./config/db.js";
 
 dotenv.config();
@@ -37,6 +38,7 @@ app.use("/api/users", usersRoutes);
 app.use("/api/otp", OTPRoutes);
 app.use("/api/recipient", recipientRoutes);
 app.use("/api/hospital", hospitalsRoutes);
+app.use("/api/staff", staffRoutes);
 
 
 // if (process.env.NODE_ENV === "production") {

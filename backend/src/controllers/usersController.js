@@ -3,6 +3,8 @@ import bcrypt from 'bcryptjs';
 import crypto from "crypto";
 import DonorProfile from "../models/DonorProfile.js";
 import RecipientProfile from '../models/RecipientProfile.js';
+import StaffProfile from "../models/StaffProfile.js";
+import Hospital from "../models/Hospital.js";
 
 export async function createUser(req, res) {
   try {
@@ -468,5 +470,102 @@ export async function updateUserById(req, res) {
   } catch (error) {
     console.error("Error updating user:", error);
     res.status(500).json({ message: "Internal server error" });
+  }
+}
+
+export const createStaffProfile = async (req, res) => {
+  try {
+    const { user_id, department, assigned_area, shift_time, hospital } = req.body;
+
+    // Kiểm tra các trường bắt buộc
+    if (!user_id || !hospital) {
+      return res.status(400).json({ success: false, message: "user_id và hospital là bắt buộc." });
+    }
+
+    // Kiểm tra user tồn tại và có role là staff
+    const user = await User.findById(user_id);
+    if (!user || user.role !== "staff") {
+      return res.status(404).json({ success: false, message: "Người dùng không tồn tại hoặc không phải nhân viên (staff)." });
+    }
+
+    // Tạo StaffProfile
+    const newProfile = new StaffProfile({
+      user_id,
+      department,
+      assigned_area,
+      shift_time,
+      hospital,
+    });
+
+    await newProfile.save();
+
+    res.status(201).json({
+      success: true,
+      message: "Tạo hồ sơ nhân viên thành công.",
+      staffProfile: newProfile,
+    });
+  } catch (error) {
+    console.error("Lỗi khi tạo staff profile:", error);
+    res.status(500).json({ success: false, message: "Không thể tạo hồ sơ nhân viên." });
+  }
+};
+
+export const getStaffProfileByUserId = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    if (!userId) {
+      return res.status(400).json({ success: false, message: "Thiếu userId trong URL." });
+    }
+
+    const staffProfile = await StaffProfile.findOne({ user_id: userId })
+      .populate("user_id", "-password") // Lấy thêm thông tin user nhưng ẩn mật khẩu
+      .populate("hospital"); // Lấy thông tin bệnh viện nếu cần
+
+    if (!staffProfile) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy hồ sơ nhân viên cho user này." });
+    }
+
+    res.status(200).json({ success: true, staffProfile });
+  } catch (error) {
+    console.error("Lỗi khi lấy staff profile theo userId:", error);
+    res.status(500).json({ success: false, message: "Không thể lấy thông tin hồ sơ nhân viên." });
+  }
+};
+
+export async function getAvailableDonorsByHospital(req, res) {
+  try {
+    const { hospitalId } = req.params;
+
+    if (!hospitalId) {
+      return res.status(400).json({ message: "Missing hospitalId parameter" });
+    }
+
+    // Kiểm tra bệnh viện tồn tại
+    const hospital = await Hospital.findById(hospitalId);
+    if (!hospital) {
+      return res.status(404).json({ message: "Hospital not found" });
+    }
+
+    const now = new Date();
+
+    // Tìm tất cả donor profile thuộc bệnh viện này
+    // và có availability_date trước hoặc bằng thời gian hiện tại
+    const donors = await DonorProfile.find({
+      hospital: hospitalId,
+      availability_date: { $lte: now },
+      is_in_the_role: true, // chỉ lấy donor còn hoạt động
+    })
+      .populate("user_id", "full_name email phone blood_type") // populate thông tin người hiến
+      .populate("hospital", "name address phone"); // populate thông tin bệnh viện
+
+    return res.status(200).json({
+      success: true,
+      count: donors.length,
+      donors,
+    });
+  } catch (error) {
+    console.error("Error fetching available donors:", error);
+    return res.status(500).json({ message: "Internal server error" });
   }
 }
