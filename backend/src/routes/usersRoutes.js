@@ -15,8 +15,12 @@ import {
   updateUserById,
   createStaffProfile,
   getStaffProfileByUserId,
-  getAvailableDonorsByHospital
+  getAvailableDonorsByHospital,
+  updateCooldownUntil,
 } from "../controllers/usersController.js";
+import {
+  getDonationsByDonorId
+} from "../controllers/donationController.js";
 
 const router = express.Router();
 
@@ -36,6 +40,8 @@ router.put('/edit/:userId', updateUserById);
 router.post("/staff-profiles", createStaffProfile);
 router.get("/staff-profiles/active/:userId", getStaffProfileByUserId);
 router.get("/donor-profiles-by-hospital/:hospitalId", getAvailableDonorsByHospital);
+router.put('/donor/update-cooldown', updateCooldownUntil);
+router.get("/donations/donor-id/:donorId", getDonationsByDonorId);
 
 
 

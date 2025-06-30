@@ -48,12 +48,36 @@ export default function StaffDashboard() {
         status: newStatus,
       });
 
-      toast.success(`Đã thay đổi status thành ${newStatus}`)
+      
       setDonationList((prev) =>
         prev.map((donation) =>
           donation._id === donationId ? { ...donation, status: newStatus } : donation
         )
       );
+
+      toast.success(`Đã thay đổi status thành ${newStatus}`)
+
+      if(newStatus === "completed"){
+        const donation = await api.get(`/staff/donations/id/${donationId}`);
+        const donorId = donation.data.donation.donor_id._id;
+        const donationDateStr = donation.data.donation.donation_date; // e.g. "2025-07-01T00:00:00.000Z"
+
+        const donationDate = new Date(donationDateStr);
+
+        // Tăng 7 ngày (7 * 24 * 60 * 60 * 1000 milliseconds)
+        const cooldownUntilDate = new Date(donationDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+        // Convert về ISO string nếu cần lưu vào DB hoặc gửi API
+        const cooldownUntilStr = cooldownUntilDate.toISOString();
+
+        await api.put(`/users/donor/update-cooldown`, {
+          user_id: donorId,
+          cooldown_until: cooldownUntilStr
+        });
+        
+      }
+
+
     } catch (error) {
       toast.error("Đã xảy ra lỗi khi cập nhật trạng thái. Vui lòng thử lại!");
       console.error(error);

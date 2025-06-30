@@ -569,3 +569,32 @@ export async function getAvailableDonorsByHospital(req, res) {
     return res.status(500).json({ message: "Internal server error" });
   }
 }
+
+export async function updateCooldownUntil(req, res) {
+  try {
+    const { user_id, cooldown_until } = req.body;
+
+    if (!user_id || !cooldown_until) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+
+    // Kiểm tra hồ sơ donor có tồn tại không
+    const donorProfile = await DonorProfile.findOne({ user_id });
+
+    if (!donorProfile) {
+      return res.status(404).json({ message: "Donor profile not found" });
+    }
+
+    donorProfile.cooldown_until = cooldown_until;
+
+    await donorProfile.save();
+
+    return res.status(200).json({
+      message: "Cooldown updated successfully",
+      profile: donorProfile,
+    });
+  } catch (error) {
+    console.error("Error updating cooldown:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+}

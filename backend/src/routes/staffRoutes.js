@@ -8,7 +8,8 @@ import {
   createDonation,
   getScheduledDonations,
   getDonationsByStaffId,
-  updateDonationStatus
+  updateDonationStatus,
+  getDonationById
 } from "../controllers/donationController.js";
 
 const router = express.Router();
@@ -21,6 +22,8 @@ router.post("/donation/", createDonation);
 router.get("/donations/scheduled", getScheduledDonations);
 router.get("/donations/by-staff/:staffId", getDonationsByStaffId);
 router.put("/donations/:donationId/update-status", updateDonationStatus);
+router.get("/donations/id/:donationId", getDonationById);
+
 
 
 

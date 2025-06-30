@@ -157,3 +157,60 @@ export async function updateDonationStatus(req, res) {
     return res.status(500).json({ message: "Internal server error" });
   }
 }
+
+export async function getDonationById(req, res) {
+  try {
+    const { donationId } = req.params;
+
+    if (!donationId) {
+      return res.status(400).json({ message: "Donation ID is required" });
+    }
+
+    const donation = await Donation.findById(donationId)
+      .populate("donor_id", "full_name email phone")
+      .populate("recipient_id", "full_name email phone")
+      .populate("updated_by", "full_name email");
+
+    if (!donation) {
+      return res.status(404).json({ message: "Donation not found" });
+    }
+
+    return res.status(200).json({
+      message: "Donation fetched successfully",
+      donation,
+    });
+  } catch (error) {
+    console.error("Error fetching donation by ID:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+}
+
+export async function getDonationsByDonorId(req, res) {
+  try {
+    const { donorId } = req.params;
+
+    if (!donorId) {
+      return res.status(400).json({ message: "Donor ID is required" });
+    }
+
+    // Kiểm tra donor tồn tại
+    const donor = await User.findById(donorId);
+    if (!donor || donor.role !== "donor") {
+      return res.status(404).json({ message: "Donor not found or invalid" });
+    }
+
+    const donations = await Donation.find({ donor_id: donorId })
+      .populate("donor_id", "full_name email phone")
+      .populate("recipient_id", "full_name email phone")
+      .populate("updated_by", "full_name email");
+
+    return res.status(200).json({
+      message: "Donations fetched successfully for donor",
+      count: donations.length,
+      data: donations,
+    });
+  } catch (error) {
+    console.error("Error fetching donations by donor ID:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+}
