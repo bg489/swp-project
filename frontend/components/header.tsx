@@ -2,8 +2,14 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Heart, LogOut, LayoutDashboard, Shield, Menu, X, ClipboardList } from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Heart, LogOut, LayoutDashboard, Shield, Menu, X } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
@@ -20,73 +26,12 @@ export function Header() {
 
   const getDashboardLink = () => {
     if (!user) return "/"
-
-    // Force role-specific dashboard routing
-    switch (user.role) {
-      case "admin":
-        return "/admin/dashboard"
-      case "staff":
-        return "/staff/dashboard"
-      case "user":
-      default:
-        return "/user/dashboard"
-    }
+    return user.role === "admin" ? "/admin/dashboard" : "/user/dashboard"
   }
 
   const getDashboardLabel = () => {
     if (!user) return "Dashboard"
-
-    switch (user.role) {
-      case "admin":
-        return "Bảng điều khiển Admin"
-      case "staff":
-        return "Bảng điều khiển Staff"
-      case "user":
-      default:
-        return "Bảng điều khiển"
-    }
-  }
-
-  const getDashboardIcon = () => {
-    if (!user) return LayoutDashboard
-
-    switch (user.role) {
-      case "admin":
-        return Shield
-      case "staff":
-        return ClipboardList
-      case "user":
-      default:
-        return LayoutDashboard
-    }
-  }
-
-  const getRoleDisplayName = () => {
-    if (!user) return ""
-
-    switch (user.role) {
-      case "admin":
-        return "Quản trị viên"
-      case "staff":
-        return "Nhân viên"
-      case "user":
-      default:
-        return "Người hiến máu"
-    }
-  }
-
-  const getRoleBadgeColor = () => {
-    if (!user) return "bg-gray-100 text-gray-800"
-
-    switch (user.role) {
-      case "admin":
-        return "bg-red-100 text-red-800"
-      case "staff":
-        return "bg-blue-100 text-blue-800"
-      case "user":
-      default:
-        return "bg-green-100 text-green-800"
-    }
+    return user.role === "admin" ? "Quản trị" : "Dashboard"
   }
 
   const navigationItems = [
@@ -166,52 +111,34 @@ export function Header() {
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="flex items-center space-x-3 h-auto py-2 px-3">
-                    <div className="w-8 h-8 bg-red-600 rounded-full flex items-center justify-center">
+                  <Button variant="ghost" className="flex items-center space-x-2 h-9">
+                    <div className="w-7 h-7 bg-red-600 rounded-full flex items-center justify-center">
                       <Heart className="w-4 h-4 text-white" />
                     </div>
-                    <div className="text-left">
-                      <div className="flex items-center space-x-2">
-                        <span className="text-sm font-medium">{user.name}</span>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getRoleBadgeColor()}`}>
-                          {getRoleDisplayName()}
-                        </span>
-                      </div>
-                      <span className="text-xs text-gray-500">{user.email}</span>
-                    </div>
+                    <span className="text-sm font-medium">{user.name}</span>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-64">
-                  <div className="px-3 py-3 border-b">
-                    <p className="text-sm font-medium text-gray-900">{user.name}</p>
-                    <p className="text-xs text-gray-500 mb-2">{user.email}</p>
-                    <div className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${getRoleBadgeColor()}`}>
-                      {getRoleDisplayName()}
-                    </div>
+                <DropdownMenuContent align="end" className="w-48">
+                  <div className="px-3 py-2">
+                    <p className="text-sm font-medium">{user.name}</p>
+                    <p className="text-xs text-gray-500">{user.email}</p>
                   </div>
-                  <div className="py-1">
-                    <DropdownMenuItem asChild>
-                      <Link href={getDashboardLink()} className="flex items-center px-3 py-2">
-                        {(() => {
-                          const IconComponent = getDashboardIcon()
-                          return <IconComponent className="w-4 h-4 mr-3" />
-                        })()}
-                        <div>
-                          <div className="text-sm font-medium">{getDashboardLabel()}</div>
-                          <div className="text-xs text-gray-500">Quản lý tài khoản của bạn</div>
-                        </div>
-                      </Link>
-                    </DropdownMenuItem>
-                  </div>
-                  <div className="border-t py-1">
-                    <DropdownMenuItem onClick={handleLogout} className="text-red-600 px-3 py-2">
-                      <LogOut className="w-4 h-4 mr-3" />
-                      <div>
-                        <div className="text-sm font-medium">Đăng xuất</div>
-                        <div className="text-xs text-gray-500">Thoát khỏi tài khoản</div>
-                      </div>
-                    </DropdownMenuItem>
-                  </div>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href={getDashboardLink()}>
+                      {user.role === "admin" ? (
+                        <Shield className="w-4 h-4 mr-2" />
+                      ) : (
+                        <LayoutDashboard className="w-4 h-4 mr-2" />
+                      )}
+                      {getDashboardLabel()}
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleLogout} className="text-red-600">
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Đăng xuất
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
@@ -256,12 +183,9 @@ export function Header() {
               <div className="pt-3 border-t border-gray-200 space-y-1">
                 {user ? (
                   <>
-                    <div className="px-3 py-3 bg-gray-50 rounded-lg">
-                      <p className="text-sm font-medium text-gray-900">{user.name}</p>
-                      <p className="text-xs text-gray-500 mb-2">{user.email}</p>
-                      <div className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${getRoleBadgeColor()}`}>
-                        {getRoleDisplayName()}
-                      </div>
+                    <div className="px-3 py-2 bg-gray-50 rounded-lg">
+                      <p className="text-sm font-medium">{user.name}</p>
+                      <p className="text-xs text-gray-500">{user.email}</p>
                     </div>
                     <Link
                       href={getDashboardLink()}
@@ -269,16 +193,10 @@ export function Header() {
                         setIsMobileMenuOpen(false)
                         scrollToTop()
                       }}
-                      className="flex items-center px-3 py-2 text-sm font-medium hover:bg-gray-50 rounded-lg"
+                      className="flex items-center px-3 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg"
                     >
-                      {(() => {
-                        const IconComponent = getDashboardIcon()
-                        return <IconComponent className="w-4 h-4 mr-3" />
-                      })()}
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">{getDashboardLabel()}</div>
-                        <div className="text-xs text-gray-500">Quản lý tài khoản của bạn</div>
-                      </div>
+                      <LayoutDashboard className="w-4 h-4 mr-2" />
+                      {getDashboardLabel()}
                     </Link>
                     <button
                       onClick={() => {
@@ -287,11 +205,8 @@ export function Header() {
                       }}
                       className="flex items-center px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg w-full text-left"
                     >
-                      <LogOut className="w-4 h-4 mr-3" />
-                      <div>
-                        <div className="text-sm font-medium">Đăng xuất</div>
-                        <div className="text-xs text-gray-500">Thoát khỏi tài khoản</div>
-                      </div>
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Đăng xuất
                     </button>
                   </>
                 ) : (

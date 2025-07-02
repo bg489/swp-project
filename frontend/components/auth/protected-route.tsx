@@ -8,56 +8,41 @@ import { useEffect } from "react"
 
 interface ProtectedRouteProps {
   children: React.ReactNode
-  requiredRole?: "user" | "admin" | "staff"
+  requiredRole: "admin" | "user" | "staff"
 }
 
-export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
+export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiredRole }) => {
   const { user, isLoading } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
     if (!isLoading) {
       if (!user) {
-        // Not logged in, redirect to login
-        router.push("/login")
-        return
-      }
-
-      if (requiredRole && user.role !== requiredRole) {
-        // Wrong role, redirect to appropriate dashboard
-        switch (user.role) {
-          case "admin":
-            router.push("/admin/dashboard")
-            break
-          case "staff":
-            router.push("/staff/dashboard")
-            break
-          case "user":
-          default:
-            router.push("/user/dashboard")
-            break
-        }
-        return
+        router.push(`/login?redirectTo=${router.asPath}`)
+      } else if (requiredRole === "admin" && user.role !== "admin") {
+        router.push("/")
+      } else if (requiredRole === "staff" && user.role !== "staff" && user.role !== "admin") {
+        router.push("/")
+      } else if (requiredRole === "user" && user.role !== "user" && user.role !== "admin" && user.role !== "staff") {
+        router.push("/")
       }
     }
-  }, [user, isLoading, requiredRole, router])
+  }, [user, isLoading, router, requiredRole])
 
-  // Show loading while checking authentication
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-red-600"></div>
-      </div>
-    )
+  if (isLoading || !user) {
+    return <div>Loading...</div>
   }
 
-  // Don't render if not authenticated or wrong role
-  if (!user || (requiredRole && user.role !== requiredRole)) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-red-600"></div>
-      </div>
-    )
+  if (requiredRole === "admin" && user.role !== "admin") {
+    return null // Or render a "Unauthorized" component
+  }
+
+  if (requiredRole === "staff" && user.role !== "staff" && user.role !== "admin") {
+    return null
+  }
+
+  if (requiredRole === "user" && user.role !== "user" && user.role !== "admin" && user.role !== "staff") {
+    return null
   }
 
   return <>{children}</>
