@@ -51,6 +51,16 @@ export default function UserDashboard() {
     return `${day}/${month}/${year}`;
   };
 
+  const daysUntil = (dateStr: string | undefined) => {
+    if (!dateStr) return "-";
+    const now = new Date();
+    const target = new Date(dateStr);
+    const diffTime = target.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays > 0 ? diffDays : 0; // trả về 0 nếu đã qua ngày cooldown
+  };
+
+
   type DonorProfile = {
     blood_type: string;
     availability_date: string;
@@ -509,16 +519,18 @@ export default function UserDashboard() {
 
           <Tabs defaultValue="overview" className="space-y-6">
             <TabsList className="grid w-full grid-cols-5">
-              <TabsTrigger value="overview">Tổng quan</TabsTrigger>
+              {(user.role === "donor") ? <TabsTrigger value="overview">Tổng quan</TabsTrigger> : ""}
               <TabsTrigger value="history">Lịch sử</TabsTrigger>
               <TabsTrigger value="appointments">Lịch hẹn</TabsTrigger>
               <TabsTrigger value="achievements">Thành tích</TabsTrigger>
               <TabsTrigger value="profile">Hồ sơ</TabsTrigger>
             </TabsList>
 
+            { (user.role === "donor") &&
             <TabsContent value="overview" className="space-y-6">
               <div className="grid lg:grid-cols-2 gap-6">
                 {/* Next Donation Countdown */}
+                
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center">
@@ -528,9 +540,9 @@ export default function UserDashboard() {
                   </CardHeader>
                   <CardContent>
                     <div className="text-center space-y-4">
-                      <div className="text-3xl font-bold text-blue-600">{userStats.daysUntilNext} ngày</div>
+                      <div className="text-3xl font-bold text-blue-600">{donor?.cooldown_until ? `${daysUntil(donor.cooldown_until)} ngày` : "Không rõ"}</div>
                       <p className="text-gray-600">
-                        Bạn có thể hiến máu trở lại từ ngày <strong>{userStats.nextEligibleDate}</strong>
+                        Bạn có thể hiến máu trở lại từ ngày <strong>{formatDate(donor?.cooldown_until)}</strong>
                       </p>
                       <Progress value={((90 - userStats.daysUntilNext) / 90) * 100} className="h-2" />
                       <Button className="w-full" disabled={userStats.daysUntilNext > 0}>
@@ -611,7 +623,7 @@ export default function UserDashboard() {
                 </CardContent>
               </Card>
             </TabsContent>
-
+            }
             <TabsContent value="history" className="space-y-6">
               <Card>
                 <CardHeader>
