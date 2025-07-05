@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -68,7 +67,6 @@ export default function DonatePage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-red-50 to-white">
       <Header />
-
       <div className="container mx-auto px-6 py-12 max-w-7xl">
         <div className="max-w-6xl mx-auto">
           {/* Hero Section */}
@@ -240,7 +238,10 @@ export default function DonatePage() {
                         <Label>Ngày có thể hiến máu</Label>
                         <Popover>
                           <PopoverTrigger asChild>
-                            <Button variant="outline" className="w-full justify-start text-left font-normal mt-2">
+                            <Button
+                              variant="outline"
+                              className="w-full justify-start text-left font-normal mt-2 bg-transparent"
+                            >
                               <CalendarIcon className="mr-2 h-4 w-4" />
                               {selectedDate ? format(selectedDate, "PPP", { locale: vi }) : "Chọn ngày"}
                             </Button>
@@ -335,7 +336,6 @@ export default function DonatePage() {
                 </p>
               </CardContent>
             </Card>
-
             <Card className="bg-green-50 border-green-200">
               <CardContent className="p-8 text-center">
                 <div className="w-14 h-14 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -347,7 +347,6 @@ export default function DonatePage() {
                 </p>
               </CardContent>
             </Card>
-
             <Card className="bg-purple-50 border-purple-200">
               <CardContent className="p-8 text-center">
                 <div className="w-14 h-14 bg-purple-500 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -360,7 +359,6 @@ export default function DonatePage() {
           </div>
         </div>
       </div>
-
       <Footer />
     </div>
   )

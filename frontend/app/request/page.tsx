@@ -1,5 +1,4 @@
 "use client"
-
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -145,7 +144,6 @@ export default function RequestPage() {
     if (selectedComponent === "Máu toàn phần" || selectedComponent === "Hồng cầu" || selectedComponent === "Tiểu cầu") {
       // Same logic as red blood cells
       canGiveTo = bloodCompatibility[selectedBloodTypeForComponent as keyof typeof bloodCompatibility] || []
-
       // Find who can donate to this blood type
       Object.entries(bloodCompatibility).forEach(([donorType, recipients]) => {
         if (recipients.includes(selectedBloodTypeForComponent)) {
@@ -166,7 +164,6 @@ export default function RequestPage() {
       }
 
       canReceiveFrom = plasmaCompatibility[selectedBloodTypeForComponent as keyof typeof plasmaCompatibility] || []
-
       // Find who can receive plasma from this blood type
       Object.entries(plasmaCompatibility).forEach(([recipientType, donors]) => {
         if (donors.includes(selectedBloodTypeForComponent)) {
@@ -176,6 +173,7 @@ export default function RequestPage() {
     }
 
     setCompatibilityResult({ canGiveTo, canReceiveFrom })
+
     // Scroll to compatibility results after a short delay to ensure the component has rendered
     setTimeout(() => {
       const resultsElement = document.getElementById("compatibility-results")
@@ -188,7 +186,6 @@ export default function RequestPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-red-50 to-white">
       <Header />
-
       <div className="container mx-auto px-6 py-12 max-w-7xl">
         <div className="max-w-6xl mx-auto">
           {/* Hero Section */}
@@ -335,7 +332,6 @@ export default function RequestPage() {
                               <span className="text-sm font-medium">{donor.rating}</span>
                             </div>
                           </div>
-
                           <div className="space-y-2 text-sm text-gray-600">
                             <div className="flex items-center">
                               <MapPin className="w-4 h-4 mr-2" />
@@ -352,7 +348,6 @@ export default function RequestPage() {
                               <span>Đã hiến: {donor.totalDonations} lần</span>
                             </div>
                           </div>
-
                           <div className="flex gap-2 mt-4">
                             <Button
                               size="sm"
@@ -420,7 +415,6 @@ export default function RequestPage() {
                             const isCompatible =
                               bloodCompatibility[selectedBloodType as keyof typeof bloodCompatibility]?.includes(type)
                             const compatibleDonors = availableDonors.filter((d) => d.bloodType === type)
-
                             return (
                               <Card
                                 key={type}
@@ -624,7 +618,6 @@ export default function RequestPage() {
           </Tabs>
         </div>
       </div>
-
       <Footer />
     </div>
   )

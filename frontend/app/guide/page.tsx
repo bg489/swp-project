@@ -3,7 +3,19 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { Heart, Clock, CheckCircle, Phone, FileText, Utensils, Bed, Activity, Shield, ArrowRight } from "lucide-react"
+import {
+  Heart,
+  Clock,
+  CheckCircle,
+  Phone,
+  FileText,
+  Utensils,
+  Bed,
+  Activity,
+  Shield,
+  ArrowRight,
+  MapPin,
+} from "lucide-react"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { useAuth } from "@/contexts/auth-context"
@@ -343,25 +355,29 @@ export default function GuidePage() {
           </Card>
 
           {/* Call to Action */}
-          <div className="text-center mt-16 p-12 bg-red-600 rounded-xl text-white mx-auto">
-            <Heart className="w-16 h-16 mx-auto mb-4 opacity-90" />
-            <h2 className="text-3xl font-bold mb-4">Sẵn sàng cứu sống người khác?</h2>
-            <p className="text-xl mb-6 opacity-90">Mỗi lần hiến máu có thể cứu sống đến 3 người</p>
-            <div className="space-x-4">
-              <button
-                onClick={handleDonateClick}
-                className="bg-white text-red-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
-              >
-                Đăng ký hiến máu
-              </button>
-              <button
-                onClick={handleDashboardAccess}
-                className="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-red-600 transition-colors"
-              >
-                Tìm điểm hiến máu
-              </button>
+          <section className="mt-16 py-12 px-6 bg-red-600 text-white">
+            <div className="container mx-auto text-center max-w-4xl">
+              <Heart className="w-16 h-16 mx-auto mb-4 opacity-90" />
+              <h2 className="text-3xl font-bold mb-4">Sẵn sàng cứu sống người khác?</h2>
+              <p className="text-xl mb-6 opacity-90">Mỗi lần hiến máu có thể cứu sống đến 3 người</p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <button
+                  onClick={handleDonateClick}
+                  className="inline-flex items-center justify-center px-8 py-4 bg-white text-red-600 font-semibold rounded-lg hover:bg-gray-100 transition-colors min-w-[200px]"
+                >
+                  <Heart className="w-5 h-5 mr-2" />
+                  Đăng ký hiến máu
+                </button>
+                <button
+                  onClick={handleDashboardAccess}
+                  className="inline-flex items-center justify-center px-8 py-4 border-2 border-white text-white font-semibold rounded-lg hover:bg-white hover:text-red-600 transition-colors min-w-[200px]"
+                >
+                  <MapPin className="w-5 h-5 mr-2" />
+                  Tìm điểm hiến máu
+                </button>
+              </div>
             </div>
-          </div>
+          </section>
         </div>
       </div>
 

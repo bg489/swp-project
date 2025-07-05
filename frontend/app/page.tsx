@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -52,7 +51,6 @@ export default function HomePage() {
       const timer = setTimeout(() => {
         setShowLoginAlert(false)
       }, 5000)
-
       // Cleanup timer khi component unmount
       return () => clearTimeout(timer)
     }
@@ -234,7 +232,11 @@ export default function HomePage() {
 
                   {/* Action buttons */}
                   <div className="flex space-x-3 pt-2">
-                    <Button variant="outline" className="flex-1" onClick={() => setShowLoginAlert(false)}>
+                    <Button
+                      variant="outline"
+                      className="flex-1 bg-transparent"
+                      onClick={() => setShowLoginAlert(false)}
+                    >
                       Đóng
                     </Button>
                     <Button className="flex-1 bg-red-600 hover:bg-red-700" asChild>
@@ -401,12 +403,12 @@ export default function HomePage() {
                     <div className="space-y-2">
                       {user.role === "admin" ? (
                         <>
-                          <Button variant="outline" size="sm" className="w-full" asChild>
+                          <Button variant="outline" size="sm" className="w-full bg-transparent" asChild>
                             <Link href="/emergency" onClick={scrollToTop}>
                               Xem yêu cầu khẩn cấp
                             </Link>
                           </Button>
-                          <Button variant="outline" size="sm" className="w-full" asChild>
+                          <Button variant="outline" size="sm" className="w-full bg-transparent" asChild>
                             <Link href="/admin/users" onClick={scrollToTop}>
                               Quản lý người dùng
                             </Link>
@@ -414,12 +416,12 @@ export default function HomePage() {
                         </>
                       ) : (
                         <>
-                          <Button variant="outline" size="sm" className="w-full" asChild>
+                          <Button variant="outline" size="sm" className="w-full bg-transparent" asChild>
                             <Link href="/donate" onClick={scrollToTop}>
                               Đăng ký hiến máu
                             </Link>
                           </Button>
-                          <Button variant="outline" size="sm" className="w-full" asChild>
+                          <Button variant="outline" size="sm" className="w-full bg-transparent" asChild>
                             <Link href="/emergency" onClick={scrollToTop}>
                               Yêu cầu khẩn cấp
                             </Link>
@@ -509,7 +511,7 @@ export default function HomePage() {
               <Button
                 size="lg"
                 variant="outline"
-                className="border-white text-white hover:bg-white hover:text-red-600"
+                className="border-white text-white hover:bg-white hover:text-red-600 bg-transparent"
                 asChild
               >
                 <Link href="/emergency" onClick={scrollToTop}>
@@ -552,7 +554,9 @@ export default function HomePage() {
               {/* Status Messages */}
               {submitStatus.type && (
                 <Alert
-                  className={`mb-4 ${submitStatus.type === "success" ? "border-green-200 bg-green-50" : "border-red-200 bg-red-50"}`}
+                  className={`mb-4 ${
+                    submitStatus.type === "success" ? "border-green-200 bg-green-50" : "border-red-200 bg-red-50"
+                  }`}
                 >
                   <div className="flex items-center">
                     {submitStatus.type === "success" ? (

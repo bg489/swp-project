@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -29,6 +28,7 @@ export default function EmergencyPage() {
   })
 
   const bloodTypes = ["O-", "O+", "A-", "A+", "B-", "B+", "AB-", "AB+"]
+
   const urgencyLevels = [
     { value: "critical", label: "Cực kỳ khẩn cấp (< 1 giờ)", color: "bg-red-600" },
     { value: "urgent", label: "Khẩn cấp (< 4 giờ)", color: "bg-orange-500" },
@@ -93,7 +93,6 @@ export default function EmergencyPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-red-50 to-white">
       <Header />
-
       <div className="container mx-auto px-6 py-12 max-w-7xl">
         <div className="max-w-6xl mx-auto">
           {/* Hero Section */}
@@ -302,7 +301,7 @@ export default function EmergencyPage() {
                       <Button
                         type="button"
                         variant="outline"
-                        className="px-8"
+                        className="px-8 bg-transparent"
                         onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
                       >
                         Hủy
@@ -350,7 +349,6 @@ export default function EmergencyPage() {
                       </div>
                     ))}
                   </div>
-
                   <div className="mt-6 p-4 bg-blue-50 rounded-lg">
                     <h4 className="font-semibold text-blue-800 mb-2">Hỗ trợ 24/7</h4>
                     <div className="space-y-2 text-sm text-blue-700">
@@ -370,7 +368,6 @@ export default function EmergencyPage() {
           </div>
         </div>
       </div>
-
       <Footer />
     </div>
   )

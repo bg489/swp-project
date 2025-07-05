@@ -841,8 +841,8 @@ export default function BlogPage() {
           </div>
 
           {/* Call to Action */}
-          <Card className="mt-16 bg-gradient-to-r from-red-600 to-red-700 text-white">
-            <CardContent className="p-12 text-center">
+          <section className="mt-12 py-8 px-6 bg-gradient-to-r from-red-600 to-red-700 text-white">
+            <div className="container mx-auto text-center max-w-4xl">
               <div className="w-12 h-12 mx-auto mb-4 rounded-full overflow-hidden">
                 <Image
                   src="/images/logo.webp"
@@ -854,11 +854,17 @@ export default function BlogPage() {
               </div>
               <h3 className="text-2xl font-bold mb-2">Sẵn sàng hiến máu cứu người?</h3>
               <p className="text-red-100 mb-4">Hãy đăng ký ngay để trở thành người hùng thầm lặng cứu sinh mạng</p>
-              <Button variant="secondary" className="w-full sm:w-auto" asChild>
-                <Link href="/donate">Đăng ký hiến máu ngay</Link>
-              </Button>
-            </CardContent>
-          </Card>
+              <div className="flex justify-center">
+                <Link
+                  href="/donate"
+                  className="inline-flex items-center justify-center px-8 py-4 bg-white text-red-600 font-semibold rounded-lg hover:bg-red-50 transition-colors duration-200 min-w-[200px]"
+                >
+                  <Heart className="w-5 h-5 mr-2" />
+                  Đăng ký hiến máu ngay
+                </Link>
+              </div>
+            </div>
+          </section>
         </div>
       </div>
 
