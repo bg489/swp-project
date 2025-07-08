@@ -16,6 +16,12 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useAuth } from "@/contexts/auth-context"
 
+/**
+ * Site‐wide header with responsive navigation.
+ *
+ * Relies on the custom AuthContext (useAuth) instead of next-auth.
+ * This prevents the “Cannot destructure property 'data' …” runtime error.
+ */
 export function Header() {
   const { user, logout } = useAuth()
   const pathname = usePathname()
@@ -23,11 +29,8 @@ export function Header() {
 
   /* ---------- Helpers ---------- */
   const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href))
-
   const scrollTop = () => window.scrollTo({ top: 0, behavior: "smooth" })
-
   const getDashboardLink = () => (user?.role === "admin" ? "/admin/dashboard" : "/user/dashboard")
-
   const getDashboardLabel = () => (user?.role === "admin" ? "Quản trị" : "Dashboard")
 
   /* ---------- Navigation data ---------- */
@@ -44,14 +47,14 @@ export function Header() {
     { href: "/emergency", label: "Khẩn cấp" },
   ]
 
-  /* Create ordered menu: Trang chủ + protected (if logged) + rest public */
+  /* Compose desktop menu: Trang chủ + protected (if logged) + rest public */
   const desktopMenu = [publicPages[0], ...(user ? protectedPages : []), ...publicPages.slice(1)]
 
   return (
     <header className="sticky top-0 z-50 border-b bg-white/95 backdrop-blur-sm">
       <div className="container mx-auto flex items-center justify-between px-4 py-3">
         {/* ------------ Logo ------------- */}
-        <Link href="/" onClick={scrollTop} className="flex items-center space-x-2 group">
+        <Link href="/" onClick={scrollTop} className="group flex items-center space-x-2">
           <div className="h-8 w-8 overflow-hidden rounded-full transition-transform duration-200 group-hover:scale-110">
             <Image
               src="/images/logo.webp"
@@ -73,7 +76,7 @@ export function Header() {
               key={href}
               href={href}
               onClick={scrollTop}
-              className={`px-4 py-2 text-sm font-medium transition-all duration-200 rounded-lg ${
+              className={`rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200 ${
                 isActive(href) ? "bg-red-600 text-white shadow-sm" : "text-gray-700 hover:bg-red-50 hover:text-red-600"
               } ${href === "/emergency" && user ? "font-semibold" : ""}`}
             >
