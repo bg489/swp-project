@@ -15,6 +15,10 @@ const bloodInventorySchema = new mongoose.Schema({
         type: Number,
         required: true,
     },
+    expiring_quantity: {
+        type: Number,
+        default: 0,
+    },
     last_updated: {
         type: Date,
         default: Date.now,

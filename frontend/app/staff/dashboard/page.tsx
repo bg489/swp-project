@@ -40,6 +40,7 @@ export default function StaffDashboard() {
   const [donorList, setDonorList] = useState([]);
   const [bloodReqList, setBloodReqList] = useState([]);
   const [donationList, setDonationList] = useState([]);
+  const [bloodInven, setBloodInven] = useState([])
   const [selectedDonationStatus, setSelectedDonationStatus] = useState("");
 
   const handleStatusUpdate = async (newStatus: string, donationId: string) => {
@@ -48,7 +49,7 @@ export default function StaffDashboard() {
         status: newStatus,
       });
 
-      
+
       setDonationList((prev) =>
         prev.map((donation) =>
           donation._id === donationId ? { ...donation, status: newStatus } : donation
@@ -57,7 +58,7 @@ export default function StaffDashboard() {
 
       toast.success(`Đã thay đổi status thành ${newStatus}`)
 
-      if(newStatus === "completed"){
+      if (newStatus === "completed") {
         const donation = await api.get(`/staff/donations/id/${donationId}`);
         const donorId = donation.data.donation.donor_id._id;
         const donationDateStr = donation.data.donation.donation_date; // e.g. "2025-07-01T00:00:00.000Z"
@@ -74,7 +75,7 @@ export default function StaffDashboard() {
           user_id: donorId,
           cooldown_until: cooldownUntilStr
         });
-        
+
       }
 
 
@@ -119,6 +120,9 @@ export default function StaffDashboard() {
 
           const profileDList = await api.get(`/staff/donations/by-staff/${user._id}`);
           setDonationList(profileDList.data.data); // Lấy đúng mảng donations
+
+          const bloodInvent = await api.get(`/blood-in/blood-inventory/hospital/${staffData.hospital._id}`);
+          setBloodInven(bloodInvent.data.inventories);
         }
       } catch (error) {
         console.error("Failed to fetch staff profile or hospital:", error);
@@ -264,16 +268,13 @@ export default function StaffDashboard() {
     }
   }
 
-  const getBloodStatusColor = (status: string) => {
-    switch (status) {
-      case "good":
-        return "bg-green-100 text-green-800"
-      case "low":
-        return "bg-yellow-100 text-yellow-800"
-      case "critical":
-        return "bg-red-100 text-red-800"
-      default:
-        return "bg-gray-100 text-gray-800"
+  const getBloodStatusColor = (quantity: number) => {
+    if (quantity < 30) {
+      return "bg-red-100 text-red-800"
+    } else if (quantity < 150) {
+      return "bg-yellow-100 text-yellow-800"
+    } else {
+      return "bg-green-100 text-green-800"
     }
   }
 
@@ -441,7 +442,7 @@ export default function StaffDashboard() {
                   </div>
 
                   <div className="space-y-4">
-                    {Array.isArray(donorList?.donors) &&  donorList.donors.map((donor) => (
+                    {Array.isArray(donorList?.donors) && donorList.donors.map((donor) => (
                       <div key={donor.id} className="flex items-center justify-between p-4 border rounded-lg">
                         <div className="flex items-center space-x-4">
                           <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
@@ -507,19 +508,17 @@ export default function StaffDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                    {bloodInventory.map((blood) => (
-                      <Card key={blood.type} className="relative">
+                    {bloodInven.map((blood) => (
+                      <Card key={blood.blood_type} className="relative">
                         <CardHeader className="pb-2">
                           <div className="flex items-center justify-between">
-                            <CardTitle className="text-lg font-bold text-red-600">{blood.type}</CardTitle>
-                            <Badge className={getBloodStatusColor(blood.status)}>
-                              {blood.status === "critical"
+                            <CardTitle className="text-lg font-bold text-red-600">{blood.blood_type}</CardTitle>
+                            <Badge className={getBloodStatusColor(blood.quantity)}>
+                              {blood.quantity < 30
                                 ? "Rất thấp"
-                                : blood.status === "low"
+                                : blood.quantity < 150
                                   ? "Thấp"
-                                  : blood.status === "medium"
-                                    ? "Trung bình"
-                                    : "Tốt"}
+                                  : "Tốt"}
                             </Badge>
                           </div>
                         </CardHeader>
@@ -527,18 +526,18 @@ export default function StaffDashboard() {
                           <div className="space-y-2">
                             <div className="flex justify-between text-sm">
                               <span>Có sẵn:</span>
-                              <span className="font-semibold">{blood.available} đơn vị</span>
+                              <span className="font-semibold">{blood.quantity} đơn vị</span>
                             </div>
                             <div className="flex justify-between text-sm">
                               <span>Đã đặt:</span>
-                              <span className="font-semibold">{blood.reserved} đơn vị</span>
+                              <span className="font-semibold">0 đơn vị</span>
                             </div>
                             <div className="flex justify-between text-sm">
                               <span>Sắp hết hạn:</span>
-                              <span className="font-semibold text-orange-600">{blood.expiringSoon} đơn vị</span>
+                              <span className="font-semibold text-orange-600">{blood.expiring_quantity} đơn vị</span>
                             </div>
                             <Progress
-                              value={blood.status === "critical" ? 15 : blood.status === "low" ? 40 : 80}
+                              value={Math.min((blood.quantity / 500) * 100, 100)}
                               className="h-2 mt-2"
                             />
                           </div>
@@ -560,9 +559,8 @@ export default function StaffDashboard() {
                               <div key={blood.type} className="flex items-center justify-between p-3 border rounded">
                                 <div className="flex items-center space-x-3">
                                   <AlertTriangle
-                                    className={`w-5 h-5 ${
-                                      blood.status === "critical" ? "text-red-600" : "text-yellow-600"
-                                    }`}
+                                    className={`w-5 h-5 ${blood.status === "critical" ? "text-red-600" : "text-yellow-600"
+                                      }`}
                                   />
                                   <div>
                                     <p className="font-medium">Nhóm máu {blood.type}</p>
@@ -855,7 +853,7 @@ export default function StaffDashboard() {
                                   ))}
                                 </SelectContent>
                               </Select>
-                
+
                               <Button
                                 className="mt-2 bg-blue-600 text-white hover:bg-blue-700"
                                 disabled={!selectedDonationStatus || selectedDonationStatus === donation?.status}
@@ -895,10 +893,10 @@ export default function StaffDashboard() {
             </TabsContent>
           </Tabs>
         </div>
-                    <Toaster position="top-center" containerStyle={{
-                                          top: 80,
-                                        }}/>
-                                  <Footer />
+        <Toaster position="top-center" containerStyle={{
+          top: 80,
+        }} />
+        <Footer />
         <Footer />
       </div>
     </ProtectedRoute>
