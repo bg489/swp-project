@@ -9,6 +9,7 @@ import OTPRoutes from "./routes/OTProutes.js";
 import recipientRoutes from "./routes/recipientRoutes.js";
 import hospitalsRoutes from "./routes/hospitalsRoutes.js";
 import staffRoutes from "./routes/staffRoutes.js";
+import bloodInventoryRoutes from "./routes/bloodInventoryRoutes.js";
 import { connectDB } from "./config/db.js";
 
 dotenv.config();
@@ -39,6 +40,7 @@ app.use("/api/otp", OTPRoutes);
 app.use("/api/recipient", recipientRoutes);
 app.use("/api/hospital", hospitalsRoutes);
 app.use("/api/staff", staffRoutes);
+app.use("/api/blood-in", bloodInventoryRoutes);
 
 
 // if (process.env.NODE_ENV === "production") {
