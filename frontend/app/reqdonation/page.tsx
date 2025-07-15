@@ -13,7 +13,7 @@ import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { useAuth } from "@/contexts/auth-context"
 import api from "../../lib/axios";
-import toast, {Toaster} from "react-hot-toast"
+import toast, { Toaster } from "react-hot-toast"
 
 export default function RequestPage() {
   const initialFilters = {
@@ -27,7 +27,7 @@ export default function RequestPage() {
     is_emergency: false,
   }
   const [searchFilters, setSearchFilters] = useState(initialFilters)
-  
+
 
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
@@ -39,7 +39,7 @@ export default function RequestPage() {
   const [showSuggestions, setShowSuggestions] = useState(true);
   const [highlightIndex, setHighlightIndex] = useState(-1);
   const [nearbyHospitals, setNearbyHospitals] = useState<{ _id: string; name: string, address: string, phone: string }[]>([]);
-  const [locationAllowed, setLocationAllowed] = useState<boolean | null>(null); 
+  const [locationAllowed, setLocationAllowed] = useState<boolean | null>(null);
   const [isFocused, setIsFocused] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -63,25 +63,25 @@ export default function RequestPage() {
 
     async function use() {
       try {
-          const response = await api.get("/hospital/");
-          const hospitals = response.data.hospitals;
+        const response = await api.get("/hospital/");
+        const hospitals = response.data.hospitals;
 
-          const filtered = hospitals.map((h: any) => ({
-            _id: h._id,
-            name: h.name,
-            address: h.address,
-            phone: h.phone,
-          }));
+        const filtered = hospitals.map((h: any) => ({
+          _id: h._id,
+          name: h.name,
+          address: h.address,
+          phone: h.phone,
+        }));
 
-          setNearbyHospitals(filtered);
-        } catch (error) {
-          console.error("Lỗi khi lấy danh sách bệnh viện:", error);
-        }
+        setNearbyHospitals(filtered);
+      } catch (error) {
+        console.error("Lỗi khi lấy danh sách bệnh viện:", error);
       }
-      use();
     }
-  , []);
-    
+    use();
+  }
+    , []);
+
 
   const handleSelect = (hospital: { _id: string; name: any; address?: string; phone?: string }) => {
     setSearchFilters((prev) => ({ ...prev, hospital: hospital._id }));
@@ -98,8 +98,8 @@ export default function RequestPage() {
     .replace(/Đ/g, "D");
 
   const filteredHospitals = searchTerm.trim() === ""
-  ? nearbyHospitals // khi rỗng mà focus thì show tất cả
-  : nearbyHospitals.filter((h) =>
+    ? nearbyHospitals // khi rỗng mà focus thì show tất cả
+    : nearbyHospitals.filter((h) =>
       normalizeVietnamese(h.name.toLowerCase()).includes(normalizeVietnamese(searchTerm.toLowerCase()))
     );
 
@@ -246,15 +246,15 @@ export default function RequestPage() {
     try {
       // Call API instead of direct function
       const response = await api.post("/recipient/request", {
-          recipient_id: user?._id,
-          blood_type_needed: searchFilters.bloodType,
-          components_needed: searchFilters.components_needed,
-          amount_needed: searchFilters.amount,
-          hospital: searchFilters.hospital,
-          distance: searchFilters.distance,
-          comment: searchFilters.comment,
-          is_emergency: searchFilters.is_emergency
-        });
+        recipient_id: user?._id,
+        blood_type_needed: searchFilters.bloodType,
+        components_needed: searchFilters.components_needed,
+        amount_needed: searchFilters.amount,
+        hospital: searchFilters.hospital,
+        distance: searchFilters.distance,
+        comment: searchFilters.comment,
+        is_emergency: searchFilters.is_emergency
+      });
 
       const result = await response.data
 
@@ -334,38 +334,38 @@ export default function RequestPage() {
                       </div>
                       <div>
                         <Label htmlFor="hospital_name">Tên bệnh viện *</Label>
-                          <div className="relative" ref={containerRef}>
-                            <MapPin className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                            <Input
-                              id="hospital_name"
-                              placeholder="ex: Bệnh viện Hùng Vương"
-                              value={hospitalInput}
-                              onChange={handleChange}
-                              onKeyDown={handleKeyDown}
-                              onFocus={() => {
-                                setIsFocused(true);
-                                setShowSuggestions(true); // hiện suggestions khi nhấp
-                              }}
-                              className="pl-10"
-                              required
-                              disabled={locationAllowed === false}
-                            />
-                            {showSuggestions && isFocused && filteredHospitals.length > 0 && (
-                              <ul className="absolute z-10 bg-white border border-gray-300 w-full max-h-60 overflow-y-auto shadow-lg rounded">
-                                {filteredHospitals.map((h, idx) => (
-                                  <li
-                                    key={idx}
-                                    ref={highlightIndex === idx ? (el) => el?.scrollIntoView({ block: "nearest" }) : null}
-                                    className={`px-4 py-2 hover:bg-gray-100 cursor-pointer ${highlightIndex === idx ? "bg-gray-200" : ""}`}
-                                    onClick={() => handleSelect(h)}
-                                  >
-                                    <strong>{h.name}</strong>
-                                    {h.address && <div className="text-sm text-gray-500">{h.address}</div>}
-                                  </li>
-                                ))}
-                              </ul>
-                            )}
-                          </div>
+                        <div className="relative" ref={containerRef}>
+                          <MapPin className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                          <Input
+                            id="hospital_name"
+                            placeholder="ex: Bệnh viện Hùng Vương"
+                            value={hospitalInput}
+                            onChange={handleChange}
+                            onKeyDown={handleKeyDown}
+                            onFocus={() => {
+                              setIsFocused(true);
+                              setShowSuggestions(true); // hiện suggestions khi nhấp
+                            }}
+                            className="pl-10"
+                            required
+                            disabled={locationAllowed === false}
+                          />
+                          {showSuggestions && isFocused && filteredHospitals.length > 0 && (
+                            <ul className="absolute z-10 bg-white border border-gray-300 w-full max-h-60 overflow-y-auto shadow-lg rounded">
+                              {filteredHospitals.map((h, idx) => (
+                                <li
+                                  key={idx}
+                                  ref={highlightIndex === idx ? (el) => el?.scrollIntoView({ block: "nearest" }) : null}
+                                  className={`px-4 py-2 hover:bg-gray-100 cursor-pointer ${highlightIndex === idx ? "bg-gray-200" : ""}`}
+                                  onClick={() => handleSelect(h)}
+                                >
+                                  <strong>{h.name}</strong>
+                                  {h.address && <div className="text-sm text-gray-500">{h.address}</div>}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
                       </div>
                       <div>
                         <Label htmlFor="distance">Bán kính (km)</Label>
@@ -386,16 +386,16 @@ export default function RequestPage() {
                       </div>
                       <div>
                         <Label htmlFor="amount">Số lượng</Label>
-                          <Input
-                            id="amount"
-                            type="number"
-                            value={searchFilters.amount}
-                            onChange={(e) => setSearchFilters((prev) => ({ ...prev, amount: e.target.value }))}
-                            placeholder="Nhập số lượng"
-                            min={1}
-                          />
+                        <Input
+                          id="amount"
+                          type="number"
+                          value={searchFilters.amount}
+                          onChange={(e) => setSearchFilters((prev) => ({ ...prev, amount: e.target.value }))}
+                          placeholder="Nhập số lượng"
+                          min={1}
+                        />
                       </div>
-                    </div>  
+                    </div>
                     <div className="grid md:grid-cols-2 gap-4">
                       <div>
                         <Label className="mb-1 block">Thành phần máu</Label>
@@ -460,7 +460,7 @@ export default function RequestPage() {
                       />
                     </div>
 
-                    
+
 
                     <div className="flex gap-4 mt-4">
                       <Button className="bg-blue-600 hover:bg-blue-700" disabled={isLoading}>
@@ -685,8 +685,8 @@ export default function RequestPage() {
         </div>
       </div>
       <Toaster position="top-center" containerStyle={{
-              top: 80,
-            }}/>
+        top: 80,
+      }} />
       <Footer />
     </div>
   )

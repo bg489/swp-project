@@ -1,5 +1,6 @@
 "use client"
 import { ProtectedRoute } from "@/components/auth/protected-route"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -21,14 +22,127 @@ import {
   Edit,
   LogOut,
   Home,
+  MapPin,
 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { useAuth } from "@/contexts/auth-context"
 import { Footer } from "@/components/footer"
+import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
+import api from "../../../lib/axios";
+import { useEffect, useRef, useState } from "react"
 
 export default function AdminDashboard() {
   const { user, logout } = useAuth()
+  const router = useRouter()
+  const [locationAllowed, setLocationAllowed] = useState<boolean | null>(null);
+  const [showSuggestions, setShowSuggestions] = useState(true);
+  const [highlightIndex, setHighlightIndex] = useState(-1);
+  const [hospitalInput, setHospitalInput] = useState(""); // Giá trị hiện đang hiển thị trong input -> để hiển thị highlight
+  const [searchTerm, setSearchTerm] = useState("");  // Giá trị thực người gõ -> để filter
+  const [hospitalId, setHospitalId] = useState("");
+  const [nearbyHospitals, setNearbyHospitals] = useState<{ _id: string; name: string, address: string, phone: string }[]>([]);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isFocused, setIsFocused] = useState(false);
+  const [bloodInven, setBloodInven] = useState([]);
+  let eight = 0;
+
+  // Đặt listener khi component mount
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsFocused(false);
+        setShowSuggestions(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  useEffect(() => {
+    // Lấy vị trí người dùng
+
+    async function use() {
+      try {
+        const response = await api.get("/hospital/");
+        const hospitals = response.data.hospitals;
+
+        const filtered = hospitals.map((h: any) => ({
+          _id: h._id,
+          name: h.name,
+          address: h.address,
+          phone: h.phone,
+        }));
+
+        setNearbyHospitals(filtered);
+      } catch (error) {
+        console.error("Lỗi khi lấy danh sách bệnh viện:", error);
+      }
+    }
+    use();
+  }
+    , []);
+
+
+  const handleSelect = async (hospital: { _id: string; name: any; address?: string; phone?: string }) => {
+    setHospitalId(hospital._id);
+    setHospitalInput(hospital.name);
+    setSearchTerm(hospital.name);
+    setShowSuggestions(false);
+    setHighlightIndex(-1);
+    try {
+      const bloodInvent = await api.get(`/blood-in/blood-inventory/hospital/${hospital._id}`);
+      setBloodInven(bloodInvent.data.inventories);
+      console.log(bloodInvent.data.inventories)
+    } catch (error) {
+      setBloodInven([]);
+    }
+    console.log(bloodInventory[eight])
+
+  };
+
+  const normalizeVietnamese = (str: string) => str
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D");
+
+  const filteredHospitals = searchTerm.trim() === ""
+    ? nearbyHospitals // khi rỗng mà focus thì show tất cả
+    : nearbyHospitals.filter((h) =>
+      normalizeVietnamese(h.name.toLowerCase()).includes(normalizeVietnamese(searchTerm.toLowerCase()))
+    );
+
+
+  const handleKeyDown = (e: { key: string; preventDefault: () => void }) => {
+    if (!showSuggestions) return;
+    if (e.key === "ArrowDown") {
+      const newIndex = (highlightIndex + 1) % filteredHospitals.length;
+      setHighlightIndex(newIndex);
+      setHospitalInput(filteredHospitals[newIndex].name); // chỉ thay đổi hiển thị, searchTerm vẫn giữ nguyên
+      e.preventDefault();
+    } else if (e.key === "ArrowUp") {
+      const newIndex =
+        (highlightIndex - 1 + filteredHospitals.length) % filteredHospitals.length;
+      setHighlightIndex(newIndex);
+      setHospitalInput(filteredHospitals[newIndex].name);
+      e.preventDefault();
+    } else if (e.key === "Enter" && highlightIndex >= 0) {
+      handleSelect(filteredHospitals[highlightIndex]);
+      e.preventDefault();
+    }
+  };
+
+
+  const handleChange = (e: { target: { value: React.SetStateAction<string> } }) => {
+    setSearchTerm(e.target.value);    // update giá trị gõ thực tế
+    setHospitalInput(e.target.value); // input hiển thị đồng bộ giá trị gõ
+    setShowSuggestions(true);
+    setHighlightIndex(-1);
+  };
 
   const handleLogout = () => {
     logout()
@@ -122,19 +236,20 @@ export default function AdminDashboard() {
     },
   ]
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "critical":
-        return "bg-red-100 text-red-800 border-red-200"
-      case "low":
-        return "bg-orange-100 text-orange-800 border-orange-200"
-      case "medium":
-        return "bg-yellow-100 text-yellow-800 border-yellow-200"
-      case "good":
-        return "bg-green-100 text-green-800 border-green-200"
-      default:
-        return "bg-gray-100 text-gray-800 border-gray-200"
+  const getStatusColor = (quantity: number) => {
+    if (quantity < 30) {
+      return "bg-red-100 text-red-800 border-red-200"
+    } else if (quantity < 100) {
+      return "bg-orange-100 text-orange-800 border-orange-200"
+    } else if (quantity < 150) {
+      return "bg-yellow-100 text-yellow-800 border-yellow-200"
+    } else {
+      return "bg-green-100 text-green-800 border-green-200"
     }
+  }
+
+  const handleNavigateToInventory = () => {
+    router.push(`/admin/blood-inventory?hospitalId=${hospitalId}`)
   }
 
   return (
@@ -353,43 +468,97 @@ export default function AdminDashboard() {
 
             <TabsContent value="inventory" className="space-y-6">
               {/* Blood Inventory Management */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex items-center space-x-4">
+                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                      <Users className="w-6 h-6 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="font-medium">Lựa chọn Bệnh Viện</p>
+                    </div>
+                  </div>
+                  <div className="flex space-x-2">
+                    <div className="relative" ref={containerRef}>
+                      <MapPin className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                      <Input
+                        id="hospital_name"
+                        placeholder="ex: Bệnh viện Hùng Vương"
+                        value={hospitalInput}
+                        onChange={handleChange}
+                        onKeyDown={handleKeyDown}
+                        onFocus={() => {
+                          setIsFocused(true);
+                          setShowSuggestions(true); // hiện suggestions khi nhấp
+                        }}
+                        className="pl-10"
+                        required
+                        disabled={locationAllowed === false}
+                      />
+                      {showSuggestions && isFocused && filteredHospitals.length > 0 && (
+                        <ul className="absolute z-10 bg-white border border-gray-300 w-full max-h-60 overflow-y-auto shadow-lg rounded">
+                          {filteredHospitals.map((h, idx) => (
+                            <li
+                              key={idx}
+                              ref={highlightIndex === idx ? (el) => el?.scrollIntoView({ block: "nearest" }) : null}
+                              className={`px-4 py-2 hover:bg-gray-100 cursor-pointer ${highlightIndex === idx ? "bg-gray-200" : ""}`}
+                              onClick={() => handleSelect(h)}
+                            >
+                              <strong>{h.name}</strong>
+                              {h.address && <div className="text-sm text-gray-500">{h.address}</div>}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                    <Button size="sm" className="bg-green-600 hover:bg-green-700">
+                      <UserCheck className="w-4 h-4 mr-1" />
+                      Duyệt
+                    </Button>
+                    <Button size="sm" variant="destructive">
+                      <UserX className="w-4 h-4 mr-1" />
+                      Từ chối
+                    </Button>
+                  </div>
+                </div>
+              </div>
               <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {bloodInventory.map((blood) => (
-                  <Card key={blood.type}>
+                {bloodInven.map((blood) => (
+                  <Card key={blood.blood_type}>
                     <CardHeader className="pb-2">
                       <div className="flex items-center justify-between">
-                        <div className={`w-12 h-12 ${blood.color} rounded-full flex items-center justify-center`}>
-                          <span className="text-xl font-bold text-white">{blood.type}</span>
+                        <div className={`w-12 h-12 ${bloodInventory[eight++].color} rounded-full flex items-center justify-center`}>
+                          <span className="text-xl font-bold text-white">{blood.blood_type}</span>
                         </div>
-                        <Badge className={getStatusColor(blood.status)}>
-                          {blood.status === "critical"
+                        <Badge className={getStatusColor(blood.quantity)}>
+                          {blood.quantity < 30
                             ? "Rất thấp"
-                            : blood.status === "low"
+                            : blood.quantity < 100
                               ? "Thấp"
-                              : blood.status === "medium"
-                                ? "Trung bình"
-                                : "Tốt"}
+                              : blood.quantity < 150
+                                ? "Trung bình" :
+                                "Tốt"}
                         </Badge>
                       </div>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-2">
                         <div className="flex justify-between">
-                          <span className="text-2xl font-bold">{blood.units}</span>
-                          <span className="text-sm text-gray-500">/ {blood.target}</span>
+                          <span className="text-2xl font-bold">{blood.quantity}</span>
+                          <span className="text-sm text-gray-500">/ 500</span>
                         </div>
-                        <Progress value={(blood.units / blood.target) * 100} className="h-2" />
+                        <Progress value={Math.min((blood.quantity / 500) * 100, 100)} className="h-2" />
                         <div className="flex justify-between text-xs text-gray-500">
                           <span>Hiện có</span>
                           <span>Mục tiêu</span>
                         </div>
                       </div>
                       <div className="flex space-x-2 mt-4">
-                        <Button size="sm" variant="outline" className="flex-1">
+                        <Button size="sm" variant="outline" className="flex-1" onClick={handleNavigateToInventory}>
                           <Edit className="w-3 h-3 mr-1" />
                           Sửa
                         </Button>
-                        <Button size="sm" className="flex-1">
+                        <Button size="sm" className="flex-1" onClick={handleNavigateToInventory}>
                           <Plus className="w-3 h-3 mr-1" />
                           Thêm
                         </Button>
