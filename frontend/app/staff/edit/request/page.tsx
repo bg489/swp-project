@@ -6,12 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Phone, CheckCircle, Calendar } from "lucide-react";
+import { Phone, CheckCircle, Calendar, Droplets } from "lucide-react";
 import { format } from "date-fns";
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { useSearchParams } from "next/navigation"
-import toast, {Toaster} from "react-hot-toast"
+import toast, { Toaster } from "react-hot-toast"
 import { useAuth } from "@/contexts/auth-context"
 import api from "@/lib/axios"
 import { Label } from "@/components/ui/label";
@@ -30,6 +30,55 @@ export default function EditRequestPage() {
   const [selectedStatus, setSelectedStatus] = useState("");
   const [donationDate, setDonationDate] = useState("");
   const [donationComment, setDonationComment] = useState("");
+  const [bloodInven, setBloodInven] = useState<any[]>([]);
+  const [warehouseDonationDate, setWarehouseDonationDate] = useState("");
+
+  function getInventoryAmount(inventory: any[], bloodType: string, component: string) {
+    const match = inventory.find(item => item.blood_type === bloodType && item.component === component);
+    return match ? match.quantity : 0;
+  }
+
+
+
+  const handleWarehouseConfirm = async () => {
+    try {
+
+      const bloodInvenId = bloodInven.find(item => item.blood_type === bloodReq.blood_type_needed);
+      console.log(staff.hospital._id)
+
+      await api.post(`/staff/donation-blood-inventory`, {
+        inventory_item: bloodInvenId._id,
+        recipient_id: bloodReq.recipient_id._id,
+        donation_date: warehouseDonationDate,
+        volume: bloodReq.amount_needed,
+        updated_by: staff.user_id._id,
+        notes: donationComment,
+        hospital: staff.hospital._id
+      });
+
+      await api.put(`/staff/blood-requests/${requestId}/status`, {
+        status: "matched",
+      });
+
+      toast.success("Đã xác nhận lấy máu từ kho");
+      router.push("/staff/dashboard"); // hoặc reload / chuyển trang
+    } catch (error) {
+      console.error("Lỗi xác nhận lấy máu từ kho:", error);
+      toast.error("Xác nhận thất bại, vui lòng thử lại!");
+    }
+  };
+
+
+  function isBloodInventorySufficient(inventory: any[], requiredBloodType: string, requiredAmount: number) {
+    const match = inventory.find(item => item.blood_type === requiredBloodType && item.component === "RBC");
+    return match && match.quantity >= requiredAmount;
+  }
+
+  const latestRequest = {
+    blood_type_needed: "A+",
+    amount_needed: 3,
+  };
+
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -54,6 +103,15 @@ export default function EditRequestPage() {
           const profileBR = await api.get(`/staff/blood-request/get-by-id/${requestId}`);
           setBloodReq(profileBR.data);
           setSelectedStatus(bloodReq?.status)
+
+          const bloodinvens = await api.get(`/blood-in/blood-inventory/hospital/${staffData.hospital._id}`);
+
+          // setBloodInven([
+          //   { blood_type: "A+", component: "RBC", quantity: 5 },
+          //   { blood_type: "O+", component: "RBC", quantity: 1 },
+          // ]);
+
+          setBloodInven(bloodinvens.data.inventories);
         }
       } catch (error) {
         console.error("Failed to fetch staff profile or hospital:", error);
@@ -83,7 +141,7 @@ export default function EditRequestPage() {
         blood_type: "A+",
         donation_start_date: "2024-06-15T00:00:00Z"
       }
-        ,
+      ,
       {
         _id: "donor2",
         user_id: {
@@ -105,7 +163,7 @@ export default function EditRequestPage() {
       });
 
       toast.success(`Đã thay đổi status thành ${newStatus}`)
-      setBloodReq((prev) => ({...prev, status : newStatus}));
+      setBloodReq((prev) => ({ ...prev, status: newStatus }));
     } catch (error) {
       toast.error("Đã xảy ra lỗi khi cập nhật trạng thái. Vui lòng thử lại!");
       console.error(error);
@@ -142,7 +200,7 @@ export default function EditRequestPage() {
     <div>
       <Header />
       <div className="container mx-auto py-8 space-y-8">
-        
+
         <Card className="shadow-lg rounded-2xl">
           <CardHeader>
             <CardTitle className="text-2xl font-bold">🩸 Chi tiết yêu cầu máu</CardTitle>
@@ -179,10 +237,10 @@ export default function EditRequestPage() {
                 <SelectContent>
                   {[
                     { key: "pending", label: "Đang chờ duyệt" },
-                    { key: "approved", label: "Đã phê duyệt" },
-                    { key: "matched", label: "Đã ghép người hiến" },
-                    { key: "in_progress", label: "Đang xử lý" },
-                    { key: "completed", label: "Hoàn tất" },
+                    // { key: "approved", label: "Đã phê duyệt" },
+                    // { key: "matched", label: "Đã ghép người hiến" },
+                    // { key: "in_progress", label: "Đang xử lý" },
+                    // { key: "completed", label: "Hoàn tất" },
                     { key: "cancelled", label: "Đã hủy" },
                     { key: "rejected", label: "Bị từ chối" },
                   ].map((status) => (
@@ -203,6 +261,78 @@ export default function EditRequestPage() {
             </div>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Tình trạng yêu cầu gần nhất</CardTitle>
+            <Droplets className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            {bloodInven.length > 0 && isBloodInventorySufficient(bloodInven, bloodReq.blood_type_needed, bloodReq.amount_needed) ? (
+              <>
+                <div className="text-green-600 font-bold mb-2">
+                  ✅ Có đủ máu ({bloodReq.blood_type_needed}) trong kho
+                </div>
+                <p className="text-xs text-muted-foreground mb-4">
+                  Cần {bloodReq.amount_needed} đơn vị nhóm {bloodReq.blood_type_needed}
+                </p>
+                <div className="flex items-center gap-2 text-sm font-semibold text-blue-600 bg-blue-50 px-4 py-2 rounded-lg border border-blue-200 w-fit mb-5">
+                  💉 Hiện có: {getInventoryAmount(bloodInven, bloodReq.blood_type_needed, "RBC")} đơn vị
+                </div>
+
+
+                <div className="space-y-3">
+                  <div className="flex flex-col">
+                    <Label htmlFor="warehouse-donation-date">Ngày hiến máu</Label>
+                    <div className="relative mt-5">
+                      <Calendar className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                      <Input
+                        id="warehouse-donation-date"
+                        type="date"
+                        value={warehouseDonationDate}
+                        onChange={(e) => setWarehouseDonationDate(e.target.value)}
+                        className="pl-10"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col">
+                    <Label htmlFor="warehouse-comment">Ghi chú</Label>
+                    <Input
+                      id="warehouse-comment"
+                      placeholder="Nhập ghi chú khi lấy máu từ kho..."
+                      value={donationComment}
+                      onChange={(e) => setDonationComment(e.target.value)}
+                      className="mt-5"
+                    />
+                  </div>
+
+                  <Button
+                    onClick={handleWarehouseConfirm}
+                    className="bg-purple-600 text-white hover:bg-purple-700"
+                    disabled={!warehouseDonationDate}
+                  >
+                    ✅ Xác nhận lấy máu từ kho
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="text-red-600 font-bold">❌ Không đủ máu {bloodReq.blood_type_needed} trong kho</div>
+                <p className="text-xs text-muted-foreground mb-1">
+                  Cần {bloodReq.amount_needed} đơn vị nhóm {bloodReq.blood_type_needed}
+                </p>
+                <div className="flex items-center gap-2 text-sm font-semibold text-red-600 bg-red-50 px-4 py-2 rounded-lg border border-red-200 w-fit mb-5">
+                  💉 Hiện có: {getInventoryAmount(bloodInven, bloodReq.blood_type_needed, "RBC")} đơn vị
+                </div>
+
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+
 
 
         <Card className="shadow-lg rounded-2xl">
@@ -293,9 +423,9 @@ export default function EditRequestPage() {
         </div>
       </div>
       <Toaster position="top-center" containerStyle={{
-                      top: 80,
-                    }}/>
-              <Footer />
+        top: 80,
+      }} />
+      <Footer />
     </div>
   );
 }
