@@ -656,3 +656,38 @@ export async function deleteUserByAdmin(req, res) {
     res.status(500).json({ message: "Lỗi máy chủ khi xóa người dùng." });
   }
 }
+
+// POST /api/donors/by-hospitals
+export async function getDonorsByHospitals(req, res) {
+  try {
+    const { hospitalIds } = req.body;
+
+    if (!Array.isArray(hospitalIds) || hospitalIds.length === 0) {
+      return res.status(400).json({ message: "Danh sách hospitalIds không hợp lệ." });
+    }
+
+    const now = new Date();
+
+    const donors = await DonorProfile.find({
+      hospital: { $in: hospitalIds },
+      availability_date: { $lte: now },
+      $or: [
+        { cooldown_until: { $lte: now } },
+        { cooldown_until: { $exists: false } },
+        { cooldown_until: null }
+      ],
+      is_in_the_role: true,
+    })
+      .populate("user_id", "full_name email phone blood_type")
+      .populate("hospital", "name address phone");
+
+    return res.status(200).json({
+      success: true,
+      count: donors.length,
+      donors,
+    });
+  } catch (error) {
+    console.error("Lỗi khi lấy người hiến máu theo bệnh viện + thời gian:", error);
+    res.status(500).json({ message: "Lỗi máy chủ." });
+  }
+}

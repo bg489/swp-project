@@ -18,7 +18,8 @@ import {
   getAvailableDonorsByHospital,
   updateCooldownUntil,
   getAllUsers,
-  deleteUserByAdmin
+  deleteUserByAdmin,
+  getDonorsByHospitals
 } from "../controllers/usersController.js";
 import {
   getDonationsByDonorId,
@@ -50,6 +51,7 @@ router.get("/donations/recipient-id/:recipientId", getDonationsByRecipientId);
 router.get("/donations-warehouse/recipient-id/:recipientId", getWarehouseDonationsByRecipientId);
 router.get("/admin/get-all/:adminId", getAllUsers);
 router.delete("/admin/users/delete/:adminId/:userId", deleteUserByAdmin);
+router.post("/donors/by-hospitals", getDonorsByHospitals);
 
 
 
