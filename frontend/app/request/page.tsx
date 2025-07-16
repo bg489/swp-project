@@ -508,11 +508,10 @@ export default function RequestPage() {
                         }).map(([component, description]) => (
                           <Card
                             key={component}
-                            className={`cursor-pointer transition-all ${
-                              selectedComponent === component
-                                ? "border-red-500 bg-red-50"
-                                : "border-gray-200 hover:border-gray-300"
-                            }`}
+                            className={`cursor-pointer transition-all ${selectedComponent === component
+                              ? "border-red-500 bg-red-50"
+                              : "border-gray-200 hover:border-gray-300"
+                              }`}
                             onClick={() => {
                               setSelectedComponent(component)
                               setCompatibilityResult(null)
@@ -521,9 +520,8 @@ export default function RequestPage() {
                             <CardContent className="p-4">
                               <div className="flex items-start space-x-3">
                                 <div
-                                  className={`w-4 h-4 rounded-full border-2 mt-1 ${
-                                    selectedComponent === component ? "border-red-500 bg-red-500" : "border-gray-300"
-                                  }`}
+                                  className={`w-4 h-4 rounded-full border-2 mt-1 ${selectedComponent === component ? "border-red-500 bg-red-500" : "border-gray-300"
+                                    }`}
                                 >
                                   {selectedComponent === component && (
                                     <div className="w-2 h-2 bg-white rounded-full m-0.5"></div>

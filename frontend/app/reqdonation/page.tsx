@@ -19,7 +19,7 @@ export default function RequestPage() {
   const initialFilters = {
     bloodType: "",
     comment: "",
-    distance: 10,
+    distance: 5,
     availability: "all",
     amount: 0,
     components_needed: [] as string[],
@@ -374,7 +374,8 @@ export default function RequestPage() {
                           onValueChange={(value) => setSearchFilters((prev) => ({ ...prev, distance: Number(value) }))}
                         >
                           <SelectTrigger>
-                            <SelectValue />
+                            {/* TỰ render giá trị nếu có */}
+                            {searchFilters.distance ? `${searchFilters.distance} km` : "Chọn bán kính"}
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="5">5 km</SelectItem>
