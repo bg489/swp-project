@@ -34,6 +34,7 @@ import { useAuth } from "@/contexts/auth-context"
 import { Footer } from "@/components/footer"
 import { useEffect, useState } from "react"
 import api from "../../../lib/axios";
+import toast, { Toaster } from "react-hot-toast"
 
 export default function UserDashboard() {
   const router = useRouter()
@@ -47,6 +48,36 @@ export default function UserDashboard() {
   const [warehouseDonationsList2, setWarehouseDonationsList2] = useState([]);
   const [receiveCount, setReceiveCount] = useState(0);
   const { user, logout } = useAuth()
+
+  const handleReject = async (donationId: string) => {
+    try {
+      if (!confirm("Bạn có chắc muốn từ chối đợt hiến máu này không?")) { return; }
+
+      await api.put(`/staff/donations/${donationId}/update-status`, {
+        status: "cancelled",
+      });
+
+      console.log(donationRecords)
+
+      setDonationRecords((prev: any) => ({
+        ...prev,
+        data: prev.data.map((donation: any) =>
+          donation._id === donationId ? { ...donation, status: "cancelled" } : donation
+        ),
+      }));
+
+
+      console.log(donationRecords)
+
+      toast.success("Đã từ chối thành công")
+
+
+    } catch (error) {
+      toast.error("Đã xảy ra lỗi khi cập nhật trạng thái. Vui lòng thử lại!");
+      console.error(error);
+    }
+  };
+
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -707,7 +738,7 @@ export default function UserDashboard() {
 
                               <div className="flex flex-wrap items-center gap-2 mt-2">
                                 <Badge className="bg-blue-100 text-blue-800">{donation.donation_type?.join(", ")}</Badge>
-                                <Badge className={donation.status === "scheduled" ? "bg-yellow-100 text-yellow-800" : "bg-green-100 text-green-800"}>
+                                <Badge className={donation.status === "scheduled" ? "bg-yellow-100 text-yellow-800" : donation.status === "completed" ? "bg-green-100 text-green-800" : donation.status === "cancelled" ? "bg-red-100 text-red-800" : "bg-gray-100 text-gray-800"}>
                                   {donation.status}
                                 </Badge>
                               </div>
@@ -744,6 +775,14 @@ export default function UserDashboard() {
                                 >
                                   <Edit className="w-4 h-4" />
                                   Sửa
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  className="text-white bg-red-500 hover:bg-red-600 transition"
+                                  onClick={() => handleReject(donation._id)}
+                                >
+                                  Từ chối
                                 </Button>
                               </div>
                             </div>
@@ -855,7 +894,7 @@ export default function UserDashboard() {
 
                               <div className="flex flex-wrap items-center gap-2 mt-2">
                                 <Badge className="bg-blue-100 text-blue-800">{donation.donation_type?.join(", ")}</Badge>
-                                <Badge className={donation.status === "scheduled" ? "bg-yellow-100 text-yellow-800" : "bg-green-100 text-green-800"}>
+                                <Badge className={donation.status === "scheduled" ? "bg-yellow-100 text-yellow-800" : donation.status === "completed" ? "bg-green-100 text-green-800" : donation.status === "cancelled" ? "bg-red-100 text-red-800" : "bg-gray-100 text-gray-800"}>
                                   {donation.status}
                                 </Badge>
                               </div>
@@ -1282,7 +1321,9 @@ export default function UserDashboard() {
             </TabsContent>
           </Tabs>
         </div>
-
+        <Toaster position="top-center" containerStyle={{
+          top: 80,
+        }} />
         <Footer />
       </div>
     </ProtectedRoute>
