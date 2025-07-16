@@ -1112,7 +1112,6 @@ export default function StaffDashboard() {
           top: 80,
         }} />
         <Footer />
-        <Footer />
       </div>
     </ProtectedRoute>
   )

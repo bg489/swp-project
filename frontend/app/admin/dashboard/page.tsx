@@ -32,6 +32,8 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import api from "../../../lib/axios";
 import { useEffect, useRef, useState } from "react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import toast, { Toaster } from "react-hot-toast"
 
 export default function AdminDashboard() {
   const { user, logout } = useAuth()
@@ -48,6 +50,93 @@ export default function AdminDashboard() {
   const [bloodInven, setBloodInven] = useState([]);
   const [bloodInventoryQuantity, setBloodInventoryQuantity] = useState(0);
   const [bloodInventoryExpiringQuantity, setBloodInventoryExpiringQuantity] = useState(0);
+  const [selectedRole, setSelectedRole] = useState("staff")
+  const [name, setName] = useState("")
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [bloodType, setBloodType] = useState("")
+
+  const handleCreateUser = async () => {
+    try {
+      if (selectedRole === "staff") {
+        const response = await api.post("/users/register", {
+          full_name: name,
+          email: email,
+          password: password, // raw password (to be hashed)
+          role: selectedRole,
+          phone: "0",
+          gender: "other",
+          date_of_birth: "",
+          address: "",
+        })
+
+        await api.put(`/users/verify/${response.data.user.id}`)
+
+        await api.post("/users/staff-profiles", {
+          user_id: response.data.user.id,
+          department: "0",
+          assigned_area: "0",
+          shift_time: "0",
+          hospital: hospitalId
+        })
+
+      } else if (selectedRole === "donor") {
+        const response = await api.post("/users/register", {
+          full_name: name,
+          email: email,
+          password: password, // raw password (to be hashed)
+          role: selectedRole,
+          phone: "0",
+          gender: "other",
+          date_of_birth: "",
+          address: "",
+        })
+
+        await api.put(`/users/verify/${response.data.user.id}`)
+
+        await api.post("/users/donor-profile", {
+          user_id: response.data.user.id,
+          blood_type: "unknown",
+          availability_date: new Date().toISOString(),
+          health_cert_url: "",
+          cooldown_until: "",
+          hospital: hospitalId
+        })
+
+      } else if (selectedRole === "recipient") {
+        const response = await api.post("/users/register", {
+          full_name: name,
+          email: email,
+          password: password, // raw password (to be hashed)
+          role: selectedRole,
+          phone: "0",
+          gender: "other",
+          date_of_birth: "",
+          address: "",
+        })
+
+        await api.put(`/users/verify/${response.data.user.id}`)
+
+        await api.post("/users/recipient-profile", {
+          user_id: response.data.user.id,
+          medical_doc_url: "unknown",
+          hospital: hospitalId
+        })
+
+      }
+      toast.success("Tạo tài khoản thành công!");
+      // Reset form
+      setName("");
+      setEmail("");
+      setPassword("");
+      setBloodType("");
+    } catch (error) {
+      toast.error("Lỗi khi tạo tài khoản.");
+      console.error(error);
+    }
+  };
+
+
   let eight = 0;
 
   function getTotalQuantity(inventories: any[]) {
@@ -367,11 +456,12 @@ export default function AdminDashboard() {
           </div>
 
           <Tabs defaultValue="overview" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-5">
+            <TabsList className="grid w-full grid-cols-6">
               <TabsTrigger value="overview">Tổng quan</TabsTrigger>
               <TabsTrigger value="users">Người dùng</TabsTrigger>
               <TabsTrigger value="inventory">Kho máu</TabsTrigger>
               <TabsTrigger value="requests">Yêu cầu</TabsTrigger>
+              <TabsTrigger value="create-users">Tạo tài khoản</TabsTrigger>
               <TabsTrigger value="settings">Cài đặt</TabsTrigger>
             </TabsList>
 
@@ -602,6 +692,76 @@ export default function AdminDashboard() {
               </Card>
             </TabsContent>
 
+            <TabsContent value="create-users" className="space-y-6">
+              {/* Form tạo tài khoản */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Tạo tài khoản mới</CardTitle>
+                  <CardDescription>Chọn loại người dùng và điền thông tin bên dưới</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Select
+                      onValueChange={(value) => setSelectedRole(value)}
+                      defaultValue="staff"
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Chọn loại tài khoản" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="staff">Nhân viên</SelectItem>
+                        <SelectItem value="donor">Người hiến máu</SelectItem>
+                        <SelectItem value="recipient">Người nhận máu</SelectItem>
+                      </SelectContent>
+                    </Select>
+
+
+
+                    <Input placeholder="Họ tên" value={name} onChange={(e) => setName(e.target.value)} />
+                    <Input placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                    <Input placeholder="Mật khẩu" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+
+                    {(<div className="relative" ref={containerRef}>
+                      <MapPin className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                      <Input
+                        id="hospital_name"
+                        placeholder="ex: Bệnh viện Hùng Vương"
+                        value={hospitalInput}
+                        onChange={handleChange}
+                        onKeyDown={handleKeyDown}
+                        onFocus={() => {
+                          setIsFocused(true);
+                          setShowSuggestions(true); // hiện suggestions khi nhấp
+                        }}
+                        className="pl-10"
+                        required
+                        disabled={locationAllowed === false}
+                      />
+                      {showSuggestions && isFocused && filteredHospitals.length > 0 && (
+                        <ul className="absolute z-10 bg-white border border-gray-300 w-full max-h-60 overflow-y-auto shadow-lg rounded">
+                          {filteredHospitals.map((h, idx) => (
+                            <li
+                              key={idx}
+                              ref={highlightIndex === idx ? (el) => el?.scrollIntoView({ block: "nearest" }) : null}
+                              className={`px-4 py-2 hover:bg-gray-100 cursor-pointer ${highlightIndex === idx ? "bg-gray-200" : ""}`}
+                              onClick={() => handleSelect(h)}
+                            >
+                              <strong>{h.name}</strong>
+                              {h.address && <div className="text-sm text-gray-500">{h.address}</div>}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>)}
+
+                  </div>
+
+                  <Button onClick={handleCreateUser}>Tạo tài khoản</Button>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+
             <TabsContent value="settings" className="space-y-6">
               <Card>
                 <CardHeader>
@@ -650,7 +810,9 @@ export default function AdminDashboard() {
             </TabsContent>
           </Tabs>
         </div>
-
+        <Toaster position="top-center" containerStyle={{
+          top: 80,
+        }} />
         <Footer />
       </div>
     </ProtectedRoute>
