@@ -17,6 +17,8 @@ import {
   getStaffProfileByUserId,
   getAvailableDonorsByHospital,
   updateCooldownUntil,
+  getAllUsers,
+  deleteUserByAdmin
 } from "../controllers/usersController.js";
 import {
   getDonationsByDonorId
@@ -42,6 +44,8 @@ router.get("/staff-profiles/active/:userId", getStaffProfileByUserId);
 router.get("/donor-profiles-by-hospital/:hospitalId", getAvailableDonorsByHospital);
 router.put('/donor/update-cooldown', updateCooldownUntil);
 router.get("/donations/donor-id/:donorId", getDonationsByDonorId);
+router.get("/admin/get-all/:adminId", getAllUsers);
+router.delete("/admin/users/delete/:adminId/:userId", deleteUserByAdmin);
 
 
 

@@ -31,7 +31,7 @@ export async function createUser(req, res) {
     }
 
     // Hash password before saving (using bcrypt)
-    
+
     const salt = await bcrypt.genSalt(10);
     const password_hash = await bcrypt.hash(password, salt);
 
@@ -596,5 +596,63 @@ export async function updateCooldownUntil(req, res) {
   } catch (error) {
     console.error("Error updating cooldown:", error);
     res.status(500).json({ message: "Internal server error" });
+  }
+}
+
+// GET /admin/users
+export async function getAllUsers(req, res) {
+  try {
+    const adminId = req.params.adminId;
+    const adminUser = await User.findById(adminId);
+    if (!adminUser || adminUser.role !== "admin" || !adminUser.is_verified) {
+      return res.status(403).json({ message: "Permission denied" });
+    }
+
+    const users = await User.find({}, "-password_hash"); // Exclude password_hash field
+
+    return res.status(200).json({
+      message: "Fetched all users",
+      users,
+    });
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+}
+
+// DELETE /admin/users/:adminId/:userId
+export async function deleteUserByAdmin(req, res) {
+  try {
+    const { adminId, userId } = req.params;
+
+    // Kiểm tra admin hợp lệ
+    const admin = await User.findById(adminId);
+    if (!admin || admin.role !== "admin" || !admin.is_verified) {
+      return res.status(403).json({ message: "Bạn không có quyền xóa người dùng." });
+    }
+
+    // Không cho admin tự xóa chính mình
+    if (adminId === userId) {
+      return res.status(400).json({ message: "Không thể tự xóa chính mình." });
+    }
+
+    // Kiểm tra user tồn tại
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "Người dùng không tồn tại." });
+    }
+
+    // Xóa các profile liên quan (nếu có)
+    await DonorProfile.deleteOne({ user_id: userId });
+    await RecipientProfile.deleteOne({ user_id: userId });
+    await StaffProfile.deleteOne({ user_id: userId });
+
+    // Xóa user
+    await User.findByIdAndDelete(userId);
+
+    return res.status(200).json({ message: "Xóa người dùng thành công." });
+  } catch (error) {
+    console.error("Lỗi khi xóa người dùng:", error);
+    res.status(500).json({ message: "Lỗi máy chủ khi xóa người dùng." });
   }
 }

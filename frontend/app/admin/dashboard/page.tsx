@@ -23,6 +23,8 @@ import {
   LogOut,
   Home,
   MapPin,
+  Pencil,
+  Trash2,
 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
@@ -34,6 +36,7 @@ import api from "../../../lib/axios";
 import { useEffect, useRef, useState } from "react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import toast, { Toaster } from "react-hot-toast"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 export default function AdminDashboard() {
   const { user, logout } = useAuth()
@@ -55,6 +58,87 @@ export default function AdminDashboard() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [bloodType, setBloodType] = useState("")
+  const [pendingUsers, setPendingUsers] = useState([])
+  const [selectedUser, setSelectedUser] = useState<UserType | null>(null);
+  const [openEditDialog, setOpenEditDialog] = useState(false);
+
+  type UserType = {
+    _id: string;
+    full_name: string;
+    email: string;
+    phone?: string;
+    gender?: string;
+    date_of_birth?: string;
+    address?: string;
+    role: string;
+    is_active: boolean;
+    is_verified: boolean;
+    createdAt: string;
+  };
+
+  const handleVerifyUser = async (user_Id: any) => {
+    try {
+      const res = await api.put(`/users/verify/${user_Id}`); // nên lấy response nếu có
+      const updatedUser = res.data; // ví dụ nếu response là { userId, is_verified }
+
+      // ✅ Cập nhật trường is_verified trong danh sách
+      setPendingUsers((prev) =>
+        prev.map((user) =>
+          user._id === user_Id
+            ? { ...user, is_verified: updatedUser.is_verified }
+            : user
+        )
+      );
+
+      toast.success("Duyệt thành công");
+    } catch (error) {
+      toast.error("Không thể duyệt user");
+      console.error(error);
+    }
+  };
+
+
+  const handleEditUser = async (user_Id: any) => {
+    console.log(selectedUser);
+    try {
+      const response = await api.put(`/users/edit/${selectedUser?._id}`, {
+        full_name: selectedUser?.full_name,
+        email: selectedUser?.email,
+        phone: selectedUser?.phone,
+        gender: selectedUser?.gender,
+        date_of_birth: selectedUser?.date_of_birth,
+        address: selectedUser?.address,
+      });
+
+      const updatedUser = response.data.user; // đảm bảo API trả về user đã cập nhật
+
+      // ✅ Cập nhật trong danh sách pendingUsers
+      setPendingUsers((prev) =>
+        prev.map((user) =>
+          user._id === updatedUser._id ? updatedUser : user
+        )
+      );
+
+      toast.success("Chỉnh sửa thông tin tài khoản thành công");
+    } catch (error) {
+      toast.error("Không thể chỉnh sửa user");
+      console.error(error);
+    }
+  };
+
+
+  const handleDeleteUser = async (user_Id: any) => {
+    try {
+      await api.delete(`/users/admin/users/delete/6857bfb798b0c3e8061bd595/${user_Id}`)
+      setPendingUsers(prev => prev.filter(user => user._id !== user_Id));
+      toast.success("Xóa tài khoản thành công")
+    } catch (error) {
+      toast.error("Không thể xóa user");
+      console.error(error);
+    }
+  }
+
+
 
   const handleCreateUser = async () => {
     try {
@@ -182,6 +266,10 @@ export default function AdminDashboard() {
         setBloodInventoryQuantity(getTotalQuantity(bloo_quantity.data.inventories));
         setBloodInventoryExpiringQuantity(getTotalExpiringQuantity(bloo_quantity.data.inventories));
 
+        const allUsers = await api.get(`/users/admin/get-all/6857bfb798b0c3e8061bd595`);
+
+        setPendingUsers(allUsers.data.users);
+
 
       } catch (error) {
         console.error("Lỗi khi lấy danh sách bệnh viện:", error);
@@ -274,35 +362,7 @@ export default function AdminDashboard() {
     { type: "AB+", units: 67, status: "medium", target: 80, color: "bg-purple-400" },
   ]
 
-  const pendingUsers = [
-    {
-      id: "U001",
-      name: "Nguyễn Văn A",
-      email: "nguyenvana@email.com",
-      bloodType: "O+",
-      phone: "0901234567",
-      registeredAt: "2 giờ trước",
-      status: "pending",
-    },
-    {
-      id: "U002",
-      name: "Trần Thị B",
-      email: "tranthib@email.com",
-      bloodType: "A-",
-      phone: "0907654321",
-      registeredAt: "5 giờ trước",
-      status: "pending",
-    },
-    {
-      id: "U003",
-      name: "Lê Văn C",
-      email: "levanc@email.com",
-      bloodType: "B+",
-      phone: "0912345678",
-      registeredAt: "1 ngày trước",
-      status: "pending",
-    },
-  ]
+
 
   const recentActivities = [
     {
@@ -522,45 +582,94 @@ export default function AdminDashboard() {
             </TabsContent>
 
             <TabsContent value="users" className="space-y-6">
-              {/* Pending Approvals */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
-                    <span>Người dùng chờ duyệt</span>
-                    <Badge variant="outline">{pendingUsers.length} chờ duyệt</Badge>
+                    <span className="text-lg font-semibold">Tất cả người dùng</span>
+                    <Badge variant="outline">{pendingUsers.length} người dùng</Badge>
                   </CardTitle>
                 </CardHeader>
+
                 <CardContent>
                   <div className="space-y-4">
                     {pendingUsers.map((user) => (
-                      <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg">
-                        <div className="flex items-center space-x-4">
+                      <div
+                        key={user._id}
+                        className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 border rounded-xl shadow-sm bg-white"
+                      >
+                        {/* Left: User info */}
+                        <div className="flex items-start space-x-4">
                           <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
                             <Users className="w-6 h-6 text-blue-600" />
                           </div>
-                          <div>
-                            <p className="font-medium">{user.name}</p>
+                          <div className="space-y-1">
+                            <p className="font-semibold text-base">{user.full_name}</p>
                             <p className="text-sm text-gray-600">{user.email}</p>
-                            <div className="flex items-center space-x-2 mt-1">
-                              <Badge variant="outline" className="text-red-600">
-                                {user.bloodType}
+                            <div className="flex items-center space-x-2 text-sm text-gray-500">
+                              <Badge variant="outline" className="capitalize">
+                                {user.role}
                               </Badge>
-                              <span className="text-xs text-gray-500">{user.registeredAt}</span>
+                              <span>
+                                Ngày tạo:{" "}
+                                {new Date(user.createdAt).toLocaleDateString("vi-VN")}
+                              </span>
+                            </div>
+                            <div className="mt-2 text-sm text-gray-600 space-y-1">
+                              <p>SĐT: {user.phone || "Không có"}</p>
+                              <p>Giới tính: {user.gender || "Không rõ"}</p>
+                              <p>
+                                Ngày sinh:{" "}
+                                {user.date_of_birth
+                                  ? new Date(user.date_of_birth).toLocaleDateString("vi-VN")
+                                  : "Không rõ"}
+                              </p>
+                              <p>Địa chỉ: {user.address || "Không có"}</p>
+                              <p>
+                                Trạng thái:{" "}
+                                <span className={user.is_active ? "text-green-600" : "text-red-500"}>
+                                  {user.is_active ? "Đang hoạt động" : "Bị khóa"}
+                                </span>
+                              </p>
+                              <p>
+                                Xác minh:{" "}
+                                <span className={user.is_verified ? "text-green-600" : "text-yellow-600"}>
+                                  {user.is_verified ? "Đã xác minh" : "Chưa xác minh"}
+                                </span>
+                              </p>
                             </div>
                           </div>
                         </div>
-                        <div className="flex space-x-2">
-                          <Button size="sm" variant="outline">
-                            <Eye className="w-4 h-4 mr-1" />
-                            Xem
+
+                        {/* Right: Actions */}
+                        <div className="flex md:justify-end items-center md:items-start gap-2 mt-4 md:mt-0">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setSelectedUser(user);
+                              setOpenEditDialog(true);
+                            }}
+                          >
+                            <Pencil className="w-4 h-4 mr-1" />
+                            Chỉnh sửa
                           </Button>
-                          <Button size="sm" className="bg-green-600 hover:bg-green-700">
+
+                          <Button
+                            size="sm"
+                            className="bg-green-600 hover:bg-green-700 text-white"
+                            disabled={user.is_verified}
+                            onClick={() => {
+                              handleVerifyUser(user._id);
+                            }}
+                          >
                             <UserCheck className="w-4 h-4 mr-1" />
                             Duyệt
                           </Button>
-                          <Button size="sm" variant="destructive">
-                            <UserX className="w-4 h-4 mr-1" />
-                            Từ chối
+                          <Button size="sm" variant="destructive" onClick={() => {
+                            handleDeleteUser(user._id);
+                          }}>
+                            <Trash2 className="w-4 h-4 mr-1" />
+                            Xóa
                           </Button>
                         </div>
                       </div>
@@ -568,7 +677,122 @@ export default function AdminDashboard() {
                   </div>
                 </CardContent>
               </Card>
+              <Dialog open={openEditDialog} onOpenChange={setOpenEditDialog}>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Chỉnh sửa người dùng</DialogTitle>
+                    <DialogDescription>
+                      Cập nhật thông tin người dùng bên dưới.
+                    </DialogDescription>
+                  </DialogHeader>
+
+                  {selectedUser && (
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        // Gửi dữ liệu chỉnh sửa lên server tại đây...
+                        setOpenEditDialog(false);
+                      }}
+                      className="space-y-4"
+                    >
+                      <div className="grid gap-2">
+                        <Label>Họ tên</Label>
+                        <Input
+                          value={selectedUser.full_name}
+                          onChange={(e) =>
+                            setSelectedUser((prev) =>
+                              prev ? { ...prev, full_name: e.target.value } : prev
+                            )
+                          }
+                        />
+                      </div>
+
+                      <div className="grid gap-2">
+                        <Label>Email</Label>
+                        <Input
+                          type="email"
+                          value={selectedUser.email}
+                          onChange={(e) =>
+                            setSelectedUser((prev) =>
+                              prev ? { ...prev, email: e.target.value } : prev
+                            )
+                          }
+                        />
+                      </div>
+
+                      <div className="grid gap-2">
+                        <Label>SĐT</Label>
+                        <Input
+                          value={selectedUser.phone || ""}
+                          onChange={(e) =>
+                            setSelectedUser((prev) =>
+                              prev ? { ...prev, phone: e.target.value } : prev
+                            )
+                          }
+                        />
+                      </div>
+
+                      <div className="grid gap-2">
+                        <Label>Địa chỉ</Label>
+                        <Input
+                          value={selectedUser.address || ""}
+                          onChange={(e) =>
+                            setSelectedUser((prev) =>
+                              prev ? { ...prev, address: e.target.value } : prev
+                            )
+                          }
+                        />
+                      </div>
+
+                      <div className="grid gap-2">
+                        <Label>Giới tính</Label>
+                        <Select
+                          value={selectedUser.gender || "other"}
+                          onValueChange={(value) =>
+                            setSelectedUser((prev) =>
+                              prev ? { ...prev, gender: value } : prev
+                            )
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="male">Nam</SelectItem>
+                            <SelectItem value="female">Nữ</SelectItem>
+                            <SelectItem value="other">Khác</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="grid gap-2">
+                        <Label>Ngày sinh</Label>
+                        <Input
+                          type="date"
+                          value={
+                            selectedUser.date_of_birth
+                              ? new Date(selectedUser.date_of_birth).toISOString().split("T")[0]
+                              : ""
+                          }
+                          onChange={(e) =>
+                            setSelectedUser((prev) =>
+                              prev
+                                ? { ...prev, date_of_birth: new Date(e.target.value).toISOString() }
+                                : prev
+                            )
+                          }
+                        />
+                      </div>
+
+                      <DialogFooter>
+                        <Button type="submit" onClick={handleEditUser}>Lưu thay đổi</Button>
+                      </DialogFooter>
+                    </form>
+                  )}
+                </DialogContent>
+              </Dialog>
             </TabsContent>
+
 
             <TabsContent value="inventory" className="space-y-6">
               {/* Blood Inventory Management */}
