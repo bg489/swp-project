@@ -46,7 +46,17 @@ export default function AdminDashboard() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isFocused, setIsFocused] = useState(false);
   const [bloodInven, setBloodInven] = useState([]);
+  const [bloodInventoryQuantity, setBloodInventoryQuantity] = useState(0);
+  const [bloodInventoryExpiringQuantity, setBloodInventoryExpiringQuantity] = useState(0);
   let eight = 0;
+
+  function getTotalQuantity(inventories: any[]) {
+    return inventories.reduce((total, item) => total + item.quantity, 0);
+  }
+
+  function getTotalExpiringQuantity(inventories: any[]) {
+    return inventories.reduce((total, item) => total + item.expiring_quantity, 0);
+  }
 
   // Đặt listener khi component mount
   useEffect(() => {
@@ -78,6 +88,12 @@ export default function AdminDashboard() {
         }));
 
         setNearbyHospitals(filtered);
+
+        const bloo_quantity = await api.get("/blood-in/blood-inventory/getAll");
+        setBloodInventoryQuantity(getTotalQuantity(bloo_quantity.data.inventories));
+        setBloodInventoryExpiringQuantity(getTotalExpiringQuantity(bloo_quantity.data.inventories));
+
+
       } catch (error) {
         console.error("Lỗi khi lấy danh sách bệnh viện:", error);
       }
@@ -96,11 +112,9 @@ export default function AdminDashboard() {
     try {
       const bloodInvent = await api.get(`/blood-in/blood-inventory/hospital/${hospital._id}`);
       setBloodInven(bloodInvent.data.inventories);
-      console.log(bloodInvent.data.inventories)
     } catch (error) {
       setBloodInven([]);
     }
-    console.log(bloodInventory[eight])
 
   };
 
@@ -320,11 +334,11 @@ export default function AdminDashboard() {
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Chờ duyệt</CardTitle>
+                <CardTitle className="text-sm font-medium">Đã hết hạn</CardTitle>
                 <UserCheck className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-orange-600">{adminStats.pendingApprovals}</div>
+                <div className="text-2xl font-bold text-orange-600">{bloodInventoryExpiringQuantity}</div>
                 <p className="text-xs text-muted-foreground">Cần xem xét</p>
               </CardContent>
             </Card>
@@ -335,7 +349,7 @@ export default function AdminDashboard() {
                 <Droplets className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{adminStats.bloodUnitsAvailable}</div>
+                <div className="text-2xl font-bold">{bloodInventoryQuantity}</div>
                 <p className="text-xs text-muted-foreground">Đơn vị có sẵn</p>
               </CardContent>
             </Card>
@@ -527,7 +541,7 @@ export default function AdminDashboard() {
                   <Card key={blood.blood_type}>
                     <CardHeader className="pb-2">
                       <div className="flex items-center justify-between">
-                        <div className={`w-12 h-12 ${bloodInventory[eight++].color} rounded-full flex items-center justify-center`}>
+                        <div className={`w-12 h-12 ${bloodInventory[eight++].color || "bg-red-500"} rounded-full flex items-center justify-center`}>
                           <span className="text-xl font-bold text-white">{blood.blood_type}</span>
                         </div>
                         <Badge className={getStatusColor(blood.quantity)}>
@@ -546,6 +560,10 @@ export default function AdminDashboard() {
                         <div className="flex justify-between">
                           <span className="text-2xl font-bold">{blood.quantity}</span>
                           <span className="text-sm text-gray-500">/ 500</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-gray-500"></span>
+                          <span className="text-2xl font-bold text-orange-600">Đã hết hạn: {blood.expiring_quantity}</span>
                         </div>
                         <Progress value={Math.min((blood.quantity / 500) * 100, 100)} className="h-2" />
                         <div className="flex justify-between text-xs text-gray-500">
