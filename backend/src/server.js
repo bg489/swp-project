@@ -10,7 +10,9 @@ import recipientRoutes from "./routes/recipientRoutes.js";
 import hospitalsRoutes from "./routes/hospitalsRoutes.js";
 import staffRoutes from "./routes/staffRoutes.js";
 import bloodInventoryRoutes from "./routes/bloodInventoryRoutes.js";
+import blogRoutes from "./routes/blogRoutes.js";
 import { connectDB } from "./config/db.js";
+
 
 dotenv.config();
 
@@ -41,7 +43,7 @@ app.use("/api/recipient", recipientRoutes);
 app.use("/api/hospital", hospitalsRoutes);
 app.use("/api/staff", staffRoutes);
 app.use("/api/blood-in", bloodInventoryRoutes);
-
+app.use("/api/blog", blogRoutes);
 
 // if (process.env.NODE_ENV === "production") {
 //   app.use(express.static(path.join(__dirname, "../frontend/dist")));
