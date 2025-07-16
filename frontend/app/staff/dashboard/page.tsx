@@ -917,7 +917,7 @@ export default function StaffDashboard() {
 
                             <div className="flex flex-wrap items-center gap-2 mt-2">
                               <Badge className="bg-blue-100 text-blue-800">{donation.donation_type?.join(", ")}</Badge>
-                              <Badge className={donation.status === "scheduled" ? "bg-yellow-100 text-yellow-800" : "bg-green-100 text-green-800"}>
+                              <Badge className={donation.status === "scheduled" ? "bg-yellow-100 text-yellow-800" : donation.status === "completed" ? "bg-green-100 text-green-800" : donation.status === "cancelled" ? "bg-red-100 text-red-800" : "bg-gray-100 text-gray-800"}>
                                 {donation.status}
                               </Badge>
                             </div>
