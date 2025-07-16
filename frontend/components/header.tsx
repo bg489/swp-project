@@ -19,30 +19,31 @@ export function Header() {
   const { user, logout } = useAuth()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const pathname = usePathname()
+  
 
   const handleLogout = () => {
     logout()
   }
 
   const handleRole = (role: string) => {
-    if(role === "admin"){
+    if (role === "admin") {
       return "Quản trị viên"
-    } else if(role === "donor"){
+    } else if (role === "donor") {
       return "Người hiến máu"
-    } else if(role === "recipient"){
+    } else if (role === "recipient") {
       return "Người nhận máu"
-    } else if(role === "staff"){
+    } else if (role === "staff") {
       return "Nhân viên"
     } else {
       return "Vô danh"
     }
   }
   const findDashboardByRole = (role: string) => {
-    if(role === "admin") 
-      return "/admin/dashboard" 
-    else if((role === "donor") || (role === "recipient")) 
+    if (role === "admin")
+      return "/admin/dashboard"
+    else if ((role === "donor") || (role === "recipient"))
       return "/user/dashboard"
-    else{
+    else {
       return "/staff/dashboard"
     }
   }
@@ -111,10 +112,9 @@ export function Header() {
                 onClick={scrollToTop}
                 className={`
                   px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200
-                  ${
-                    isActivePath(item.href)
-                      ? "bg-red-600 text-white shadow-sm"
-                      : "text-gray-700 hover:text-red-600 hover:bg-red-50"
+                  ${isActivePath(item.href)
+                    ? "bg-red-600 text-white shadow-sm"
+                    : "text-gray-700 hover:text-red-600 hover:bg-red-50"
                   }
                 `}
               >
@@ -193,10 +193,9 @@ export function Header() {
                   }}
                   className={`
                     block px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200
-                    ${
-                      isActivePath(item.href)
-                        ? "bg-red-600 text-white"
-                        : "text-gray-700 hover:text-red-600 hover:bg-red-50"
+                    ${isActivePath(item.href)
+                      ? "bg-red-600 text-white"
+                      : "text-gray-700 hover:text-red-600 hover:bg-red-50"
                     }
                   `}
                 >

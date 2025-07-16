@@ -39,7 +39,7 @@ import toast, { Toaster } from "react-hot-toast"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 export default function AdminDashboard() {
-  const { user, logout } = useAuth()
+  const { user, logout, setUser } = useAuth()
   const router = useRouter()
   const [locationAllowed, setLocationAllowed] = useState<boolean | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(true);
@@ -61,6 +61,21 @@ export default function AdminDashboard() {
   const [pendingUsers, setPendingUsers] = useState([])
   const [selectedUser, setSelectedUser] = useState<UserType | null>(null);
   const [openEditDialog, setOpenEditDialog] = useState(false);
+
+  useEffect(() => {
+    // Lấy vị trí người dùng
+
+    async function use() {
+      try {
+        const allUsers = await api.get(`/users/admin/get-all/${user?._id}`);
+        setPendingUsers(allUsers.data.users);
+      } catch (error) {
+        console.error("Lỗi khi lấy danh sách bệnh viện:", error);
+      }
+    }
+    use();
+  }
+    , [user]);
 
   type UserType = {
     _id: string;
@@ -119,6 +134,11 @@ export default function AdminDashboard() {
         )
       );
 
+      setUser({
+        ...user!,
+        full_name: selectedUser?.full_name,
+      });
+
       toast.success("Chỉnh sửa thông tin tài khoản thành công");
     } catch (error) {
       toast.error("Không thể chỉnh sửa user");
@@ -129,7 +149,7 @@ export default function AdminDashboard() {
 
   const handleDeleteUser = async (user_Id: any) => {
     try {
-      await api.delete(`/users/admin/users/delete/6857bfb798b0c3e8061bd595/${user_Id}`)
+      await api.delete(`/users/admin/users/delete/${user?._id}/${user_Id}`)
       setPendingUsers(prev => prev.filter(user => user._id !== user_Id));
       toast.success("Xóa tài khoản thành công")
     } catch (error) {
@@ -265,10 +285,6 @@ export default function AdminDashboard() {
         const bloo_quantity = await api.get("/blood-in/blood-inventory/getAll");
         setBloodInventoryQuantity(getTotalQuantity(bloo_quantity.data.inventories));
         setBloodInventoryExpiringQuantity(getTotalExpiringQuantity(bloo_quantity.data.inventories));
-
-        const allUsers = await api.get(`/users/admin/get-all/6857bfb798b0c3e8061bd595`);
-
-        setPendingUsers(allUsers.data.users);
 
 
       } catch (error) {
@@ -446,7 +462,7 @@ export default function AdminDashboard() {
 
               <div className="flex items-center space-x-4">
                 <span className="text-sm text-gray-600">
-                  Xin chào, <strong>{user?.name}</strong>
+                  Xin chào, <strong>{user?.full_name}</strong>
                 </span>
                 <Button variant="outline" size="sm" asChild>
                   <Link href="/">
