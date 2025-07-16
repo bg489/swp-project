@@ -27,6 +27,7 @@ import {
   Home,
   Search,
   Phone,
+  Droplet,
 } from "lucide-react"
 import Link from "next/link"
 import { useAuth } from "@/contexts/auth-context"
@@ -42,6 +43,9 @@ export default function UserDashboard() {
   const [hospitalNames, setHospitalNames] = useState<Record<string, string>>({})
   const [donationRecords, setDonationRecords] = useState({})
   const [bloodManageFilter, setBloodManageFilter] = useState("blood-request-history");
+  const [donationList, setDonationList] = useState([]);
+  const [warehouseDonationsList2, setWarehouseDonationsList2] = useState([]);
+  const [receiveCount, setReceiveCount] = useState(0);
   const { user, logout } = useAuth()
 
   const formatDate = (dateStr: string) => {
@@ -157,6 +161,15 @@ export default function UserDashboard() {
             const resolved = await Promise.all(namePromises);
             const namesObject = Object.fromEntries(resolved);
             setHospitalNames(namesObject);
+
+            const profileDList = await api.get(`/users/donations/recipient-id/${user._id}`);
+            setDonationList(profileDList.data.data); // Lấy đúng mảng donations
+
+            const wareHouseDonations = await api.get(`/users/donations-warehouse/recipient-id/${user._id}`);
+            setWarehouseDonationsList2(wareHouseDonations.data.data);
+
+            setReceiveCount(profileDList.data.count + wareHouseDonations.data.count);
+
           } else {
             console.error("Data is not array:", requestArray);
             setBloodRequests([]);
@@ -479,7 +492,7 @@ export default function UserDashboard() {
                 <Heart className="h-4 w-4 text-red-500" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-red-600">{(user?.role === "donor") ? donationRecords.count : "0"}</div>
+                <div className="text-2xl font-bold text-red-600">{(user?.role === "donor") ? donationRecords.count : receiveCount}</div>
                 <p className="text-xs text-muted-foreground">{(user?.role === "donor") ? "lần hiến máu" : "lần nhận máu"}</p>
               </CardContent>
             </Card>
@@ -813,6 +826,173 @@ export default function UserDashboard() {
 
                         </div>
                       ))}
+                      {bloodManageFilter === "blood-donations-history" && Array.isArray(donationList) && donationList.length > 0 ? (
+                        donationList.map((donation) => (
+                          <div
+                            key={donation._id}
+                            className="flex flex-col md:flex-row justify-between p-4 border rounded-lg space-y-4 md:space-y-0 md:space-x-6 hover:bg-gray-50 transition"
+                          >
+                            {/* BÊN TRÁI: DONOR & RECIPIENT */}
+                            <div className="flex-1 flex flex-col space-y-2">
+                              <div className="flex items-center space-x-4">
+                                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                                  <Heart className="w-6 h-6 text-red-600" />
+                                </div>
+                                <div>
+                                  <p className="font-medium">Người hiến: {donation.donor_id?.full_name || "Không rõ"}</p>
+                                  <p className="text-sm text-gray-600">{donation.donor_id?.email}</p>
+                                  <p className="text-sm text-gray-600">SĐT: {donation.donor_id?.phone}</p>
+                                </div>
+                              </div>
+
+                              {donation.recipient_id && (
+                                <div className="mt-2 border-t pt-2">
+                                  <p className="font-medium">Người nhận: {donation.recipient_id?.full_name}</p>
+                                  <p className="text-sm text-gray-600">{donation.recipient_id?.email}</p>
+                                  <p className="text-sm text-gray-600">SĐT: {donation.recipient_id?.phone}</p>
+                                </div>
+                              )}
+
+                              <div className="flex flex-wrap items-center gap-2 mt-2">
+                                <Badge className="bg-blue-100 text-blue-800">{donation.donation_type?.join(", ")}</Badge>
+                                <Badge className={donation.status === "scheduled" ? "bg-yellow-100 text-yellow-800" : "bg-green-100 text-green-800"}>
+                                  {donation.status}
+                                </Badge>
+                              </div>
+
+                              <div className="text-sm text-gray-600 mt-1">
+                                <p>Ngày hiến: <strong>{formatDate(donation.donation_date)}</strong></p>
+                                <p>Khối lượng: <strong>{donation.volume}</strong> đơn vị</p>
+                                <p>Ghi chú: {donation.notes || "Không có"}</p>
+                                <p>Ngày tạo: {formatDate(donation.createdAt)}</p>
+                              </div>
+                            </div>
+
+                            {/* BÊN PHẢI: STAFF & NÚT */}
+                            <div className="flex flex-col justify-between items-end space-y-3 min-w-[220px]">
+                              <div className="text-right text-sm">
+                                <p className="font-medium text-gray-800">Cập nhật bởi:</p>
+                                <p className="text-gray-600">{donation.updated_by?.full_name || "Chưa rõ"}</p>
+                                <p className="text-gray-600">{donation.updated_by?.email || "-"}</p>
+                              </div>
+
+                              <div className="flex space-x-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+                                >
+                                  <Phone className="w-4 h-4 mr-1" />
+                                  Gọi
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+                                >
+                                  <Edit className="w-4 h-4" />
+                                  Sửa
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      ) : bloodManageFilter === "blood-donations-blood-inventory-history" ? (
+                        ""
+                      ) : bloodManageFilter === "blood-request-history" ? (
+                        ""
+                      ) : <p className="text-gray-600">Không tìm thấy người hiến máu.</p>}
+
+                      {bloodManageFilter === "blood-donations-blood-inventory-history" && Array.isArray(warehouseDonationsList2) && warehouseDonationsList2.length > 0 ? (
+                        warehouseDonationsList2.map((donation) => (
+                          <div
+                            key={donation._id}
+                            className="flex flex-col md:flex-row justify-between p-4 border rounded-lg space-y-4 md:space-y-0 md:space-x-6 hover:bg-gray-50 transition"
+                          >
+                            {/* BÊN TRÁI: INVENTORY & RECIPIENT */}
+                            <div className="flex-1 flex flex-col space-y-2">
+                              <div className="flex items-center space-x-4">
+                                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                                  <Droplet className="w-6 h-6 text-blue-600" />
+                                </div>
+                                <div>
+                                  <p className="font-medium">
+                                    Nhóm máu: {donation.inventory_item?.blood_type || "Không rõ"}
+                                  </p>
+                                  <p className="text-sm text-gray-600">
+                                    Thành phần: {donation.inventory_item?.component}
+                                  </p>
+                                  <p className="text-sm text-gray-600">
+                                    Lượng tồn: {donation.inventory_item?.quantity} đơn vị
+                                  </p>
+                                </div>
+                              </div>
+
+                              {donation.recipient_id && (
+                                <div className="mt-2 border-t pt-2">
+                                  <p className="font-medium">Người nhận: {donation.recipient_id?.full_name}</p>
+                                  <p className="text-sm text-gray-600">{donation.recipient_id?.email}</p>
+                                  <p className="text-sm text-gray-600">SĐT: {donation.recipient_id?.phone}</p>
+                                </div>
+                              )}
+
+                              <div className="flex flex-wrap items-center gap-2 mt-2">
+                                <Badge className="bg-blue-100 text-blue-800">{donation.inventory_item?.component}</Badge>
+                                <Badge
+                                  className={
+                                    donation.status === "in_progress"
+                                      ? "bg-yellow-100 text-yellow-800"
+                                      : donation.status === "fulfilled"
+                                        ? "bg-green-100 text-green-800"
+                                        : "bg-red-100 text-red-800"
+                                  }
+                                >
+                                  {donation.status}
+                                </Badge>
+                              </div>
+
+                              <div className="text-sm text-gray-600 mt-1">
+                                <p>Ngày rút máu: <strong>{formatDate(donation.donation_date)}</strong></p>
+                                <p>Khối lượng rút: <strong>{donation.volume}</strong> đơn vị</p>
+                                <p>Ghi chú: {donation.notes || "Không có"}</p>
+                                <p>Ngày tạo: {formatDate(donation.createdAt)}</p>
+                              </div>
+                            </div>
+
+                            {/* BÊN PHẢI: STAFF & NÚT */}
+                            <div className="flex flex-col justify-between items-end space-y-3 min-w-[220px]">
+                              <div className="text-right text-sm">
+                                <p className="font-medium text-gray-800">Cập nhật bởi:</p>
+                                <p className="text-gray-600">{donation.updated_by?.full_name || "Chưa rõ"}</p>
+                                <p className="text-gray-600">{donation.updated_by?.email || "-"}</p>
+                              </div>
+
+                              <div className="flex space-x-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+                                >
+                                  <Phone className="w-4 h-4 mr-1" />
+                                  Gọi
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+                                >
+                                  <Edit className="w-4 h-4" />
+                                  Sửa
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      ) : bloodManageFilter === "blood-request-history" ? (
+                        ""
+                      ) : bloodManageFilter === "blood-donations-history" ? (
+                        ""
+                      ) : <p className="text-gray-600">Không tìm thấy dữ liệu rút máu từ kho.</p>}
                     </div>
                   </CardContent>
                 )}

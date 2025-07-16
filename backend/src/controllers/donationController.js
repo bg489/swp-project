@@ -407,3 +407,67 @@ export async function getWarehouseDonationsByStaffId(req, res) {
     return res.status(500).json({ message: "Internal server error" });
   }
 }
+
+
+export async function getDonationsByRecipientId(req, res) {
+  try {
+    const { recipientId } = req.params;
+
+    if (!recipientId) {
+      return res.status(400).json({ message: "Recipient ID is required" });
+    }
+
+    // Kiểm tra recipient tồn tại và đúng vai trò
+    const recipient = await User.findById(recipientId);
+    if (!recipient || recipient.role !== "recipient") {
+      return res.status(404).json({ message: "Recipient not found or invalid" });
+    }
+
+    // Lấy danh sách các đợt hiến máu mà recipient là người nhận
+    const donations = await Donation.find({ recipient_id: recipientId })
+      .populate("donor_id", "full_name email phone")
+      .populate("recipient_id", "full_name email phone")
+      .populate("updated_by", "full_name email");
+
+    return res.status(200).json({
+      message: "Donations fetched successfully for recipient",
+      count: donations.length,
+      data: donations,
+    });
+  } catch (error) {
+    console.error("Error fetching donations by recipient ID:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+}
+
+export async function getWarehouseDonationsByRecipientId(req, res) {
+  try {
+    const { recipientId } = req.params;
+
+    if (!recipientId) {
+      return res.status(400).json({ message: "Recipient ID is required" });
+    }
+
+    // Kiểm tra recipient tồn tại và đúng vai trò
+    const recipient = await User.findById(recipientId);
+    if (!recipient || recipient.role !== "recipient") {
+      return res.status(404).json({ message: "Recipient not found or invalid" });
+    }
+
+    // Lấy danh sách các warehouse donation có recipient_id tương ứng
+    const donations = await WarehouseDonation.find({ recipient_id: recipientId })
+      .populate("inventory_item") // máu được rút ra từ kho
+      .populate("recipient_id", "full_name email phone")
+      .populate("updated_by", "full_name email")
+      .populate("hospital", "name address");
+
+    return res.status(200).json({
+      message: "Warehouse donations fetched successfully for recipient",
+      count: donations.length,
+      data: donations,
+    });
+  } catch (error) {
+    console.error("Error fetching warehouse donations by recipient ID:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+}

@@ -21,7 +21,9 @@ import {
   deleteUserByAdmin
 } from "../controllers/usersController.js";
 import {
-  getDonationsByDonorId
+  getDonationsByDonorId,
+  getDonationsByRecipientId,
+  getWarehouseDonationsByRecipientId
 } from "../controllers/donationController.js";
 
 const router = express.Router();
@@ -44,6 +46,8 @@ router.get("/staff-profiles/active/:userId", getStaffProfileByUserId);
 router.get("/donor-profiles-by-hospital/:hospitalId", getAvailableDonorsByHospital);
 router.put('/donor/update-cooldown', updateCooldownUntil);
 router.get("/donations/donor-id/:donorId", getDonationsByDonorId);
+router.get("/donations/recipient-id/:recipientId", getDonationsByRecipientId);
+router.get("/donations-warehouse/recipient-id/:recipientId", getWarehouseDonationsByRecipientId);
 router.get("/admin/get-all/:adminId", getAllUsers);
 router.delete("/admin/users/delete/:adminId/:userId", deleteUserByAdmin);
 

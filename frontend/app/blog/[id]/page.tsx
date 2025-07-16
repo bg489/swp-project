@@ -24,6 +24,17 @@ import Image from "next/image"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 
+export async function generateStaticParams() {
+  return [
+    { id: '1' },
+    { id: '2' },
+    { id: '3' },
+    { id: '4' },
+    { id: '5' },
+    { id: '6' }
+  ]
+}
+
 // This would typically come from a database or CMS
 const getBlogPost = (id: string) => {
   const posts = {
@@ -860,6 +871,58 @@ const getBlogPost = (id: string) => {
       tags: ["lợi ích", "sức khỏe", "tim mạch", "ung thư", "tuần hoàn"],
       relatedPosts: [1, 2, 3],
     },
+    "6": {
+      id: 6,
+      title: "777777777",
+      excerpt:
+        "Khám phá những lợi ích không ngờ tới của việc hiến máu thường xuyên: giảm nguy cơ mắc bệnh tim mạch, kiểm soát cân nặng, cải thiện lưu thông máu và hơn thế nữa.",
+      content: `
+        <h2>Hiến máu định kỳ: Hơn cả một hành động cao đẹp</h2>
+        <p>Hiến máu là một hành động nhân đạo, giúp cứu sống nhiều người bệnh. Tuy nhiên, ít ai biết rằng, việc hiến máu định kỳ còn mang lại nhiều lợi ích sức khỏe bất ngờ cho chính người hiến.</p>
+
+        <h2>1. Giảm nguy cơ mắc bệnh tim mạch</h2>
+        <p>Hiến máu giúp giảm lượng sắt dư thừa trong cơ thể. Sắt tích tụ quá nhiều có thể gây oxy hóa cholesterol, dẫn đến xơ vữa động mạch và tăng nguy cơ mắc bệnh tim mạch. Hiến máu định kỳ giúp duy trì lượng sắt ở mức an toàn, bảo vệ tim mạch khỏe mạnh.</p>
+
+        <h2>2. Kiểm soát cân nặng</h2>
+        <p>Mỗi lần hiến máu, bạn sẽ đốt cháy khoảng 650 calo. Mặc dù không nên xem hiến máu là một phương pháp giảm cân, nhưng nó có thể hỗ trợ quá trình kiểm soát cân nặng của bạn, đặc biệt khi kết hợp với chế độ ăn uống lành mạnh và tập luyện thường xuyên.</p>
+
+        <h2>3. Kích thích sản sinh tế bào máu mới</h2>
+        <p>Sau khi hiến máu, cơ thể sẽ kích hoạt quá trình tạo máu mới để bù đắp lượng máu đã mất. Quá trình này giúp cơ thể sản sinh ra các tế bào máu khỏe mạnh, tăng cường hệ miễn dịch và giúp bạn cảm thấy tràn đầy năng lượng.</p>
+
+        <h2>4. Cải thiện lưu thông máu</h2>
+        <p>Hiến máu giúp giảm độ nhớt của máu, giúp máu lưu thông dễ dàng hơn trong cơ thể. Điều này đặc biệt quan trọng đối với những người có nguy cơ mắc bệnh đông máu hoặc các vấn đề về tuần hoàn.</p>
+
+        <h2>5. Kiểm tra sức khỏe miễn phí</h2>
+        <p>Trước khi hiến máu, bạn sẽ được kiểm tra sức khỏe tổng quát và xét nghiệm máu miễn phí. Điều này giúp bạn phát hiện sớm các vấn đề sức khỏe tiềm ẩn và có biện pháp can thiệp kịp thời.</p>
+
+        <h2>6. Giảm nguy cơ mắc bệnh ung thư</h2>
+        <p>Một số nghiên cứu cho thấy, việc hiến máu định kỳ có thể giúp giảm nguy cơ mắc một số bệnh ung thư, đặc biệt là ung thư gan, phổi, ruột kết và thực quản. Điều này có thể liên quan đến việc giảm lượng sắt dư thừa trong cơ thể.</p>
+
+        <h2>7. Cảm giác hạnh phúc và ý nghĩa</h2>
+        <p>Hiến máu là một hành động cao đẹp, giúp cứu sống nhiều người bệnh. Khi biết rằng mình đã đóng góp một phần nhỏ bé vào việc cứu người, bạn sẽ cảm thấy hạnh phúc và ý nghĩa hơn trong cuộc sống.</p>
+
+        <h2>Lưu ý quan trọng</h2>
+        <ul>
+          <li>Hiến máu chỉ an toàn khi được thực hiện đúng quy trình và dưới sự giám sát của nhân viên y tế.</li>
+          <li>Hãy đảm bảo bạn đủ điều kiện sức khỏe trước khi hiến máu.</li>
+          <li>Tuân thủ hướng dẫn chăm sóc sau hiến máu để phục hồi nhanh chóng.</li>
+        </ul>
+
+        <h2>Kết luận</h2>
+        <p>Hiến máu định kỳ không chỉ là một hành động nhân đạo mà còn mang lại nhiều lợi ích sức khỏe bất ngờ cho chính bạn. Hãy tham gia hiến máu tình nguyện để cứu sống người bệnh và cải thiện sức khỏe của bản thân!</p>
+      `,
+      author: "ThS. BS. Hoàng Thị Thu Thủy",
+      authorBio:
+        "Thạc sĩ, Bác sĩ chuyên khoa Huyết học - Truyền máu, Bệnh viện Truyền máu Huyết học TP.HCM. Có nhiều năm kinh nghiệm trong lĩnh vực tư vấn và điều trị các bệnh lý về máu.",
+      date: "05/12/2024",
+      readTime: "6 phút đọc",
+      category: "Sức khỏe",
+      views: 987,
+      likes: 76,
+      comments: 8,
+      tags: ["lợi ích", "sức khỏe", "tim mạch", "ung thư", "tuần hoàn"],
+      relatedPosts: [1, 2, 3],
+    }
   }
 
   return posts[id as keyof typeof posts] || null

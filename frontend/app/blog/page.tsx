@@ -41,6 +41,7 @@ export default function BlogPage() {
     "Công nghệ": useRef<HTMLDivElement>(null),
     "Tin tức": useRef<HTMLDivElement>(null),
     "An toàn": useRef<HTMLDivElement>(null),
+    "Doraemon": useRef<HTMLDivElement>(null),
   }
 
   const featuredPost = {
@@ -355,6 +356,20 @@ export default function BlogPage() {
       comments: 21,
       image: "/placeholder.svg?height=300&width=400",
     },
+    {
+      id: 22,
+      title: "66666666666666666666",
+      excerpt:
+        "Hé lộ quy trình kiểm tra chất lượng máu 15 bước nghiêm ngặt: từ xét nghiệm nhóm máu, tầm soát bệnh truyền nhiễm, đến kiểm tra chất lượng bảo quản. Tìm hiểu các tiêu chuẩn quốc tế được áp dụng tại Việt Nam.",
+      author: "KTV. Xét nghiệm Lê Thị Thanh Hương",
+      date: "20/11/2024",
+      readTime: "10 phút đọc",
+      category: "Doraemon",
+      views: 1567,
+      likes: 123,
+      comments: 21,
+      image: "/placeholder.svg?height=300&width=400",
+    },
   ]
 
   const categories = [
@@ -367,6 +382,7 @@ export default function BlogPage() {
     { name: "Công nghệ", count: blogPosts.filter((p) => p.category === "Công nghệ").length, active: false },
     { name: "Tin tức", count: blogPosts.filter((p) => p.category === "Tin tức").length, active: false },
     { name: "An toàn", count: blogPosts.filter((p) => p.category === "An toàn").length, active: false },
+    { name: "Doraemon", count: blogPosts.filter((p) => p.category === "Doraemon").length, active: false },
   ]
 
   const getCategoryColor = (category: string) => {
@@ -379,6 +395,7 @@ export default function BlogPage() {
       "Công nghệ": "bg-gray-100 text-gray-800",
       "Tin tức": "bg-red-100 text-red-800",
       "An toàn": "bg-yellow-100 text-yellow-800",
+      "Doraemon": "bg-yellow-100 text-yellow-800",
     }
     return colors[category as keyof typeof colors] || "bg-gray-100 text-gray-800"
   }
@@ -443,12 +460,12 @@ export default function BlogPage() {
     <div className="min-h-screen bg-gradient-to-b from-red-50 to-white">
       <Header />
 
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-6 py-12 max-w-7xl">
         <div className="max-w-6xl mx-auto">
           {/* Hero Section */}
           <div className="text-center mb-12">
-            <div className="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
-              <BookOpen className="w-8 h-8 text-white" />
+            <div className="w-20 h-20 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
+              <BookOpen className="w-10 h-10 text-white" />
             </div>
             <Badge className="mb-4 bg-red-100 text-red-800">📚 Kiến thức & Chia sẻ kinh nghiệm</Badge>
             <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">Blog ScαrletBlood</h1>
@@ -458,8 +475,8 @@ export default function BlogPage() {
           </div>
 
           {/* Search Bar */}
-          <div className="mb-8">
-            <div className="max-w-2xl mx-auto relative">
+          <div className="mb-12">
+            <div className="max-w-3xl mx-auto relative">
               <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <Input
                 placeholder="Tìm kiếm bài viết, tác giả, chủ đề..."
@@ -486,10 +503,10 @@ export default function BlogPage() {
             )}
           </div>
 
-          <div className="grid lg:grid-cols-4 gap-8">
+          <div className="grid lg:grid-cols-4 gap-12">
             {/* Sidebar */}
             <div className="lg:col-span-1">
-              <div className="space-y-6">
+              <div className="space-y-8">
                 {/* Categories */}
                 <Card>
                   <CardHeader>
@@ -501,11 +518,10 @@ export default function BlogPage() {
                         <button
                           key={category.name}
                           onClick={() => handleCategoryClick(category.name)}
-                          className={`w-full flex items-center justify-between p-3 rounded-lg text-left transition-all duration-200 ${
-                            activeCategory === category.name
-                              ? "bg-red-100 text-red-800 border-2 border-red-300"
-                              : "hover:bg-gray-100 border-2 border-transparent"
-                          }`}
+                          className={`w-full flex items-center justify-between p-3 rounded-lg text-left transition-all duration-200 ${activeCategory === category.name
+                            ? "bg-red-100 text-red-800 border-2 border-red-300"
+                            : "hover:bg-gray-100 border-2 border-transparent"
+                            }`}
                         >
                           <span className="font-medium">{category.name}</span>
                           <Badge variant="outline" className="text-xs">
@@ -591,7 +607,7 @@ export default function BlogPage() {
               {/* Featured Post */}
               {(activeCategory === "Tất cả" || activeCategory === "Hướng dẫn") && searchTerm === "" && (
                 <div ref={categoryRefs["Hướng dẫn"]}>
-                  <Card className="overflow-hidden border-red-200 shadow-lg">
+                  <Card className="overflow-hidden border-red-200 shadow-xl">
                     <div className="md:flex">
                       <div className="md:w-1/2">
                         <div className="w-full h-64 md:h-full bg-gradient-to-br from-red-100 to-red-200 flex items-center justify-center">
@@ -841,8 +857,8 @@ export default function BlogPage() {
           </div>
 
           {/* Call to Action */}
-          <Card className="mt-16 bg-gradient-to-r from-red-600 to-red-700 text-white">
-            <CardContent className="p-8 text-center">
+          <section className="mt-12 py-8 px-6 bg-gradient-to-r from-red-600 to-red-700 text-white">
+            <div className="container mx-auto text-center max-w-4xl">
               <div className="w-12 h-12 mx-auto mb-4 rounded-full overflow-hidden">
                 <Image
                   src="/images/logo.webp"
@@ -854,11 +870,17 @@ export default function BlogPage() {
               </div>
               <h3 className="text-2xl font-bold mb-2">Sẵn sàng hiến máu cứu người?</h3>
               <p className="text-red-100 mb-4">Hãy đăng ký ngay để trở thành người hùng thầm lặng cứu sinh mạng</p>
-              <Button variant="secondary" className="w-full sm:w-auto" asChild>
-                <Link href="/donate">Đăng ký hiến máu ngay</Link>
-              </Button>
-            </CardContent>
-          </Card>
+              <div className="flex justify-center">
+                <Link
+                  href="/donate"
+                  className="inline-flex items-center justify-center px-8 py-4 bg-white text-red-600 font-semibold rounded-lg hover:bg-red-50 transition-colors duration-200 min-w-[200px]"
+                >
+                  <Heart className="w-5 h-5 mr-2" />
+                  Đăng ký hiến máu ngay
+                </Link>
+              </div>
+            </div>
+          </section>
         </div>
       </div>
 
