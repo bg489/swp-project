@@ -10,6 +10,8 @@ import recipientRoutes from "./routes/recipientRoutes.js";
 import hospitalsRoutes from "./routes/hospitalsRoutes.js";
 import staffRoutes from "./routes/staffRoutes.js";
 import { connectDB } from "./config/db.js";
+import matchingRoutes from "./routes/matchingRoutes.js";
+import donationTrackingRoutes from "./routes/donationTrackingRoutes.js";
 
 dotenv.config();
 
@@ -39,6 +41,8 @@ app.use("/api/otp", OTPRoutes);
 app.use("/api/recipient", recipientRoutes);
 app.use("/api/hospital", hospitalsRoutes);
 app.use("/api/staff", staffRoutes);
+app.use("/api/matching", matchingRoutes);
+app.use("/api/donation-tracking", donationTrackingRoutes);
 
 
 // if (process.env.NODE_ENV === "production") {
