@@ -691,3 +691,62 @@ export async function getDonorsByHospitals(req, res) {
     res.status(500).json({ message: "Lỗi máy chủ." });
   }
 }
+
+// POST /api/donors/by-hospitals-and-bloodtype
+// POST /api/donors/compatible
+export async function getCompatibleDonorsByHospitalAndRecipientBloodType(req, res) {
+  try {
+    const { hospitalIds, recipientBloodType } = req.body;
+
+    if (!Array.isArray(hospitalIds) || hospitalIds.length === 0) {
+      return res.status(400).json({ message: "Danh sách hospitalIds không hợp lệ." });
+    }
+
+    if (!recipientBloodType) {
+      return res.status(400).json({ message: "Thiếu nhóm máu của người nhận." });
+    }
+
+    const bloodCompatibilityMap = {
+      "O-": ["O-"],
+      "O+": ["O-", "O+"],
+      "A-": ["O-", "A-"],
+      "A+": ["O-", "O+", "A-", "A+"],
+      "B-": ["O-", "B-"],
+      "B+": ["O-", "O+", "B-", "B+"],
+      "AB-": ["O-", "A-", "B-", "AB-"],
+      "AB+": ["O-", "O+", "A-", "A+", "B-", "B+", "AB-", "AB+"],
+    };
+
+    const compatibleBloodTypes = bloodCompatibilityMap[recipientBloodType];
+
+    if (!compatibleBloodTypes) {
+      return res.status(400).json({ message: "Nhóm máu người nhận không hợp lệ." });
+    }
+
+    const now = new Date();
+
+    const donors = await DonorProfile.find({
+      hospital: { $in: hospitalIds },
+      blood_type: { $in: compatibleBloodTypes },
+      availability_date: { $lte: now },
+      $or: [
+        { cooldown_until: { $lte: now } },
+        { cooldown_until: { $exists: false } },
+        { cooldown_until: null }
+      ],
+      is_in_the_role: true,
+    })
+      .populate("user_id", "full_name email phone blood_type")
+      .populate("hospital", "name address phone");
+
+    return res.status(200).json({
+      success: true,
+      count: donors.length,
+      donors,
+    });
+  } catch (error) {
+    console.error("Lỗi khi tìm donor tương thích theo nhóm máu:", error);
+    return res.status(500).json({ message: "Lỗi máy chủ." });
+  }
+}
+

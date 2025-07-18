@@ -97,12 +97,18 @@ export default function EditRequestPage() {
 
         // Chỉ fetch donor list sau khi staffData có hospital
         if (staffData?.hospital?._id) {
-          const profileDonList = await api.get(`/users/donor-profiles-by-hospital/${staffData.hospital._id}`);
-          setDonorList(profileDonList.data);
+
 
           const profileBR = await api.get(`/staff/blood-request/get-by-id/${requestId}`);
           setBloodReq(profileBR.data);
           setSelectedStatus(bloodReq?.status)
+
+
+          const profileDonList = await api.post("/users/donors/by-hospitals-and-bloodtype", {
+            hospitalIds: [staffData.hospital._id],
+            recipientBloodType: profileBR.data.blood_type_needed
+          });
+          setDonorList(profileDonList.data);
 
           const bloodinvens = await api.get(`/blood-in/blood-inventory/hospital/${staffData.hospital._id}`);
 
@@ -343,7 +349,7 @@ export default function EditRequestPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {availableDonors.length === 0 ? (
+            {donorList.length === 0 ? (
               <p className="text-gray-600">Không tìm thấy người hiến phù hợp.</p>
             ) : (
               Array.isArray(donorList?.donors) &&
@@ -355,7 +361,7 @@ export default function EditRequestPage() {
                   <div className="space-y-1 mb-4 md:mb-0">
                     <p className="font-semibold text-lg">{donor.user_id.full_name}</p>
                     <p className="text-sm text-gray-600">
-                      {donor.user_id.email} | 📞 {donor.user_id.phone}
+                      {donor.user_id.email} | 📞 {donor.user_id.phone} | {donor.hospital.name}
                     </p>
                     <p className="text-sm text-gray-600">Nhóm máu: {donor.blood_type || "Không rõ"}</p>
                     <p className="text-sm text-gray-600">Khoảng cách: {donor.distance} km</p>

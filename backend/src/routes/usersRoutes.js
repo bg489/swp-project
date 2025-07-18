@@ -19,7 +19,8 @@ import {
   updateCooldownUntil,
   getAllUsers,
   deleteUserByAdmin,
-  getDonorsByHospitals
+  getDonorsByHospitals,
+  getCompatibleDonorsByHospitalAndRecipientBloodType
 } from "../controllers/usersController.js";
 import {
   getDonationsByDonorId,
@@ -52,6 +53,7 @@ router.get("/donations-warehouse/recipient-id/:recipientId", getWarehouseDonatio
 router.get("/admin/get-all/:adminId", getAllUsers);
 router.delete("/admin/users/delete/:adminId/:userId", deleteUserByAdmin);
 router.post("/donors/by-hospitals", getDonorsByHospitals);
+router.post("/donors/by-hospitals-and-bloodtype", getCompatibleDonorsByHospitalAndRecipientBloodType);
 
 
 
