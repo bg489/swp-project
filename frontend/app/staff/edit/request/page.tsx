@@ -32,6 +32,7 @@ export default function EditRequestPage() {
   const [donationComment, setDonationComment] = useState("");
   const [bloodInven, setBloodInven] = useState<any[]>([]);
   const [warehouseDonationDate, setWarehouseDonationDate] = useState("");
+  const [nearbyHospitals, setNearbyHospitals] = useState<{ _id: string; name: string, address: string, phone: string }[]>([]);
 
   function getInventoryAmount(inventory: any[], bloodType: string, component: string) {
     const match = inventory.find(item => item.blood_type === bloodType && item.component === component);
@@ -89,6 +90,48 @@ export default function EditRequestPage() {
   };
 
   useEffect(() => {
+    const handleFindHospitalsNearby = async (latitude: number, longitude: number, radiusKm: number) => {
+      try {
+        const response = await api.get("/hospital/");
+        const hospitals = response.data.hospitals;
+
+        const getDistanceKm = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+          const R = 6371;
+          const dLat = ((lat2 - lat1) * Math.PI) / 180;
+          const dLon = ((lon2 - lon1) * Math.PI) / 180;
+          const a =
+            Math.sin(dLat / 2) ** 2 +
+            Math.cos(lat1 * Math.PI / 180) *
+            Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon / 2) ** 2;
+          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+          return R * c;
+        };
+
+        const filtered = hospitals.filter((h: any) => {
+          const dist = getDistanceKm(latitude, longitude, h.latitude, h.longitude);
+          return dist <= radiusKm;
+        }).map((h: any) => ({
+          _id: h._id,
+          name: h.name,
+          address: h.address,
+          phone: h.phone,
+        }));
+
+        setNearbyHospitals(filtered);
+
+
+        if (filtered.length > 0) {
+          toast.success(`Tìm thấy ${filtered.length} bệnh viện trong ${radiusKm} km!`);
+          return filtered;
+        } else {
+          toast.error(`Không tìm thấy bệnh viện nào trong ${radiusKm} km.`);
+        }
+      } catch (error) {
+        console.error("Lỗi lấy danh sách bệnh viện:", error);
+        toast.error("Đã xảy ra lỗi khi tìm bệnh viện!");
+      }
+    };
     async function fetchProfile() {
       try {
         const profileRes = await api.get(`/users/staff-profiles/active/${user._id}`);
@@ -103,9 +146,10 @@ export default function EditRequestPage() {
           setBloodReq(profileBR.data);
           setSelectedStatus(bloodReq?.status)
 
-
+          const hospitals2 = await handleFindHospitalsNearby(profileBR.data.hospital.latitude, profileBR.data.hospital.longitude, profileBR.data.distance);
+          const hospitalIds2 = hospitals2.map((h: { _id: any; }) => h._id);
           const profileDonList = await api.post("/users/donors/by-hospitals-and-bloodtype", {
-            hospitalIds: [staffData.hospital._id],
+            hospitalIds: hospitalIds2,
             recipientBloodType: profileBR.data.blood_type_needed
           });
           setDonorList(profileDonList.data);
