@@ -82,6 +82,8 @@ export default function RegisterPage() {
   const [highlightIndex, setHighlightIndex] = useState(-1);
   const [searchTerm, setSearchTerm] = useState("");  // Giá trị thực người gõ -> để filter
   const [hospitalInput, setHospitalInput] = useState(""); // Giá trị hiện đang hiển thị trong input -> để hiển thị highlight
+  const today = new Date().toISOString().split("T")[0]; // yyyy-mm-dd
+
 
 
   
@@ -584,6 +586,7 @@ const filteredHospitals = nearbyHospitals.filter((h) =>
                         <Input
                           id="dbd"
                           type="date"
+                          min={today}
                           value={formData.availability_date}
                           onChange={(e) => setFormData((prev) => ({ ...prev, availability_date: e.target.value }))}
                           className="pl-10"
