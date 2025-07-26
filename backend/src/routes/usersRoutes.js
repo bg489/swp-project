@@ -27,6 +27,9 @@ import {
   getDonationsByRecipientId,
   getWarehouseDonationsByRecipientId
 } from "../controllers/donationController.js";
+import {
+  createDonorRequest
+} from "../controllers/donorRequestController.js";
 
 const router = express.Router();
 
@@ -54,6 +57,7 @@ router.get("/admin/get-all/:adminId", getAllUsers);
 router.delete("/admin/users/delete/:adminId/:userId", deleteUserByAdmin);
 router.post("/donors/by-hospitals", getDonorsByHospitals);
 router.post("/donors/by-hospitals-and-bloodtype", getCompatibleDonorsByHospitalAndRecipientBloodType);
+router.post("/donor/request", createDonorRequest);
 
 
 

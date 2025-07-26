@@ -21,18 +21,33 @@ import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 
 export default function DonatePage() {
+  const today = new Date().toISOString().split("T")[0];
+
+  const [loading, setLoading] = useState(false);
+
+
+
+  const handleCheckboxChange = (component: string) => {
+    const selected = formData.components_offered.includes(component);
+    const updated = selected
+      ? formData.components_offered.filter((c) => c !== component)
+      : [...formData.components_offered, component];
+
+    setFormData((prev) => ({ ...prev, components_offered: updated }));
+  };
+
   const [selectedDate, setSelectedDate] = useState<Date>()
   const [formData, setFormData] = useState({
-    fullName: "",
-    phone: "",
-    email: "",
-    bloodType: "",
-    address: "",
-    emergencyContact: "",
-    medicalHistory: "",
-    availableTimes: [] as string[],
-    agreeTerms: false,
-  })
+    available_date: today,
+    available_time_range: {
+      from: "",
+      to: "",
+    },
+    amount_offered: "",
+    components_offered: [] as string[],
+    hospital: "",
+    notes: "",
+  });
 
   const bloodTypes = ["O-", "O+", "A-", "A+", "B-", "B+", "AB-", "AB+"]
   const timeSlots = ["6:00 - 8:00", "8:00 - 10:00", "10:00 - 12:00", "14:00 - 16:00", "16:00 - 18:00", "18:00 - 20:00"]
@@ -45,24 +60,49 @@ export default function DonatePage() {
     "Sức khỏe tốt, không có triệu chứng cảm cúm",
   ]
 
-  const handleTimeSlotChange = (time: string, checked: boolean) => {
-    if (checked) {
-      setFormData((prev) => ({
-        ...prev,
-        availableTimes: [...prev.availableTimes, time],
-      }))
-    } else {
-      setFormData((prev) => ({
-        ...prev,
-        availableTimes: prev.availableTimes.filter((t) => t !== time),
-      }))
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    console.log("Form submitted:", formData, selectedDate)
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const res = await fetch("/api/donor-request", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to submit donor request");
+      }
+
+      alert("Đăng ký hiến máu thành công!");
+      // Reset form
+      setFormData({
+        available_date: today,
+        available_time_range: { from: "", to: "" },
+        amount_offered: "",
+        components_offered: [],
+        hospital: "",
+        notes: "",
+      });
+    } catch (error) {
+      console.error(error);
+      alert("Đã xảy ra lỗi khi gửi yêu cầu.");
+    } finally {
+      setLoading(false);
     }
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    console.log("Form submitted:", formData, selectedDate)
-    // Handle form submission
+  function returnNameComponentBlood(comp: string): React.ReactNode {
+    if (comp === "whole") return "Máu toàn phần";
+    if (comp === "RBC") return "Hồng cầu";  
+    if (comp === "plasma") return "Huyết tương";
+    if (comp === "platelet") return "Tiểu cầu";
+    return comp; // Default case, should not happen
   }
 
   return (
@@ -130,192 +170,125 @@ export default function DonatePage() {
                 <CardContent>
                   <form onSubmit={handleSubmit} className="space-y-6">
                     {/* Personal Information */}
-                    <div className="space-y-4">
-                      <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-                        <User className="w-5 h-5 mr-2 text-red-600" />
-                        Thông tin cá nhân
-                      </h3>
-                      <div className="grid md:grid-cols-2 gap-4">
-                        <div>
-                          <Label htmlFor="fullName">Họ và tên *</Label>
-                          <Input
-                            id="fullName"
-                            value={formData.fullName}
-                            onChange={(e) => setFormData((prev) => ({ ...prev, fullName: e.target.value }))}
-                            placeholder="Nguyễn Văn A"
-                            required
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="phone">Số điện thoại *</Label>
-                          <Input
-                            id="phone"
-                            type="tel"
-                            value={formData.phone}
-                            onChange={(e) => setFormData((prev) => ({ ...prev, phone: e.target.value }))}
-                            placeholder="0901234567"
-                            required
-                          />
-                        </div>
-                      </div>
-                      <div className="grid md:grid-cols-2 gap-4">
-                        <div>
-                          <Label htmlFor="email">Email</Label>
-                          <Input
-                            id="email"
-                            type="email"
-                            value={formData.email}
-                            onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
-                            placeholder="email@example.com"
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="bloodType">Nhóm máu *</Label>
-                          <Select
-                            value={formData.bloodType}
-                            onValueChange={(value) => setFormData((prev) => ({ ...prev, bloodType: value }))}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Chọn nhóm máu" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {bloodTypes.map((type) => (
-                                <SelectItem key={type} value={type}>
-                                  <div className="flex items-center">
-                                    <Droplets className="w-4 h-4 mr-2 text-red-500" />
-                                    {type}
-                                  </div>
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                      <div>
-                        <Label htmlFor="address">Địa chỉ *</Label>
-                        <Input
-                          id="address"
-                          value={formData.address}
-                          onChange={(e) => setFormData((prev) => ({ ...prev, address: e.target.value }))}
-                          placeholder="123 Đường ABC, Quận 1, TP.HCM"
-                          required
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="emergencyContact">Liên hệ khẩn cấp</Label>
-                        <Input
-                          id="emergencyContact"
-                          value={formData.emergencyContact}
-                          onChange={(e) => setFormData((prev) => ({ ...prev, emergencyContact: e.target.value }))}
-                          placeholder="Tên và số điện thoại người thân"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Medical History */}
-                    <div className="space-y-4">
-                      <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-                        <Shield className="w-5 h-5 mr-2 text-red-600" />
-                        Thông tin y tế
-                      </h3>
-                      <div>
-                        <Label htmlFor="medicalHistory">Tiền sử bệnh lý (nếu có)</Label>
-                        <Textarea
-                          id="medicalHistory"
-                          value={formData.medicalHistory}
-                          onChange={(e) => setFormData((prev) => ({ ...prev, medicalHistory: e.target.value }))}
-                          placeholder="Mô tả các bệnh lý, dị ứng, thuốc đang sử dụng..."
-                          rows={3}
-                        />
-                      </div>
-                    </div>
 
                     {/* Availability */}
                     <div className="space-y-4">
-                      <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-                        <CalendarIcon className="w-5 h-5 mr-2 text-red-600" />
-                        Thời gian sẵn sàng
-                      </h3>
-                      <div>
-                        <Label>Ngày có thể hiến máu</Label>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button variant="outline" className="w-full justify-start text-left font-normal mt-2">
-                              <CalendarIcon className="mr-2 h-4 w-4" />
-                              {selectedDate ? format(selectedDate, "PPP", { locale: vi }) : "Chọn ngày"}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0">
-                            <Calendar
-                              mode="single"
-                              selected={selectedDate}
-                              onSelect={setSelectedDate}
-                              initialFocus
-                              locale={vi}
+                      <div className="max-w-xl mx-auto p-6">
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                          {/* Ngày hiến */}
+                          <div>
+                            <Label htmlFor="available_date">Ngày hiến máu</Label>
+                            <Input
+                              type="date"
+                              id="available_date"
+                              min={today}
+                              value={formData.available_date}
+                              onChange={(e) =>
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  available_date: e.target.value,
+                                }))
+                              }
+                              required
                             />
-                          </PopoverContent>
-                        </Popover>
-                      </div>
-                      <div>
-                        <Label>Khung giờ thuận tiện</Label>
-                        <div className="grid grid-cols-2 gap-2 mt-2">
-                          {timeSlots.map((time) => (
-                            <div key={time} className="flex items-center space-x-2">
-                              <Checkbox
-                                id={time}
-                                checked={formData.availableTimes.includes(time)}
-                                onCheckedChange={(checked) => handleTimeSlotChange(time, checked as boolean)}
+                          </div>
+
+                          {/* Khung giờ */}
+                          <div className="flex gap-4">
+                            <div className="flex-1">
+                              <Label htmlFor="from">Từ giờ</Label>
+                              <Input
+                                type="time"
+                                id="from"
+                                value={formData.available_time_range.from}
+                                onChange={(e) =>
+                                  setFormData((prev) => ({
+                                    ...prev,
+                                    available_time_range: {
+                                      ...prev.available_time_range,
+                                      from: e.target.value,
+                                    },
+                                  }))
+                                }
+                                required
                               />
-                              <Label htmlFor={time} className="text-sm">
-                                {time}
-                              </Label>
                             </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
+                            <div className="flex-1">
+                              <Label htmlFor="to">Đến giờ</Label>
+                              <Input
+                                type="time"
+                                id="to"
+                                value={formData.available_time_range.to}
+                                onChange={(e) =>
+                                  setFormData((prev) => ({
+                                    ...prev,
+                                    available_time_range: {
+                                      ...prev.available_time_range,
+                                      to: e.target.value,
+                                    },
+                                  }))
+                                }
+                                required
+                              />
+                            </div>
+                          </div>
 
-                    {/* Terms and Conditions */}
-                    <div className="space-y-4">
-                      <div className="flex items-start space-x-2">
-                        <Checkbox
-                          id="agreeTerms"
-                          checked={formData.agreeTerms}
-                          onCheckedChange={(checked) =>
-                            setFormData((prev) => ({ ...prev, agreeTerms: checked as boolean }))
-                          }
-                          required
-                        />
-                        <Label htmlFor="agreeTerms" className="text-sm">
-                          Tôi đồng ý với{" "}
-                          <Link href="/terms" className="text-red-600 hover:underline">
-                            điều khoản sử dụng
-                          </Link>{" "}
-                          và
-                          <Link href="/privacy" className="text-red-600 hover:underline">
-                            {" "}
-                            chính sách bảo mật
-                          </Link>
-                          . Tôi cam kết thông tin cung cấp là chính xác và đồng ý tham gia hiến máu tình nguyện.
-                        </Label>
-                      </div>
-                    </div>
+                          {/* Lượng máu muốn hiến */}
+                          <div>
+                            <Label htmlFor="amount">Lượng máu (ml)</Label>
+                            <Input
+                              type="number"
+                              id="amount"
+                              value={formData.amount_offered}
+                              onChange={(e) =>
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  amount_offered: e.target.value,
+                                }))
+                              }
+                              placeholder="Ví dụ: 350"
+                              required
+                              min={50}
+                            />
+                          </div>
 
-                    {/* Submit Button */}
-                    <div className="flex gap-4">
-                      <Button type="submit" className="flex-1 bg-red-600 hover:bg-red-700">
-                        <Heart className="w-4 h-4 mr-2" />
-                        Đăng ký hiến máu
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        asChild
-                        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-                      >
-                        <Link href="/">Hủy</Link>
-                      </Button>
-                    </div>
+                          {/* Thành phần máu */}
+                          <div>
+                            <Label>Thành phần muốn hiến</Label>
+                            <div className="flex gap-4 flex-wrap mt-1">
+                              {["whole", "RBC", "plasma", "platelet"].map((comp) => (
+                                <label key={comp} className="flex items-center gap-1">
+                                  <input
+                                    type="checkbox"
+                                    checked={formData.components_offered.includes(comp)}
+                                    onChange={() => handleCheckboxChange(comp)}
+                                  />
+                                  {returnNameComponentBlood(comp)}
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Ghi chú */}
+                          <div>
+                            <Label htmlFor="notes">Ghi chú thêm</Label>
+                            <Textarea
+                              id="notes"
+                              value={formData.notes}
+                              onChange={(e) =>
+                                setFormData((prev) => ({ ...prev, notes: e.target.value }))
+                              }
+                              placeholder="Ghi chú đặc biệt (nếu có)..."
+                            />
+                          </div>
+
+                          {/* Submit */}
+                          <Button type="submit" disabled={loading} className="w-full">
+                            {loading ? "Đang gửi..." : "Đăng ký hiến máu"}
+                          </Button>
+                        </form>
+                      </div>
+                      </div>
                   </form>
                 </CardContent>
               </Card>
