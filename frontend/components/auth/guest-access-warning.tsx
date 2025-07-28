@@ -29,7 +29,7 @@ export function GuestAccessWarning({
           "Nhận thông báo khi cần máu khẩn cấp",
           "Kết nối với cộng đồng hiến máu",
         ]
-      case "/request":
+      case "/blood-request":
         return [
           "Tìm kiếm người hiến máu phù hợp",
           "Kiểm tra tương thích nhóm máu",

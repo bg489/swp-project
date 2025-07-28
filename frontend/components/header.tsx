@@ -76,8 +76,7 @@ export function Header() {
   // Các trang yêu cầu đăng nhập
   const protectedPages = [
     { href: "/donate", label: "Hiến máu" },
-    { href: "/request", label: "Cần máu" },
-    { href: "/reqdonation", label: "Yêu cầu máu" },
+    { href: "/blood-request", label: "Yêu cầu máu" },
     { href: "/emergency", label: "Khẩn cấp" },
     { href: "/history-recip", label: "Lịch Sử" },
   ]

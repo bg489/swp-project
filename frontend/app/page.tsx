@@ -305,7 +305,7 @@ export default function HomePage() {
                       Đóng
                     </Button>
                     <Button className="flex-1 bg-red-600 hover:bg-red-700" asChild>
-                      <Link href={ findDashboardByRole(user?.role) } onClick={scrollToTop}>Xem Dashboard</Link>
+                      <Link href={ findDashboardByRole(user?.role ?? "") } onClick={scrollToTop}>Xem Dashboard</Link>
                     </Button>
                   </div>
                 </div>
@@ -355,7 +355,7 @@ export default function HomePage() {
                     className="bg-white/10 border-white text-white hover:bg-white hover:text-gray-900"
                     asChild
                   >
-                    <Link href={findDashboardByRole(user?.role)} onClick={scrollToTop}>
+                    <Link href={findDashboardByRole(user?.role ?? "")} onClick={scrollToTop}>
                       <Activity className="w-5 h-5 mr-2" />
                       Xem Dashboard
                     </Link>
@@ -375,7 +375,7 @@ export default function HomePage() {
                     className="bg-white/10 border-white text-white hover:bg-white hover:text-gray-900"
                     asChild
                   >
-                    <Link href="/request" onClick={scrollToTop}>
+                    <Link href="/blood-request" onClick={scrollToTop}>
                       <Users className="w-5 h-5 mr-2" />
                       Tìm người hiến máu
                     </Link>
@@ -445,7 +445,7 @@ export default function HomePage() {
                       {user.role === "admin" ? "Xem thống kê và quản lý hệ thống" : "Theo dõi lịch sử và đặt lịch hẹn"}
                     </p>
                     <Button asChild className="w-full">
-                      <Link href={findDashboardByRole(user?.role)} onClick={scrollToTop}>Mở Dashboard</Link>
+                      <Link href={findDashboardByRole(user?.role ?? "")} onClick={scrollToTop}>Mở Dashboard</Link>
                     </Button>
                   </CardContent>
                 </Card>

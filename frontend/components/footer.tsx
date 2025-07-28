@@ -47,7 +47,7 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/request" className="hover:text-white transition-colors">
+                <Link href="/blood-request" className="hover:text-white transition-colors">
                   Tìm người hiến máu
                 </Link>
               </li>
