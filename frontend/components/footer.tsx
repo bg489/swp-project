@@ -51,11 +51,6 @@ export function Footer() {
                   Tìm người hiến máu
                 </Link>
               </li>
-              <li>
-                <Link href="/emergency" className="hover:text-white transition-colors">
-                  Yêu cầu khẩn cấp
-                </Link>
-              </li>
               {user && (
                 <li>
                   <Link

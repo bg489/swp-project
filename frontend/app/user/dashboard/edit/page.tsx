@@ -16,14 +16,13 @@ import { useRouter } from "next/navigation"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import api from "../../../../lib/axios";
-import ReCAPTCHA from "react-google-recaptcha"
 import { useAuth } from "@/contexts/auth-context"
 import toast, { Toaster } from "react-hot-toast"
 import UploadCertificate from "@/components/ui/UploadCertificate"
 import AddressAutocomplete from "@/components/ui/AddressAutocomplete"
 
 
-export default function RegisterPage() {
+export default function EditProfilePage() {
   const { user, setUser, logout } = useAuth()
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
@@ -34,16 +33,16 @@ export default function RegisterPage() {
   }
 
   const [formData, setFormData] = useState({
-    name: user?.full_name,
-    email: user?.email,
+    name: user?.full_name || "",
+    email: user?.email || "",
     password: "",
     confirmPassword: "",
-    phone: user?.phone,
-    address: user?.address,
+    phone: user?.phone || "",
+    address: user?.address || "",
     bloodType: "",
-    gender: user?.gender,
+    gender: user?.gender || "male" as "male" | "female" | "other",
     date_of_birth: user?.date_of_birth ? formatDate(user.date_of_birth) : "",
-    role: user?.role,
+    role: user?.role || "donor" as "donor" | "recipient" | "staff" | "admin",
     certificateDonor: "",
     certificateRecipient: "",
     hospital_name: "",
@@ -55,6 +54,7 @@ export default function RegisterPage() {
     blood_type: string;
     availability_date: string;
     health_cert_url?: string;
+    hospital?: string;
     cooldown_until?: string;
     createdAt?: string;
     updatedAt?: string;
@@ -65,6 +65,7 @@ export default function RegisterPage() {
   type RecipientProfile = {
     medical_doc_url: string;
     hospital_name: string;
+    hospital?: string;
     createdAt?: string;
     updatedAt?: string;
   };
@@ -272,139 +273,144 @@ const filteredHospitals = nearbyHospitals.filter((h) =>
   const bloodTypes = ["O-", "O+", "A-", "A+", "B-", "B+", "AB-", "AB+"]
 
   useEffect(() => {
-    async function fetchProfile() {
-      if (!user?._id || !formData.role) return; // đợi user sẵn sàng và role đã chọn
+    async function fetchUserProfiles() {
+      if (!user?._id) return;
 
       try {
-        if (formData.role === "donor") {
-          const response = await api.get(`/users/donor-profile/active/${user._id}`);
-          const profile = response.data.profile;
-          setDonor(profile);
+        // Fetch both donor and recipient profiles
+        const [donorResponse, recipientResponse] = await Promise.allSettled([
+          api.get(`/users/donor-profile/active/${user._id}`),
+          api.get(`/users/recipient-profile/active/${user._id}`)
+        ]);
 
-          if (profile?.hospital) {
-            const hospitalRes = await api.get(`/hospital/${profile.hospital}`);
-            const hospitalName = hospitalRes.data.hospital.name;
-            setFormData((prev) => ({ ...prev, hospitalId: profile.hospital }));
-            setHospitalInput(hospitalName);
-            setSearchTerm(hospitalName);
-            setShowSuggestions(false);
-            setHighlightIndex(-1);
+        // Handle donor profile
+        if (donorResponse.status === 'fulfilled') {
+          const donorProfile = donorResponse.value.data.profile;
+          setDonor(donorProfile);
+
+          if (user.role === "donor") {
+            // Set hospital info for donor
+            if (donorProfile?.hospital) {
+              try {
+                const hospitalRes = await api.get(`/hospital/${donorProfile.hospital}`);
+                const hospitalName = hospitalRes.data.hospital.name;
+                setFormData((prev) => ({ ...prev, hospitalId: donorProfile.hospital }));
+                setHospitalInput(hospitalName);
+                setSearchTerm(hospitalName);
+                setShowSuggestions(false);
+                setHighlightIndex(-1);
+              } catch (error) {
+                console.warn("Error fetching hospital for donor:", error);
+              }
+            }
+
+            setFormData((prev) => ({
+              ...prev,
+              bloodType: donorProfile.blood_type || "",
+              availability_date: donorProfile.availability_date ? formatDate(donorProfile.availability_date) : "",
+              certificateDonor: donorProfile.health_cert_url || "",
+            }));
           }
-
-          setFormData((prev) => ({
-            ...prev,
-            bloodType: profile.blood_type || "",
-            availability_date: profile.availability_date ? formatDate(profile.availability_date) : "",
-            certificateDonor: profile.health_cert_url || "",
-          }));
-        } else if (formData.role === "recipient") {
-          const response = await api.get(`/users/recipient-profile/active/${user._id}`);
-          const profile = response.data.profile;
-          setRecipient(profile);
-
-          if (profile?.hospital) {
-            const hospitalRes = await api.get(`/hospital/${profile.hospital}`);
-            const hospitalName = hospitalRes.data.hospital.name;
-            setFormData((prev) => ({ ...prev, hospitalId: profile.hospital }));
-            setHospitalInput(hospitalName);
-            setSearchTerm(hospitalName);
-            setShowSuggestions(false);
-            setHighlightIndex(-1);
-          }
-
-          setFormData((prev) => ({
-            ...prev,
-            hospital_name: profile.hospital_name || "",
-            certificateRecipient: profile.medical_doc_url || "",
-          }));
-        }
-      } catch (error) {
-        console.warn("Không tìm thấy profile:", error);
-      }
-    }
-
-    fetchProfile();
-  }, [formData.role]); // thay user?.role bằng formData.role
-
-
-  useEffect(() => {
-    async function fetchProfile() {
-      console.log(user._id);
-
-      // ✅ Donor profile
-      try {
-        const response1 = await api.get(`/users/donor-profile/active/${user._id}`);
-        const profile1 = response1.data.profile;
-        setDonor(profile1);
-
-        const hospitalId = response1.data.profile?.hospital; // lưu ý: hospital_name phải là ID
-        if (hospitalId && user?.role === "donor") {
-          const hospitalRes = await api.get(`/hospital/${hospitalId}`);
-          setFormData((prev) => ({ ...prev, hospitalId: profile1.hospital }));
-          setHospitalInput(hospitalRes.data.hospital.name);
-          setSearchTerm(hospitalRes.data.hospital.name);
-          setShowSuggestions(false);
-          setHighlightIndex(-1);
         }
 
+        // Handle recipient profile
+        if (recipientResponse.status === 'fulfilled') {
+          const recipientProfile = recipientResponse.value.data.profile;
+          setRecipient(recipientProfile);
+
+          if (user.role === "recipient") {
+            // Set hospital info for recipient
+            if (recipientProfile?.hospital) {
+              try {
+                const hospitalRes = await api.get(`/hospital/${recipientProfile.hospital}`);
+                const hospitalName = hospitalRes.data.hospital.name;
+                setFormData((prev) => ({ ...prev, hospitalId: recipientProfile.hospital }));
+                setHospitalInput(hospitalName);
+                setSearchTerm(hospitalName);
+                setShowSuggestions(false);
+                setHighlightIndex(-1);
+              } catch (error) {
+                console.warn("Error fetching hospital for recipient:", error);
+              }
+            }
+
+            setFormData((prev) => ({
+              ...prev,
+              hospital_name: recipientProfile.hospital_name || "",
+              certificateRecipient: recipientProfile.medical_doc_url || "",
+            }));
+          }
+        }
+
+        // Set common user data
         setFormData((prev) => ({
           ...prev,
-          bloodType: profile1.blood_type || "",
-          availability_date: profile1.availability_date ? formatDate(profile1.availability_date) : "",
-          certificateDonor: profile1.health_cert_url || "",
           name: user.full_name || "",
           email: user.email || "",
           phone: user.phone || "",
           address: user.address || "",
-          gender: user.gender as "male" | "female" | "other" | undefined,
+          gender: (user.gender as "male" | "female" | "other") || "male",
           date_of_birth: user.date_of_birth ? formatDate(user.date_of_birth) : "",
-          role: user.role || "",
+          role: (user.role as "donor" | "recipient" | "staff" | "admin") || "donor",
         }));
+
       } catch (error) {
-        console.warn("Không tìm thấy donor profile:", error);
+        console.error("Error fetching user profiles:", error);
+      } finally {
+        setIsLoading(false);
       }
-
-      // ✅ Recipient profile
-      try {
-        const response2 = await api.get(`/users/recipient-profile/active/${user._id}`);
-        const profile2 = response2.data.profile;
-        setRecipient(profile2);
-
-
-        const hospitalId = response2.data.profile?.hospital; // lưu ý: hospital_name phải là ID
-        if (hospitalId && user?.role === "recipient") {
-          const hospitalRes = await api.get(`/hospital/${hospitalId}`);
-          setFormData((prev) => ({ ...prev, hospitalId: profile2.hospital }));
-          setHospitalInput(hospitalRes.data.hospital.name);
-          setSearchTerm(hospitalRes.data.hospital.name);
-          setShowSuggestions(false);
-          setHighlightIndex(-1);
-        }
-
-        setFormData((prev) => ({
-          ...prev,
-          hospital_name: profile2.hospital_name || "",
-          certificateRecipient: profile2.medical_doc_url || "",
-          name: user.full_name || "",
-          email: user.email || "",
-          phone: user.phone || "",
-          address: user.address || "",
-          gender: user.gender as "male" | "female" | "other" | undefined,
-          date_of_birth: user.date_of_birth ? formatDate(user.date_of_birth) : "",
-          role: user.role || "",
-        }));
-        
-      } catch (error) {
-        console.warn("Không tìm thấy recipient profile:", error);
-      }
-
-      setIsLoading(false);
     }
 
-    if (user?._id) {
-      fetchProfile();
-    }
+    fetchUserProfiles();
   }, [user]);
+
+  // Handle role changes to update form data accordingly
+  useEffect(() => {
+    if (!user?._id || !formData.role) return;
+
+    async function updateFormDataForRole() {
+      try {
+        if (formData.role === "donor" && donor) {
+          if (donor.hospital) {
+            const hospitalRes = await api.get(`/hospital/${donor.hospital}`);
+            const hospitalName = hospitalRes.data.hospital.name;
+            setFormData((prev) => ({ ...prev, hospitalId: donor.hospital || "" }));
+            setHospitalInput(hospitalName);
+            setSearchTerm(hospitalName);
+            setShowSuggestions(false);
+            setHighlightIndex(-1);
+          }
+
+          setFormData((prev) => ({
+            ...prev,
+            bloodType: donor.blood_type || "",
+            availability_date: donor.availability_date ? formatDate(donor.availability_date) : "",
+            certificateDonor: donor.health_cert_url || "",
+          }));
+        } else if (formData.role === "recipient" && recipient) {
+          if (recipient.hospital) {
+            const hospitalRes = await api.get(`/hospital/${recipient.hospital}`);
+            const hospitalName = hospitalRes.data.hospital.name;
+            setFormData((prev) => ({ ...prev, hospitalId: recipient.hospital || "" }));
+            setHospitalInput(hospitalName);
+            setSearchTerm(hospitalName);
+            setShowSuggestions(false);
+            setHighlightIndex(-1);
+          }
+
+          setFormData((prev) => ({
+            ...prev,
+            hospital_name: recipient.hospital_name || "",
+            certificateRecipient: recipient.medical_doc_url || "",
+          }));
+        }
+      } catch (error) {
+        console.warn("Error updating form data for role:", error);
+      }
+    }
+
+    updateFormDataForRole();
+  }, [formData.role, donor, recipient]);
 
 
 
@@ -417,6 +423,12 @@ const filteredHospitals = nearbyHospitals.filter((h) =>
 
     if (!formData.agreeTerms) {
       setError("Vui lòng đồng ý với điều khoản sử dụng");
+      setIsLoading(false);
+      return;
+    }
+
+    if (!user?._id) {
+      setError("Thông tin người dùng không hợp lệ");
       setIsLoading(false);
       return;
     }
@@ -459,7 +471,7 @@ const filteredHospitals = nearbyHospitals.filter((h) =>
         }
 
         setUser({
-          ...user!,
+          ...user,
           full_name: formData.name,
           email: formData.email,
           phone: formData.phone,
@@ -652,7 +664,7 @@ const filteredHospitals = nearbyHospitals.filter((h) =>
                     <Label htmlFor="role">Vai trò *</Label>
                     <Select
                       value={formData.role}
-                      onValueChange={(value) => setFormData((prev) => ({ ...prev, role: value }))}
+                      onValueChange={(value: "donor" | "recipient" | "staff" | "admin") => setFormData((prev) => ({ ...prev, role: value }))}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Chọn vai trò" />
@@ -732,7 +744,7 @@ const filteredHospitals = nearbyHospitals.filter((h) =>
                     <Label htmlFor="gender">Giới tính *</Label>
                     <Select
                       value={formData.gender}
-                      onValueChange={(value) => setFormData((prev) => ({ ...prev, gender: value }))}
+                      onValueChange={(value: "male" | "female" | "other") => setFormData((prev) => ({ ...prev, gender: value }))}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Chọn giới tính" />
@@ -781,7 +793,7 @@ const filteredHospitals = nearbyHospitals.filter((h) =>
                   <div className="relative">
                     <MapPin className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                     <AddressAutocomplete
-                      value={formData.address}
+                      value={formData.address || ""}
                       onChange={(val) => setFormData((prev) => ({ ...prev, address: val }))}
                     />
                   </div>

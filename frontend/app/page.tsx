@@ -401,91 +401,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* User Welcome Section */}
-      {user && (
-        <section className="py-16 px-4 bg-blue-50">
-          <div className="container mx-auto">
-            <div className="max-w-4xl mx-auto text-center">
-              <h2 className="text-3xl font-bold text-gray-900 mb-6">
-                Chào mừng {handleRole(user.role)} {user.full_name}!
-              </h2>
-              <div className="grid md:grid-cols-3 gap-6">
-                <Card className="hover:shadow-lg transition-shadow">
-                  <CardHeader>
-                    <CardTitle className="flex items-center">
-                      <Heart className="w-5 h-5 mr-2 text-red-600" />
-                      {user.role === "admin" ? "Quản lý hệ thống" : "Thông tin cá nhân"}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {user.role === "admin" ? (
-                      <p className="text-gray-600">Quản lý người dùng, kho máu và yêu cầu khẩn cấp</p>
-                    ) : (
-                      <div className="space-y-2">
-                        <p className="text-gray-600">
-                          Nhóm máu: <strong>{user.role}</strong>
-                        </p>
-                        <p className="text-gray-600">
-                          Tổng lần hiến: <strong>{user.role || 0}</strong>
-                        </p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
 
-                <Card className="hover:shadow-lg transition-shadow">
-                  <CardHeader>
-                    <CardTitle className="flex items-center">
-                      <Activity className="w-5 h-5 mr-2 text-blue-600" />
-                      Dashboard
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-gray-600 mb-4">
-                      {user.role === "admin" ? "Xem thống kê và quản lý hệ thống" : "Theo dõi lịch sử và đặt lịch hẹn"}
-                    </p>
-                    <Button asChild className="w-full">
-                      <Link href={findDashboardByRole(user?.role ?? "")} onClick={scrollToTop}>Mở Dashboard</Link>
-                    </Button>
-                  </CardContent>
-                </Card>
-
-                <Card className="hover:shadow-lg transition-shadow">
-                  <CardHeader>
-                    <CardTitle className="flex items-center">
-                      <Clock className="w-5 h-5 mr-2 text-green-600" />
-                      Hành động nhanh
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      {user.role === "admin" ? (
-                        <>
-                          <Button variant="outline" size="sm" className="w-full" asChild>
-                            <Link href="/emergency">Xem yêu cầu khẩn cấp</Link>
-                          </Button>
-                          <Button variant="outline" size="sm" className="w-full" asChild>
-                            <Link href="/admin/users" onClick={scrollToTop}>Quản lý người dùng</Link>
-                          </Button>
-                        </>
-                      ) : (
-                        <>
-                          <Button variant="outline" size="sm" className="w-full" asChild>
-                            <Link href="/donate" onClick={scrollToTop}>Đăng ký hiến máu</Link>
-                          </Button>
-                          <Button variant="outline" size="sm" className="w-full" asChild>
-                            <Link href="/emergency" onClick={scrollToTop}>Yêu cầu khẩn cấp</Link>
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
 
       {/* Blood Types Section */}
       <section className="py-20 px-4 bg-gray-50">
@@ -539,37 +455,6 @@ export default function HomePage() {
                 </CardContent>
               </Card>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Emergency Section */}
-      <section className="py-20 px-4 bg-red-600 text-white">
-        <div className="container mx-auto text-center">
-          <div className="max-w-3xl mx-auto">
-            <h2 className="text-3xl md:text-4xl font-bold mb-6">Trường hợp khẩn cấp?</h2>
-            <p className="text-xl text-red-100 mb-8">
-              Chúng tôi sẵn sàng hỗ trợ 24/7 cho các trường hợp cần máu khẩn cấp
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" variant="secondary" asChild>
-                <Link href="/emergency" onClick={scrollToTop}>
-                  <Phone className="w-5 h-5 mr-2" />
-                  Gọi khẩn cấp: 1900-1234
-                </Link>
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                className="border-white text-white hover:bg-white hover:text-red-600"
-                asChild
-              >
-                <Link href="/emergency" onClick={scrollToTop}>
-                  <Calendar className="w-5 h-5 mr-2" />
-                  Đăng ký yêu cầu khẩn cấp
-                </Link>
-              </Button>
-            </div>
           </div>
         </div>
       </section>

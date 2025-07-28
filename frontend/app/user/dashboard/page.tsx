@@ -413,14 +413,6 @@ export default function UserDashboard() {
       read: false,
     },
     {
-      id: 2,
-      type: "emergency",
-      title: "Yêu cầu khẩn cấp",
-      message: "Cần gấp nhóm máu O+ tại BV Chợ Rẫy",
-      time: "1 tuần trước",
-      read: true,
-    },
-    {
       id: 3,
       type: "achievement",
       title: "Chúc mừng!",
@@ -526,8 +518,6 @@ export default function UserDashboard() {
     switch (type) {
       case "reminder":
         return Clock
-      case "emergency":
-        return AlertCircle
       case "achievement":
         return Award
       default:
@@ -713,34 +703,6 @@ export default function UserDashboard() {
                   </Card>
                 </div>
 
-                {/* Quick Actions */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Hành động nhanh</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid md:grid-cols-3 gap-4">
-                      <Button asChild className="h-20 flex-col">
-                        <Link href="/donate">
-                          <Heart className="w-6 h-6 mb-2" />
-                          Đặt lịch hiến máu
-                        </Link>
-                      </Button>
-                      <Button variant="outline" asChild className="h-20 flex-col">
-                        <Link href="/emergency">
-                          <AlertCircle className="w-6 h-6 mb-2" />
-                          Yêu cầu khẩn cấp
-                        </Link>
-                      </Button>
-                      <Button variant="outline" asChild className="h-20 flex-col">
-                        <Link href="/user/profile">
-                          <Settings className="w-6 h-6 mb-2" />
-                          Cập nhật hồ sơ
-                        </Link>
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
               </TabsContent>
             }
             <TabsContent value="history" className="space-y-6">
@@ -890,7 +852,11 @@ export default function UserDashboard() {
                           </SelectContent>
                         </Select>
                       </div>
-                      {bloodManageFilter === "blood-request-history" && bloodRequests.map((request) => (
+                      {bloodManageFilter === "blood-request-history" && 
+                        // Sort blood requests by creation date (most recent first)
+                        [...bloodRequests]
+                          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                          .map((request, index) => (
                         <div
                           key={request._id}
                           className="flex items-center justify-between p-4 border rounded-lg hover:shadow-md transition-shadow"
@@ -901,7 +867,7 @@ export default function UserDashboard() {
                               <Droplets className="w-6 h-6 text-red-600" />
                             </div>
                             <div>
-                              <p className="font-medium">Yêu cầu máu #{request._id.slice(-5)}</p>
+                              <p className="font-medium">Yêu cầu #{bloodRequests.length - index}</p>
                               <p className="text-sm text-gray-600">{hospitalNames[request._id] || "Đang tải..."}</p>
                               <div className="flex items-center space-x-2 mt-1 text-xs text-gray-500">
                                 <span>
@@ -942,7 +908,10 @@ export default function UserDashboard() {
                         </div>
                       ))}
                       {bloodManageFilter === "blood-donations-history" && Array.isArray(donationList) && donationList.length > 0 ? (
-                        donationList.map((donation) => (
+                        // Sort donation list by creation date (most recent first)
+                        [...donationList]
+                          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                          .map((donation, index) => (
                           <div
                             key={donation._id}
                             className="flex flex-col md:flex-row justify-between p-4 border rounded-lg space-y-4 md:space-y-0 md:space-x-6 hover:bg-gray-50 transition"
@@ -954,7 +923,8 @@ export default function UserDashboard() {
                                   <Heart className="w-6 h-6 text-red-600" />
                                 </div>
                                 <div>
-                                  <p className="font-medium">Người hiến: {donation.donor_id?.full_name || "Không rõ"}</p>
+                                  <p className="font-medium">Hiến máu #{donationList.length - index}</p>
+                                  <p className="text-sm text-gray-600">Người hiến: {donation.donor_id?.full_name || "Không rõ"}</p>
                                   <p className="text-sm text-gray-600">{donation.donor_id?.email}</p>
                                   <p className="text-sm text-gray-600">SĐT: {donation.donor_id?.phone}</p>
                                 </div>
@@ -1019,7 +989,10 @@ export default function UserDashboard() {
                       ) : <p className="text-gray-600">Không tìm thấy người hiến máu.</p>}
 
                       {bloodManageFilter === "blood-donations-blood-inventory-history" && Array.isArray(warehouseDonationsList2) && warehouseDonationsList2.length > 0 ? (
-                        warehouseDonationsList2.map((donation) => (
+                        // Sort warehouse donations by creation date (most recent first)
+                        [...warehouseDonationsList2]
+                          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                          .map((donation, index) => (
                           <div
                             key={donation._id}
                             className="flex flex-col md:flex-row justify-between p-4 border rounded-lg space-y-4 md:space-y-0 md:space-x-6 hover:bg-gray-50 transition"
@@ -1031,7 +1004,8 @@ export default function UserDashboard() {
                                   <Droplet className="w-6 h-6 text-blue-600" />
                                 </div>
                                 <div>
-                                  <p className="font-medium">
+                                  <p className="font-medium">Kho máu #{warehouseDonationsList2.length - index}</p>
+                                  <p className="text-sm text-gray-600">
                                     Nhóm máu: {donation.inventory_item?.blood_type || "Không rõ"}
                                   </p>
                                   <p className="text-sm text-gray-600">
@@ -1319,8 +1293,8 @@ export default function UserDashboard() {
                                 <Image
                                   src={donor.health_cert_url}
                                   alt="Bằng sức khỏe"
-                                  width={200}
-                                  height={150}
+                                  width={20}
+                                  height={15}
                                   className="w-full h-auto object-cover rounded-lg border"
                                 />
                               ) : (

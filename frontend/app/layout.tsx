@@ -33,11 +33,6 @@ export default function RootLayout({
           src="https://ucarecdn.com/libs/widget/3.x/uploadcare.full.min.js"
           strategy="beforeInteractive"
         />
-        {/* ✅ Google Maps JavaScript API */}
-        <Script
-          src={`https://maps.googleapis.com/maps/api/js?key=AIzaSyAvB-XM78BFOIGmATl7os_bBauM4_qodYs&libraries=places`}
-          strategy="beforeInteractive"
-        />
         <AuthProvider>{children}</AuthProvider>
       </body>
     </html>

@@ -5,37 +5,36 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
-import { Clock, Droplets, MapPin, Phone, User, AlertTriangle, FileText, Calendar, Activity } from "lucide-react"
+import { Clock, Droplets, MapPin, Phone, User, AlertTriangle, FileText, Calendar, Activity, Heart } from "lucide-react"
 import api from "@/lib/axios"
 import { useAuth } from "@/contexts/auth-context"
 
-export default function RequestHistoryPage() {
-  const [bloodRequests, setBloodRequests] = useState<any[]>([])
+export default function DonorHistoryPage() {
+  const [donationRecords, setDonationRecords] = useState<any[]>([])
   const [hospitalNames, setHospitalNames] = useState<Record<string, string>>({})
   const { user } = useAuth()
 
   useEffect(() => {
-    const fetchRequests = async () => {
+    const fetchDonations = async () => {
       if (!user?._id) return;
 
       try {
-        const res = await api.get(`/recipient/blood-requests/${user._id}`);
-        const requestArray = res.data?.requests || [];
-        if (Array.isArray(requestArray)) {
-          setBloodRequests(requestArray);
+        const res = await api.get(`/donor/donation-records/${user._id}`);
+        const recordArray = res.data?.donations || [];
+        if (Array.isArray(recordArray)) {
+          setDonationRecords(recordArray);
 
-          // Load tên bệnh viện cho từng request
-          const namePromises = requestArray.map(async (req) => {
+          // Load tên bệnh viện cho từng record
+          const namePromises = recordArray.map(async (record) => {
             try {
-              // Kiểm tra xem req.hospital có tồn tại không
-              if (!req.hospital) {
-                return [req._id, "Không xác định"];
+              if (!record.hospital) {
+                return [record._id, "Không xác định"];
               }
-              const hospitalRes = await api.get(`/hospital/${req.hospital}`);
-              return [req._id, hospitalRes.data?.hospital?.name || "Không xác định"];
+              const hospitalRes = await api.get(`/hospital/${record.hospital}`);
+              return [record._id, hospitalRes.data?.hospital?.name || "Không xác định"];
             } catch (error) {
               console.error("Lỗi khi lấy tên bệnh viện:", error);
-              return [req._id, "Không xác định"];
+              return [record._id, "Không xác định"];
             }
           });
 
@@ -43,36 +42,28 @@ export default function RequestHistoryPage() {
           const namesObject = Object.fromEntries(resolved);
           setHospitalNames(namesObject);
         } else {
-          console.error("Data is not array:", requestArray);
-          setBloodRequests([]);
+          console.error("Data is not array:", recordArray);
+          setDonationRecords([]);
         }
       } catch (error) {
-        console.error("Lỗi khi lấy yêu cầu máu:", error);
+        console.error("Lỗi khi lấy lịch sử hiến máu:", error);
         // Nếu API không tồn tại hoặc có lỗi, set empty array để tránh crash
-        setBloodRequests([]);
+        setDonationRecords([]);
         setHospitalNames({});
       }
     };
 
-    fetchRequests();
+    fetchDonations();
   }, [user]);
-
-
-  async function handleHospitalName(hospitalId: any) {
-    const hospitalRes = await api.get(`/hospital/${hospitalId}`);
-    const hospitalName = hospitalRes.data.hospital.name;
-    return hospitalName;
-  }
 
   function translateStatus(status: string) {
     const map: Record<string, string> = {
-      pending: "Chờ duyệt",
-      approved: "Đã duyệt",
-      matched: "Đã ghép",
-      in_progress: "Đang xử lý",
+      pending: "Chờ xử lý",
+      scheduled: "Đã lên lịch",
       completed: "Hoàn tất",
       cancelled: "Đã hủy",
       rejected: "Từ chối",
+      in_progress: "Đang thực hiện",
     }
 
     return map[status] || status
@@ -80,16 +71,14 @@ export default function RequestHistoryPage() {
 
   function translateBloodComponent(component: string) {
     const componentMap: Record<string, string> = {
-      "Whole": "Máu toàn phần",
+      "whole": "Máu toàn phần",
       "RBC": "Hồng cầu", 
       "plasma": "Huyết tương",
       "platelet": "Tiểu cầu",
-      "whole": "Máu toàn phần",
     }
 
     return componentMap[component] || component
   }
-
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -101,8 +90,7 @@ export default function RequestHistoryPage() {
       case "rejected":
         return "bg-red-100 text-red-800"
       case "in_progress":
-      case "approved":
-      case "matched":
+      case "scheduled":
         return "bg-blue-100 text-blue-800"
       default:
         return "bg-gray-100 text-gray-800"
@@ -118,25 +106,25 @@ export default function RequestHistoryPage() {
           <div className="text-center mb-12">
             <div className="flex justify-center mb-4">
               <div className="w-16 h-16 bg-gradient-to-r from-red-500 to-rose-600 rounded-full flex items-center justify-center shadow-lg">
-                <FileText className="w-8 h-8 text-white" />
+                <Heart className="w-8 h-8 text-white" />
               </div>
             </div>
             <h1 className="text-4xl font-bold text-black mb-3">
-              Lịch sử yêu cầu máu
+              Lịch sử hiến máu
             </h1>
-            <p className="text-gray-600 text-lg">Theo dõi và quản lý các yêu cầu hiến máu của bạn</p>
+            <p className="text-gray-600 text-lg">Theo dõi và quản lý các lần hiến máu của bạn</p>
             <div className="w-24 h-1 bg-gradient-to-r from-red-500 to-rose-500 mx-auto mt-4 rounded-full"></div>
           </div>
 
           {/* Stats Section */}
-          {bloodRequests.length > 0 && (
+          {donationRecords.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
               <Card className="bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200 hover:shadow-lg transition-all duration-300">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-blue-600 text-sm font-medium">Tổng yêu cầu</p>
-                      <p className="text-2xl font-bold text-blue-800">{bloodRequests.length}</p>
+                      <p className="text-blue-600 text-sm font-medium">Tổng lần hiến</p>
+                      <p className="text-2xl font-bold text-blue-800">{donationRecords.length}</p>
                     </div>
                     <Activity className="w-8 h-8 text-blue-600" />
                   </div>
@@ -149,7 +137,7 @@ export default function RequestHistoryPage() {
                     <div>
                       <p className="text-green-600 text-sm font-medium">Đã hoàn thành</p>
                       <p className="text-2xl font-bold text-green-800">
-                        {bloodRequests.filter(req => req.status === 'completed').length}
+                        {donationRecords.filter(record => record.status === 'completed').length}
                       </p>
                     </div>
                     <Droplets className="w-8 h-8 text-green-600" />
@@ -157,27 +145,28 @@ export default function RequestHistoryPage() {
                 </CardContent>
               </Card>
               
-              <Card className="bg-gradient-to-r from-amber-50 to-amber-100 border-amber-200 hover:shadow-lg transition-all duration-300">
+              <Card className="bg-gradient-to-r from-red-50 to-red-100 border-red-200 hover:shadow-lg transition-all duration-300">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-amber-600 text-sm font-medium">Khẩn cấp</p>
-                      <p className="text-2xl font-bold text-amber-800">
-                        {bloodRequests.filter(req => req.is_emergency).length}
+                      <p className="text-red-600 text-sm font-medium">Tổng lượng máu</p>
+                      <p className="text-2xl font-bold text-red-800">
+                        {donationRecords.filter(record => record.status === 'completed')
+                          .reduce((total, record) => total + (record.amount || 450), 0)} ml
                       </p>
                     </div>
-                    <AlertTriangle className="w-8 h-8 text-amber-600" />
+                    <Heart className="w-8 h-8 text-red-600" />
                   </div>
                 </CardContent>
               </Card>
             </div>
           )}
 
-          {bloodRequests.length > 0 ? (
+          {donationRecords.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-              {bloodRequests.map((request, index) => (
+              {donationRecords.map((record, index) => (
                 <Card 
-                  key={request._id} 
+                  key={record._id} 
                   className="group hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border-0 bg-white/80 backdrop-blur-sm relative overflow-hidden"
                   style={{ animationDelay: `${index * 100}ms` }}
                 >
@@ -190,22 +179,22 @@ export default function RequestHistoryPage() {
                     <div className="flex items-start justify-between">
                       <div className="flex items-center space-x-3">
                         <div className="w-12 h-12 bg-gradient-to-r from-red-500 to-rose-600 rounded-full flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300">
-                          <User className="w-6 h-6 text-white" />
+                          <Heart className="w-6 h-6 text-white" />
                         </div>
                         <div>
-                          <p className="font-bold text-gray-900">{request?.recipient_id?.fullName || "Bạn"}</p>
+                          <p className="font-bold text-gray-900">Hiến máu #{index + 1}</p>
                           <div className="flex items-center space-x-2 mt-1">
                             <Badge 
                               variant="outline" 
                               className="text-red-600 border-red-300 bg-red-50 font-semibold"
                             >
-                              {request.blood_type_needed}
+                              {record.blood_type || "O+"}
                             </Badge>
                           </div>
                         </div>
                       </div>
-                      <Badge className={`${getStatusColor(request.status)} shadow-sm`}>
-                        {translateStatus(request.status)}
+                      <Badge className={`${getStatusColor(record.status)} shadow-sm`}>
+                        {translateStatus(record.status)}
                       </Badge>
                     </div>
                   </CardHeader>
@@ -215,7 +204,7 @@ export default function RequestHistoryPage() {
                       <div className="flex items-center text-gray-700 group-hover:text-gray-900 transition-colors duration-300">
                         <Calendar className="w-4 h-4 mr-3 text-blue-500" />
                         <span className="text-sm font-medium">
-                          {new Date(request.createdAt).toLocaleDateString("vi-VN", {
+                          {new Date(record.donation_date || record.createdAt).toLocaleDateString("vi-VN", {
                             year: 'numeric',
                             month: 'long',
                             day: 'numeric'
@@ -225,55 +214,55 @@ export default function RequestHistoryPage() {
 
                       <div className="flex items-center text-gray-700 group-hover:text-gray-900 transition-colors duration-300">
                         <MapPin className="w-4 h-4 mr-3 text-green-500" />
-                        <span className="text-sm font-medium">{hospitalNames[request._id] || "Đang tải..."}</span>
+                        <span className="text-sm font-medium">{hospitalNames[record._id] || "Đang tải..."}</span>
                       </div>
 
                       <div className="bg-gray-50 rounded-lg p-3 space-y-2">
-                        <div className="flex items-center text-gray-700">
-                          <Droplets className="w-4 h-4 mr-3 text-red-500" />
-                          <span className="text-sm">
-                            <strong>Thành phần:</strong> {request.components_needed.map((comp: string) => translateBloodComponent(comp)).join(", ")}
-                          </span>
-                        </div>
+                        {record.components && record.components.length > 0 && (
+                          <div className="flex items-center text-gray-700">
+                            <Droplets className="w-4 h-4 mr-3 text-red-500" />
+                            <span className="text-sm">
+                              <strong>Thành phần:</strong> {record.components.map((comp: string) => translateBloodComponent(comp)).join(", ")}
+                            </span>
+                          </div>
+                        )}
                         
                         <div className="flex items-center text-gray-700">
                           <div className="w-4 h-4 mr-3 flex items-center justify-center">
                             <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
                           </div>
                           <span className="text-sm">
-                            <strong>Số lượng:</strong> {request.amount_needed} đơn vị
+                            <strong>Số lượng:</strong> {record.amount || 450} ml
                           </span>
                         </div>
-                        
-                        {request.distance && (
+
+                        {record.next_eligible_date && (
                           <div className="flex items-center text-gray-700">
-                            <div className="w-4 h-4 mr-3 flex items-center justify-center">
-                              <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                            </div>
+                            <Clock className="w-4 h-4 mr-3 text-orange-500" />
                             <span className="text-sm">
-                              <strong>Khoảng cách:</strong> {request.distance} km
+                              <strong>Có thể hiến tiếp:</strong> {new Date(record.next_eligible_date).toLocaleDateString("vi-VN")}
                             </span>
                           </div>
                         )}
                       </div>
 
-                      {request.comment && (
+                      {record.notes && (
                         <div className="bg-blue-50 border-l-4 border-blue-400 p-3 rounded-r-lg">
                           <div className="flex items-start">
                             <span className="text-blue-600 mr-2">💬</span>
                             <div>
                               <p className="text-blue-800 font-medium text-sm mb-1">Ghi chú:</p>
-                              <p className="text-blue-700 text-sm whitespace-pre-line">{request.comment}</p>
+                              <p className="text-blue-700 text-sm whitespace-pre-line">{record.notes}</p>
                             </div>
                           </div>
                         </div>
                       )}
 
-                      {request.is_emergency && (
+                      {record.status === 'completed' && (
                         <div className="mt-4">
-                          <Badge className="bg-gradient-to-r from-red-600 to-red-700 text-white px-4 py-2 rounded-full animate-pulse inline-flex items-center shadow-lg">
-                            <AlertTriangle className="w-4 h-4 mr-2" />
-                            Yêu cầu khẩn cấp
+                          <Badge className="bg-gradient-to-r from-green-600 to-green-700 text-white px-4 py-2 rounded-full inline-flex items-center shadow-lg">
+                            <Heart className="w-4 h-4 mr-2" />
+                            Cảm ơn bạn đã hiến máu
                           </Badge>
                         </div>
                       )}
@@ -285,11 +274,11 @@ export default function RequestHistoryPage() {
           ) : (
             <div className="flex flex-col items-center justify-center min-h-[400px] bg-white/50 rounded-2xl backdrop-blur-sm border border-gray-100">
               <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6">
-                <FileText className="w-12 h-12 text-gray-400" />
+                <Heart className="w-12 h-12 text-gray-400" />
               </div>
-              <h3 className="text-2xl font-bold text-gray-700 mb-2">Chưa có yêu cầu nào</h3>
+              <h3 className="text-2xl font-bold text-gray-700 mb-2">Chưa có lịch sử hiến máu</h3>
               <p className="text-gray-500 text-center max-w-md">
-                Bạn chưa thực hiện yêu cầu hiến máu nào. Hãy bắt đầu bằng cách tạo yêu cầu mới.
+                Bạn chưa có lần hiến máu nào. Hãy bắt đầu hành trình cứu người bằng cách hiến máu lần đầu tiên.
               </p>
             </div>
           )}

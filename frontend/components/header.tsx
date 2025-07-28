@@ -73,15 +73,37 @@ export function Header() {
     { href: "/blog", label: "Blog" },
   ]
 
-  // Các trang yêu cầu đăng nhập
-  const protectedPages = [
-    { href: "/donate", label: "Hiến máu" },
-    { href: "/blood-request", label: "Yêu cầu máu" },
-    { href: "/emergency", label: "Khẩn cấp" },
-    { href: "/history-recip", label: "Lịch Sử" },
-  ]
+  // Các trang yêu cầu đăng nhập - phân quyền theo role
+  const getProtectedPagesByRole = () => {
+    if (!user) return []
+    
+    switch (user.role) {
+      case "donor":
+        return [
+          { href: "/donate", label: "Hiến máu" },
+          { href: "/history-donor", label: "Lịch sử hiến máu" },
+        ]
+      case "recipient":
+        return [
+          { href: "/blood-request", label: "Yêu cầu máu" },
+          { href: "/history-recip", label: "Lịch sử nhận máu" },
+        ]
+      case "admin":
+      case "staff":
+        return [
+          { href: "/donate", label: "Hiến máu" },
+          { href: "/blood-request", label: "Yêu cầu máu" },
+          { href: "/history-donor", label: "Lịch sử hiến máu" },
+          { href: "/history-recip", label: "Lịch sử nhận máu" },
+        ]
+      default:
+        return []
+    }
+  }
 
-  // Navigation items cho mobile menu (giữ nguyên cách cũ cho mobile)
+  const protectedPages = getProtectedPagesByRole()
+
+  // Navigation items cho mobile menu
   const mobileNavigationItems = user ? [...publicPages, ...infoPages, ...protectedPages] : [...publicPages, ...infoPages]
 
   const isActivePath = (href: string) => {
@@ -152,26 +174,29 @@ export function Header() {
               </Link>
             ))}
 
-            {/* Các trang protected khi đã đăng nhập */}
-            {user && protectedPages.map((item) => {
-              if (item.href === "/history-recip") {
-                return (
-                  <React.Fragment key={item.href}>
-                    <Link
-                      href={item.href}
-                      onClick={scrollToTop}
-                      className={`
-                        px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200
-                        ${isActivePath(item.href)
-                          ? "bg-red-600 text-white shadow-sm"
-                          : "text-gray-700 hover:text-red-600 hover:bg-red-50"
-                        }
-                      `}
-                    >
-                      {item.label}
-                    </Link>
-                    
-                    {/* Dropdown menu cho thông tin chỉ khi đã đăng nhập */}
+            {/* Các trang protected khi đã đăng nhập - phân quyền theo role */}
+            {user && protectedPages.map((item, index) => {
+              // Thêm dropdown thông tin sau item cuối cùng
+              const isLastItem = index === protectedPages.length - 1
+              
+              return (
+                <React.Fragment key={item.href}>
+                  <Link
+                    href={item.href}
+                    onClick={scrollToTop}
+                    className={`
+                      px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200
+                      ${isActivePath(item.href)
+                        ? "bg-red-600 text-white shadow-sm"
+                        : "text-gray-700 hover:text-red-600 hover:bg-red-50"
+                      }
+                    `}
+                  >
+                    {item.label}
+                  </Link>
+                  
+                  {/* Dropdown menu cho thông tin chỉ sau item cuối cùng */}
+                  {isLastItem && (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <button
@@ -202,24 +227,8 @@ export function Header() {
                         ))}
                       </DropdownMenuContent>
                     </DropdownMenu>
-                  </React.Fragment>
-                )
-              }
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={scrollToTop}
-                  className={`
-                    px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200
-                    ${isActivePath(item.href)
-                      ? "bg-red-600 text-white shadow-sm"
-                      : "text-gray-700 hover:text-red-600 hover:bg-red-50"
-                    }
-                  `}
-                >
-                  {item.label}
-                </Link>
+                  )}
+                </React.Fragment>
               )
             })}
           </nav>
