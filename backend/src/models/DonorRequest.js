@@ -39,14 +39,6 @@ const donorRequestSchema = new mongoose.Schema(
       ref: "Hospital",
       required: true,
     },
-    distance: {
-      type: Number,
-      default: 10,
-    },
-    is_flexible_schedule: {
-      type: Boolean,
-      default: true,
-    },
     status: {
       type: String,
       enum: [

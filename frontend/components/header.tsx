@@ -58,17 +58,52 @@ export function Header() {
     return user.role === "admin" ? "Quản trị" : "Dashboard"
   }
 
-  const navigationItems = [
-    { href: "/", label: "Trang chủ" },
-    { href: "/donate", label: "Hiến máu" },
-    { href: "/request", label: "Cần máu" },
-    { href: "/reqdonation", label: "Yêu cầu máu" },
-    { href: "/emergency", label: "Khẩn cấp" },
-    { href: "/blog", label: "Blog" },
-    { href: "/history-recip", label: "Lịch Sử" },
-    { href: "/qna", label: "Hỏi đáp" },
-    { href: "/guide", label: "Hướng dẫn" },
-  ]
+  const getNavigationItems = () => {
+    if (!user) {
+      return [
+        { href: "/", label: "Trang chủ" },
+        { href: "/blog", label: "Blog" },
+        { href: "/qna", label: "Hỏi đáp" },
+        { href: "/guide", label: "Hướng dẫn" },
+      ]
+    } else if (user.role === "donor") {
+      return [
+        { href: "/", label: "Trang chủ" },
+        { href: "/donate", label: "Hiến máu" },
+        { href: "/blog", label: "Blog" },
+        { href: "/history-donor-requests", label: "Lịch sử" },
+        { href: "/qna", label: "Hỏi đáp" },
+        { href: "/guide", label: "Hướng dẫn" },
+      ]
+    } else if (user.role === "recipient") {
+      return [
+        { href: "/", label: "Trang chủ" },
+        { href: "/reqdonation", label: "Yêu cầu máu" },
+        { href: "/blog", label: "Blog" },
+        { href: "/history-recip", label: "Lịch sử" },
+        { href: "/qna", label: "Hỏi đáp" },
+        { href: "/guide", label: "Hướng dẫn" },
+      ]
+    } else if (user.role === "staff") {
+      return [
+        { href: "/", label: "Trang chủ" },
+        { href: "/staff/dashboard", label: "Quản Lý Máu" },
+        { href: "/blog", label: "Blog" },
+        { href: "/qna", label: "Hỏi đáp" },
+        { href: "/guide", label: "Hướng dẫn" },
+      ]
+    } else if (user.role === "admin") {
+      return [
+        { href: "/", label: "Trang chủ" },
+        { href: "/admin/dashboard", label: "Quản trị" },
+        { href: "/blog", label: "Blog" },
+        { href: "/qna", label: "Hỏi đáp" },
+        { href: "/guide", label: "Hướng dẫn" },
+      ]
+    }
+  }
+
+  const navigationItems = getNavigationItems();
 
   const isActivePath = (href: string) => {
     if (href === "/") {
@@ -111,7 +146,7 @@ export function Header() {
                 href={item.href}
                 onClick={scrollToTop}
                 className={`
-                  px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200
+                  px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${item.href === "/donate" ? "bg-blue-600 text-white" : ""} ${item.href === "/reqdonation" ? "bg-green-600 text-white" : ""} ${item.href === "/staff/dashboard" ? "bg-yellow-600 text-white" : ""} ${item.href === "/admin/dashboard" ? "bg-black text-white" : ""}
                   ${isActivePath(item.href)
                     ? "bg-red-600 text-white shadow-sm"
                     : "text-gray-700 hover:text-red-600 hover:bg-red-50"
@@ -192,7 +227,7 @@ export function Header() {
                     scrollToTop()
                   }}
                   className={`
-                    block px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200
+                    block px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ${item.href === "/donate" ? "bg-blue-50 text-blue-600" : ""} ${item.href === "/reqdonation" ? "bg-green-600 text-white" : ""} ${item.href === "/staff/dashboard" ? "bg-yellow-600 text-white" : ""} ${item.href === "/admin/dashboard" ? "bg-black text-white" : ""}
                     ${isActivePath(item.href)
                       ? "bg-red-600 text-white"
                       : "text-gray-700 hover:text-red-600 hover:bg-red-50"

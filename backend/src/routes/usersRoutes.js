@@ -28,7 +28,8 @@ import {
   getWarehouseDonationsByRecipientId
 } from "../controllers/donationController.js";
 import {
-  createDonorRequest
+  createDonorRequest,
+  getDonorRequestsByDonorId
 } from "../controllers/donorRequestController.js";
 
 const router = express.Router();
@@ -58,6 +59,7 @@ router.delete("/admin/users/delete/:adminId/:userId", deleteUserByAdmin);
 router.post("/donors/by-hospitals", getDonorsByHospitals);
 router.post("/donors/by-hospitals-and-bloodtype", getCompatibleDonorsByHospitalAndRecipientBloodType);
 router.post("/donor/request", createDonorRequest);
+router.get("/donor/get-requests-by-id/:donorId", getDonorRequestsByDonorId);
 
 
 

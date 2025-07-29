@@ -72,3 +72,40 @@ export async function createDonorRequest(req, res) {
     res.status(500).json({ message: "Internal server error" });
   }
 }
+
+export async function getDonorRequestsByDonorId(req, res) {
+  try {
+    const { donorId } = req.params;
+
+    // Kiểm tra donorId hợp lệ
+    if (!donorId) {
+      return res.status(400).json({ message: "Missing donorId" });
+    }
+
+    // Kiểm tra user tồn tại và là donor
+    const user = await User.findById(donorId);
+    if (!user || user.role !== "donor") {
+      return res.status(404).json({ message: "User is not a valid donor" });
+    }
+
+    // Tìm các yêu cầu hiến máu của donor
+    const donorRequests = await DonorRequest.find({ donor_id: donorId })
+      .populate({
+        path: "donor_id",
+        select: "full_name email phone gender date_of_birth address",
+      }).populate({
+        path: "hospital",
+        select: "name address",
+      })
+      .sort({ createdAt: -1 }); // mới nhất trước
+
+    return res.status(200).json({
+      message: "Fetched donor requests successfully",
+      requests: donorRequests,
+    });
+  } catch (error) {
+    console.error("Error fetching donor requests:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+}
+

@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -17,15 +17,54 @@ import { Heart, CalendarIcon, User, Droplets, Shield, CheckCircle } from "lucide
 import { format } from "date-fns"
 import { vi } from "date-fns/locale"
 import Link from "next/link"
+import api from "@/lib/axios";
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
+import toast, { Toaster } from "react-hot-toast"
+import { useAuth } from "@/contexts/auth-context"
 
 export default function DonatePage() {
+  const { user, logout } = useAuth()
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, "0")
+    const day = String(date.getDate()).padStart(2, "0")
+    return `${year}-${month}-${day}`
+  }
+
   const today = new Date().toISOString().split("T")[0];
+
+  const [formData, setFormData] = useState({
+      name: user?.full_name,
+      email: user?.email,
+      phone: user?.phone,
+      address: user?.address,
+      gender: user?.gender,
+      date_of_birth: user?.date_of_birth ? formatDate(user.date_of_birth) : "",
+      role: user?.role,
+      available_date: today,
+      available_time_range: {
+        from: "",
+        to: "",
+      },
+      amount_offered: "",
+      components_offered: [] as string[],
+      notes: "",
+    })
+
+  
+
+  
 
   const [loading, setLoading] = useState(false);
 
 
+    
+
+  
+    
 
   const handleCheckboxChange = (component: string) => {
     const selected = formData.components_offered.includes(component);
@@ -37,17 +76,6 @@ export default function DonatePage() {
   };
 
   const [selectedDate, setSelectedDate] = useState<Date>()
-  const [formData, setFormData] = useState({
-    available_date: today,
-    available_time_range: {
-      from: "",
-      to: "",
-    },
-    amount_offered: "",
-    components_offered: [] as string[],
-    hospital: "",
-    notes: "",
-  });
 
   const bloodTypes = ["O-", "O+", "A-", "A+", "B-", "B+", "AB-", "AB+"]
   const timeSlots = ["6:00 - 8:00", "8:00 - 10:00", "10:00 - 12:00", "14:00 - 16:00", "16:00 - 18:00", "18:00 - 20:00"]
@@ -67,31 +95,48 @@ export default function DonatePage() {
     setLoading(true);
 
     try {
-      const res = await fetch("/api/donor-request", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      });
+      const { from, to } = formData.available_time_range;
 
-      if (!res.ok) {
-        throw new Error("Failed to submit donor request");
+      if (to <= from) {
+        toast.error("Giờ kết thúc phải sau giờ bắt đầu!");
+        setLoading(false);
+        return;
       }
 
-      alert("Đăng ký hiến máu thành công!");
+      if (Number(formData.amount_offered) <= 1 || Number(formData.amount_offered) >= 50) {
+        toast.error("Lượng máu hiến phải lớn hơn 1 và nhỏ hơn 50 (ml)!");
+        setLoading(false);
+        return;
+      }
+
+
+
+      const response = await api.post("/users/donor/request", {
+        donor_id: user?._id,
+        available_date: formData.available_date,
+        available_time_range: {
+          from: formData.available_time_range.from,
+          to: formData.available_time_range.to,
+        },
+        amount_offered: formData.amount_offered,
+        components_offered: formData.components_offered,
+        comment: formData.notes,
+      });
+
+      toast.success("Đăng ký hiến máu thành công!");
       // Reset form
-      setFormData({
+      setFormData(prev => ({
+        ...prev,
         available_date: today,
         available_time_range: { from: "", to: "" },
         amount_offered: "",
         components_offered: [],
-        hospital: "",
         notes: "",
-      });
+      }));
+      console.log("_id: ", user?._id, "Form reset:", formData);
     } catch (error) {
       console.error(error);
-      alert("Đã xảy ra lỗi khi gửi yêu cầu.");
+      toast.error("Đã xảy ra lỗi khi gửi yêu cầu.");
     } finally {
       setLoading(false);
     }
@@ -174,7 +219,6 @@ export default function DonatePage() {
                     {/* Availability */}
                     <div className="space-y-4">
                       <div className="max-w-xl mx-auto p-6">
-                        <form onSubmit={handleSubmit} className="space-y-4">
                           {/* Ngày hiến */}
                           <div>
                             <Label htmlFor="available_date">Ngày hiến máu</Label>
@@ -218,6 +262,7 @@ export default function DonatePage() {
                               <Input
                                 type="time"
                                 id="to"
+                                min={formData.available_time_range.from}
                                 value={formData.available_time_range.to}
                                 onChange={(e) =>
                                   setFormData((prev) => ({
@@ -248,7 +293,8 @@ export default function DonatePage() {
                               }
                               placeholder="Ví dụ: 350"
                               required
-                              min={50}
+                              min={1}
+                              max={50}
                             />
                           </div>
 
@@ -286,7 +332,6 @@ export default function DonatePage() {
                           <Button type="submit" disabled={loading} className="w-full">
                             {loading ? "Đang gửi..." : "Đăng ký hiến máu"}
                           </Button>
-                        </form>
                       </div>
                       </div>
                   </form>
@@ -335,6 +380,10 @@ export default function DonatePage() {
       </div>
 
       <Footer />
+
+      <Toaster position="top-center" containerStyle={{
+        top: 80,
+      }}/>
     </div>
   )
 }
