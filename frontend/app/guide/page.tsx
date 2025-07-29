@@ -340,27 +340,6 @@ export default function GuidePage() {
             </div>
           </CardContent>
         </Card>
-
-        {/* Call to Action */}
-        <div className="text-center mt-12 p-8 bg-red-600 rounded-xl text-white">
-          <Heart className="w-16 h-16 mx-auto mb-4 opacity-90" />
-          <h2 className="text-3xl font-bold mb-4">Sẵn sàng cứu sống người khác?</h2>
-          <p className="text-xl mb-6 opacity-90">Mỗi lần hiến máu có thể cứu sống đến 3 người</p>
-          <div className="space-x-4">
-            <button
-              onClick={handleDonateClick}
-              className="bg-white text-red-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
-            >
-              Đăng ký hiến máu
-            </button>
-            <button
-              onClick={handleDashboardAccess}
-              className="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-red-600 transition-colors"
-            >
-              Tìm điểm hiến máu
-            </button>
-          </div>
-        </div>
       </div>
 
       <Footer />

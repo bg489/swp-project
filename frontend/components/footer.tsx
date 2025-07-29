@@ -37,33 +37,6 @@ export function Footer() {
             </p>
           </div>
 
-          {/* Services */}
-          <div>
-            <h4 className="text-lg font-semibold mb-4">Dịch vụ</h4>
-            <ul className="space-y-2 text-gray-400">
-              <li>
-                <Link href="/donate" className="hover:text-white transition-colors">
-                  Đăng ký hiến máu
-                </Link>
-              </li>
-              <li>
-                <Link href="/blood-request" className="hover:text-white transition-colors">
-                  Tìm người hiến máu
-                </Link>
-              </li>
-              {user && (
-                <li>
-                  <Link
-                    href={user.role === "admin" ? "/admin/dashboard" : "/user/dashboard"}
-                    className="hover:text-white transition-colors"
-                  >
-                    Dashboard
-                  </Link>
-                </li>
-              )}
-            </ul>
-          </div>
-
           {/* Information */}
           <div>
             <h4 className="text-lg font-semibold mb-4">Thông tin</h4>

@@ -90,8 +90,8 @@ export default function EditRequestPage() {
   const [donorList, setDonorList] = useState<DonorList | null>(null);
   const [bloodReq, setBloodReq] = useState<BloodRequest | null>(null);
   const [selectedStatus, setSelectedStatus] = useState("");
-  const [donationDate, setDonationDate] = useState("");
-  const [donationComment, setDonationComment] = useState("");
+  const [donationDates, setDonationDates] = useState<{[key: string]: string}>({});
+  const [donationComments, setDonationComments] = useState<{[key: string]: string}>({});
   const [bloodInven, setBloodInven] = useState<BloodInventory[]>([]);
   const [warehouseDonationDate, setWarehouseDonationDate] = useState("");
 
@@ -121,7 +121,7 @@ export default function EditRequestPage() {
         donation_date: warehouseDonationDate,
         volume: bloodReq.amount_needed,
         updated_by: staff.user_id._id,
-        notes: donationComment,
+        notes: donationComments['warehouse'] || '',
         hospital: staff.hospital._id
       });
 
@@ -249,15 +249,23 @@ export default function EditRequestPage() {
         return;
       }
 
+      const donorDate = donationDates[donorId];
+      const donorComment = donationComments[donorId];
+
+      if (!donorDate) {
+        toast.error("Vui lòng chọn ngày hiến máu");
+        return;
+      }
+
       await api.post("/staff/donation", {
         donor_id: donorId,
         recipient_id: bloodReq.recipient_id._id,
-        donation_date: donationDate,
+        donation_date: donorDate,
         donation_type: bloodReq.components_needed[0],
         volume: bloodReq.amount_needed,
         status: "scheduled",
         updated_by: staff.user_id._id,
-        notes: donationComment,
+        notes: donorComment || '',
       });
       await api.put(`/staff/blood-requests/${requestId}/status`, {
         status: "matched",
@@ -361,7 +369,7 @@ export default function EditRequestPage() {
 
                 <div className="space-y-3">
                   <div className="flex flex-col">
-                    <Label htmlFor="warehouse-donation-date">Ngày hiến máu</Label>
+                    <Label htmlFor="warehouse-donation-date">Ngày nhận máu</Label>
                     <div className="relative mt-5">
                       <Calendar className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                       <Input
@@ -380,8 +388,8 @@ export default function EditRequestPage() {
                     <Input
                       id="warehouse-comment"
                       placeholder="Nhập ghi chú khi lấy máu từ kho..."
-                      value={donationComment}
-                      onChange={(e) => setDonationComment(e.target.value)}
+                      value={donationComments['warehouse'] || ''}
+                      onChange={(e) => setDonationComments(prev => ({...prev, warehouse: e.target.value}))}
                       className="mt-5"
                     />
                   </div>
@@ -448,8 +456,8 @@ export default function EditRequestPage() {
                         <Input
                           id={`donation-date-${donor._id}`}
                           type="date"
-                          value={donationDate}
-                          onChange={(e) => setDonationDate(e.target.value)}
+                          value={donationDates[donor._id] || ''}
+                          onChange={(e) => setDonationDates(prev => ({...prev, [donor._id]: e.target.value}))}
                           className="pl-10"
                           required
                         />
@@ -461,8 +469,8 @@ export default function EditRequestPage() {
                       <Input
                         id={`comment-${donor._id}`}
                         type="text"
-                        value={donationComment}
-                        onChange={(e) => setDonationComment(e.target.value)}
+                        value={donationComments[donor._id] || ''}
+                        onChange={(e) => setDonationComments(prev => ({...prev, [donor._id]: e.target.value}))}
                         placeholder="Nhập ghi chú..."
                         className="w-full md:w-48"
                       />

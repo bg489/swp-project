@@ -13,6 +13,7 @@ import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { useAuth } from "@/contexts/auth-context"
 import { GuestAccessWarning } from "@/components/auth/guest-access-warning"
+import { ProtectedRoute } from "@/components/auth/protected-route"
 import api from "../../lib/axios"
 import toast, { Toaster } from "react-hot-toast"
 
@@ -25,7 +26,7 @@ export default function BloodRequestPage() {
     comment: "",
     distance: 5,
     availability: "all",
-    amount: 0,
+    amount: 1, // Default to 1 instead of 0 to prevent validation errors
     components_needed: [] as string[],
     hospital: "",
     is_emergency: false,
@@ -183,8 +184,55 @@ export default function BloodRequestPage() {
     setIsSubmitting(true)
 
     try {
+      // Validate required fields
+      if (!requestForm.bloodType) {
+        toast.error("Vui lòng chọn nhóm máu cần")
+        setIsSubmitting(false)
+        return
+      }
+
+      if (!requestForm.hospital) {
+        toast.error("Vui lòng chọn bệnh viện")
+        setIsSubmitting(false)
+        return
+      }
+
+      if (requestForm.components_needed.length === 0) {
+        toast.error("Vui lòng chọn ít nhất một thành phần máu")
+        setIsSubmitting(false)
+        return
+      }
+
+      if (!requestForm.amount || requestForm.amount <= 0) {
+        toast.error("Vui lòng nhập số lượng máu cần thiết (phải lớn hơn 0)")
+        setIsSubmitting(false)
+        return
+      }
+
+      if (!user?._id) {
+        toast.error("Vui lòng đăng nhập để gửi yêu cầu")
+        setIsSubmitting(false)
+        return
+      }
+
+      // Debug user information
+      console.log("Current user:", user)
+      console.log("User role:", user.role)
+      console.log("User ID:", user._id)
+
+      console.log("Submitting blood request with data:", {
+        recipient_id: user._id,
+        blood_type_needed: requestForm.bloodType,
+        components_needed: requestForm.components_needed,
+        amount_needed: requestForm.amount,
+        hospital: requestForm.hospital,
+        distance: requestForm.distance,
+        comment: requestForm.comment,
+        is_emergency: requestForm.is_emergency
+      })
+
       const response = await api.post("/recipient/request", {
-        recipient_id: user?._id,
+        recipient_id: user._id,
         blood_type_needed: requestForm.bloodType,
         components_needed: requestForm.components_needed,
         amount_needed: requestForm.amount,
@@ -202,9 +250,25 @@ export default function BloodRequestPage() {
       } else {
         toast.error("Gửi yêu cầu thất bại")
       }
-    } catch (err) {
-      console.error(err)
-      toast.error("Đã xảy ra lỗi. Vui lòng thử lại.")
+    } catch (err: any) {
+      console.error("Error submitting blood request:", err)
+      console.error("Error response:", err.response?.data)
+      console.error("Error status:", err.response?.status)
+      
+      // Handle specific error cases
+      if (err.response?.status === 400) {
+        const errorMessage = err.response?.data?.message || "Dữ liệu không hợp lệ"
+        toast.error(`Lỗi: ${errorMessage}`)
+        console.error("400 Error details:", {
+          message: err.response?.data?.message,
+          errors: err.response?.data?.errors,
+          data: err.response?.data
+        })
+      } else if (err.response?.status === 404) {
+        toast.error("Không tìm thấy người dùng hoặc bệnh viện")
+      } else {
+        toast.error("Đã xảy ra lỗi. Vui lòng thử lại.")
+      }
     } finally {
       setIsSubmitting(false)
     }
@@ -281,7 +345,8 @@ export default function BloodRequestPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-red-50 to-white">
+    <ProtectedRoute requiredRole="recipient">
+      <div className="min-h-screen bg-gradient-to-b from-red-50 to-white">
       <Header />
 
       <div className="container mx-auto px-4 py-8">
@@ -629,6 +694,7 @@ export default function BloodRequestPage() {
 
       <Toaster position="top-center" containerStyle={{ top: 80 }} />
       <Footer />
-    </div>
+      </div>
+    </ProtectedRoute>
   )
 }

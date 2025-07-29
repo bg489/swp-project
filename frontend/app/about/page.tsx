@@ -255,53 +255,6 @@ export default function AboutPage() {
               ))}
             </div>
           </div>
-
-          {/* Contact Section */}
-          <Card className="bg-gradient-to-r from-red-500 to-red-600 text-white">
-            <CardContent className="p-8 text-center">
-              <div className="w-16 h-16 mx-auto mb-6 rounded-full overflow-hidden bg-white">
-                <Image
-                  src="/images/logo.webp"
-                  alt="ScαrletBlood Logo"
-                  width={64}
-                  height={64}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <h2 className="text-3xl font-bold mb-4">Liên hệ với chúng tôi</h2>
-              <p className="text-red-100 mb-8 max-w-2xl mx-auto">
-                Bạn có câu hỏi hoặc muốn tham gia vào sứ mệnh cứu sống sinh mạng? Hãy liên hệ với chúng tôi ngay hôm
-                nay!
-              </p>
-              <div className="grid md:grid-cols-3 gap-6 mb-8">
-                <div className="flex items-center justify-center space-x-3">
-                  <Phone className="w-5 h-5" />
-                  <span>1900-1234</span>
-                </div>
-                <div className="flex items-center justify-center space-x-3">
-                  <Mail className="w-5 h-5" />
-                  <span>info@scarletblood.vn</span>
-                </div>
-                <div className="flex items-center justify-center space-x-3">
-                  <MapPin className="w-5 h-5" />
-                  <span>123 Đường ABC, Q.1, TP.HCM</span>
-                </div>
-              </div>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button variant="secondary" size="lg" asChild>
-                  <Link href="/donate">Đăng ký hiến máu</Link>
-                </Button>
-                <Button
-                  variant="outline"
-                  size="lg"
-                  className="border-white text-white hover:bg-white hover:text-red-600"
-                  asChild
-                >
-                  <Link href="/contact">Liên hệ ngay</Link>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
         </div>
       </div>
 

@@ -91,10 +91,8 @@ export function Header() {
       case "admin":
       case "staff":
         return [
-          { href: "/donate", label: "Hiến máu" },
-          { href: "/blood-request", label: "Yêu cầu máu" },
-          { href: "/history-donor-requests", label: "Lịch sử yêu cầu hiến" },
-          { href: "/history-recip", label: "Lịch sử nhận máu" },
+          // Admin và staff không cần hiển thị trang hiến máu và yêu cầu máu
+          // Họ chỉ cần trang dashboard riêng để quản lý
         ]
       default:
         return []
@@ -118,42 +116,43 @@ export function Header() {
   }
 
   return (
-    <header className="border-b bg-white/95 backdrop-blur-sm sticky top-0 z-50">
-      <div className="container mx-auto px-4 py-3">
-        <div className="flex items-center justify-between">
-          {/* Logo - Compact */}
-          <Link href="/" className="flex items-center space-x-2 group">
-            <div className="w-8 h-8 rounded-full overflow-hidden group-hover:scale-110 transition-transform duration-200">
+    <header className="border-b border-gray-200 bg-white/95 backdrop-blur-sm sticky top-0 z-50 shadow-sm">
+      <div className="container mx-auto px-4 py-4">
+        <div className="flex items-center justify-between h-12">
+          {/* Logo - Enhanced */}
+          <Link href="/" className="flex items-center space-x-3 group">
+            <div className="w-10 h-10 rounded-full overflow-hidden group-hover:scale-110 transition-transform duration-300 shadow-md">
               <Image
                 src="/images/logo.webp"
                 alt="ScαrletBlood Logo"
-                width={32}
-                height={32}
+                width={40}
+                height={40}
                 className="w-full h-full object-cover"
               />
             </div>
-            <div>
-              <h1 className="text-lg font-bold text-gray-900 group-hover:text-red-600 transition-colors duration-200">
+            <div className="flex flex-col">
+              <h1 className="text-xl font-bold text-gray-900 group-hover:text-red-600 transition-colors duration-300">
                 ScαrletBlood
               </h1>
+              <span className="text-xs text-gray-500 leading-none">Kết nối trái tim</span>
             </div>
           </Link>
 
-          {/* Desktop Navigation - Compact */}
-          <nav className="hidden md:flex items-center space-x-1">
+          {/* Desktop Navigation - Enhanced */}
+          <nav className="hidden md:flex items-center space-x-2">
             {/* Trang chủ */}
             <Link
               href="/"
               onClick={scrollToTop}
               className={`
-                px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200
+                px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 relative
                 ${isActivePath("/")
-                  ? "bg-red-600 text-white shadow-sm"
-                  : "text-gray-700 hover:text-red-600 hover:bg-red-50"
+                  ? "bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg shadow-red-200"
+                  : "text-gray-700 hover:text-red-600 hover:bg-red-50 hover:shadow-md"
                 }
               `}
             >
-              Trang chủ
+              <span className="relative z-10">Trang chủ</span>
             </Link>
 
             {/* Hiển thị 3 trang thông tin riêng biệt cho guest */}
@@ -163,136 +162,138 @@ export function Header() {
                 href={item.href}
                 onClick={scrollToTop}
                 className={`
-                  px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200
+                  px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 relative
                   ${isActivePath(item.href)
-                    ? "bg-red-600 text-white shadow-sm"
-                    : "text-gray-700 hover:text-red-600 hover:bg-red-50"
+                    ? "bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg shadow-red-200"
+                    : "text-gray-700 hover:text-red-600 hover:bg-red-50 hover:shadow-md"
                   }
                 `}
               >
-                {item.label}
+                <span className="relative z-10">{item.label}</span>
               </Link>
             ))}
 
             {/* Các trang protected khi đã đăng nhập - phân quyền theo role */}
-            {user && protectedPages.map((item, index) => {
-              // Thêm dropdown thông tin sau item cuối cùng
-              const isLastItem = index === protectedPages.length - 1
-              
-              return (
-                <React.Fragment key={item.href}>
-                  <Link
-                    href={item.href}
-                    onClick={scrollToTop}
+            {user && protectedPages.map((item, index) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={scrollToTop}
+                className={`
+                  px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 relative
+                  ${isActivePath(item.href)
+                    ? "bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg shadow-red-200"
+                    : "text-gray-700 hover:text-red-600 hover:bg-red-50 hover:shadow-md"
+                  }
+                `}
+              >
+                <span className="relative z-10">{item.label}</span>
+              </Link>
+            ))}
+
+            {/* Dropdown menu cho thông tin khi đã đăng nhập */}
+            {user && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
                     className={`
-                      px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200
-                      ${isActivePath(item.href)
-                        ? "bg-red-600 text-white shadow-sm"
-                        : "text-gray-700 hover:text-red-600 hover:bg-red-50"
+                      px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 flex items-center space-x-2 relative
+                      ${(isActivePath("/guide") || isActivePath("/qna") || isActivePath("/blog"))
+                        ? "bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg shadow-red-200"
+                        : "text-gray-700 hover:text-red-600 hover:bg-red-50 hover:shadow-md"
                       }
                     `}
                   >
-                    {item.label}
-                  </Link>
-                  
-                  {/* Dropdown menu cho thông tin chỉ sau item cuối cùng */}
-                  {isLastItem && (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <button
-                          className={`
-                            px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center space-x-1
-                            ${(isActivePath("/guide") || isActivePath("/qna") || isActivePath("/blog"))
-                              ? "bg-red-600 text-white shadow-sm"
-                              : "text-gray-700 hover:text-red-600 hover:bg-red-50"
-                            }
-                          `}
-                        >
-                          <BookOpen className="w-4 h-4" />
-                          <span>Thông tin</span>
-                          <ChevronDown className="w-3 h-3" />
-                        </button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="start" className="w-40">
-                        {infoPages.map((infoItem) => (
-                          <DropdownMenuItem key={infoItem.href} asChild>
-                            <Link
-                              href={infoItem.href}
-                              onClick={scrollToTop}
-                              className="w-full"
-                            >
-                              {infoItem.label}
-                            </Link>
-                          </DropdownMenuItem>
-                        ))}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  )}
-                </React.Fragment>
-              )
-            })}
+                    <BookOpen className="w-4 h-4" />
+                    <span className="relative z-10">Thông tin</span>
+                    <ChevronDown className="w-3 h-3 transition-transform duration-200 group-hover:rotate-180" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-44 mt-2 shadow-lg border-0 bg-white/95 backdrop-blur-sm">
+                  {infoPages.map((infoItem) => (
+                    <DropdownMenuItem key={infoItem.href} asChild>
+                      <Link
+                        href={infoItem.href}
+                        onClick={scrollToTop}
+                        className="w-full px-4 py-3 text-sm text-gray-700 hover:text-red-600 hover:bg-red-50 transition-colors duration-200"
+                      >
+                        {infoItem.label}
+                      </Link>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </nav>
 
-          {/* Mobile Menu Button */}
+          {/* Mobile Menu Button - Enhanced */}
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors duration-200"
+            className="md:hidden p-3 rounded-xl hover:bg-red-50 transition-all duration-300 relative group"
           >
-            {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            {isMobileMenuOpen ? 
+              <X className="w-5 h-5 text-gray-700 group-hover:text-red-600 transition-colors duration-200" /> : 
+              <Menu className="w-5 h-5 text-gray-700 group-hover:text-red-600 transition-colors duration-200" />
+            }
           </button>
 
-          {/* User Menu - Compact */}
-          <div className="hidden md:flex items-center space-x-2">
+          {/* User Menu - Enhanced */}
+          <div className="hidden md:flex items-center space-x-3">
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="flex items-center space-x-2 h-9">
-                    <div className="w-7 h-7 bg-red-600 rounded-full flex items-center justify-center">
+                  <Button variant="ghost" className="flex items-center space-x-3 h-auto px-4 py-2.5 rounded-xl hover:bg-red-50 transition-all duration-300 group">
+                    <div className="w-8 h-8 bg-gradient-to-r from-red-500 to-red-600 rounded-full flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300">
                       <Heart className="w-4 h-4 text-white" />
                     </div>
-                    <span className="text-sm font-medium">{handleRole(user.role)}: {user.full_name}</span>
+                    <div className="text-left">
+                      <p className="text-sm font-medium text-gray-900 group-hover:text-red-600 transition-colors duration-200">
+                        {user.full_name}
+                      </p>
+                      <p className="text-xs text-gray-500">{handleRole(user.role)}</p>
+                    </div>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <div className="px-3 py-2">
-                    <p className="text-sm font-medium">{user.full_name}</p>
+                <DropdownMenuContent align="end" className="w-56 mt-2 shadow-lg border-0 bg-white/95 backdrop-blur-sm">
+                  <div className="px-4 py-3 border-b border-gray-100">
+                    <p className="text-sm font-medium text-gray-900">{user.full_name}</p>
                     <p className="text-xs text-gray-500">{user.email}</p>
+                    <p className="text-xs text-red-600 font-medium mt-1">{handleRole(user.role)}</p>
                   </div>
-                  <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
-                    <Link href={getDashboardLink()}>
+                    <Link href={getDashboardLink()} className="flex items-center px-4 py-3 text-sm text-gray-700 hover:text-red-600 hover:bg-red-50 transition-colors duration-200">
                       {user.role === "admin" ? (
-                        <Shield className="w-4 h-4 mr-2" />
+                        <Shield className="w-4 h-4 mr-3" />
                       ) : (
-                        <LayoutDashboard className="w-4 h-4 mr-2" />
+                        <LayoutDashboard className="w-4 h-4 mr-3" />
                       )}
                       {getDashboardLabel()}
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout} className="text-red-600">
-                    <LogOut className="w-4 h-4 mr-2" />
+                  <DropdownMenuItem onClick={handleLogout} className="flex items-center px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors duration-200">
+                    <LogOut className="w-4 h-4 mr-3" />
                     Đăng xuất
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <>
-                <Button variant="outline" size="sm" asChild>
+              <div className="flex items-center space-x-3">
+                <Button variant="outline" size="sm" asChild className="px-6 py-2.5 rounded-xl border-gray-300 hover:border-red-300 hover:text-red-600 transition-all duration-300">
                   <Link href="/login">Đăng nhập</Link>
                 </Button>
-                <Button size="sm" asChild className="bg-red-600 hover:bg-red-700">
+                <Button size="sm" asChild className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 shadow-lg shadow-red-200 transition-all duration-300">
                   <Link href="/register">Đăng ký</Link>
                 </Button>
-              </>
+              </div>
             )}
           </div>
         </div>
 
-        {/* Mobile Navigation Menu */}
+        {/* Mobile Navigation Menu - Enhanced */}
         {isMobileMenuOpen && (
-          <div className="md:hidden mt-3 pb-3 border-t border-gray-200">
-            <div className="pt-3 space-y-1">
+          <div className="md:hidden mt-4 pb-4 border-t border-gray-200 bg-gray-50/50 rounded-xl mx-2">
+            <div className="pt-4 space-y-2 px-3">
               {mobileNavigationItems.map((item) => (
                 <Link
                   key={item.href}
@@ -302,9 +303,9 @@ export function Header() {
                     scrollToTop()
                   }}
                   className={`
-                    block px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200
+                    block px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300
                     ${isActivePath(item.href)
-                      ? "bg-red-600 text-white"
+                      ? "bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg"
                       : "text-gray-700 hover:text-red-600 hover:bg-red-50"
                     }
                   `}
@@ -315,19 +316,20 @@ export function Header() {
 
               {/* Thông báo cho guest về các tính năng bị khóa */}
               {!user && (
-                <div className="mt-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2">
-                  <p className="text-sm font-medium text-blue-800">Đăng nhập để truy cập đầy đủ tính năng</p>
+                <div className="mt-4 rounded-xl border border-blue-200 bg-gradient-to-r from-blue-50 to-blue-100 px-4 py-3">
+                  <p className="text-sm font-medium text-blue-800">🔐 Đăng nhập để truy cập đầy đủ tính năng</p>
                   <p className="mt-1 text-xs text-blue-600">Hiến máu • Cần máu • Yêu cầu máu • Khẩn cấp • Lịch sử</p>
                 </div>
               )}
 
-              {/* Mobile User Actions */}
-              <div className="pt-3 border-t border-gray-200 space-y-1">
+              {/* Mobile User Actions - Enhanced */}
+              <div className="pt-4 border-t border-gray-200 space-y-3 mt-4">
                 {user ? (
                   <>
-                    <div className="px-3 py-2 bg-gray-50 rounded-lg">
-                      <p className="text-sm font-medium">{user.full_name}</p>
+                    <div className="px-4 py-3 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl">
+                      <p className="text-sm font-medium text-gray-900">{user.full_name}</p>
                       <p className="text-xs text-gray-500">{user.email}</p>
+                      <p className="text-xs text-red-600 font-medium mt-1">{handleRole(user.role)}</p>
                     </div>
                     <Link
                       href={getDashboardLink()}
@@ -335,9 +337,9 @@ export function Header() {
                         setIsMobileMenuOpen(false)
                         scrollToTop()
                       }}
-                      className="flex items-center px-3 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg"
+                      className="flex items-center px-4 py-3 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-xl transition-all duration-300"
                     >
-                      <LayoutDashboard className="w-4 h-4 mr-2" />
+                      <LayoutDashboard className="w-4 h-4 mr-3" />
                       {getDashboardLabel()}
                     </Link>
                     <button
@@ -345,21 +347,21 @@ export function Header() {
                         handleLogout()
                         setIsMobileMenuOpen(false)
                       }}
-                      className="flex items-center px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg w-full text-left"
+                      className="flex items-center px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 rounded-xl w-full text-left transition-all duration-300"
                     >
-                      <LogOut className="w-4 h-4 mr-2" />
+                      <LogOut className="w-4 h-4 mr-3" />
                       Đăng xuất
                     </button>
                   </>
                 ) : (
-                  <div className="space-y-1">
+                  <div className="space-y-3">
                     <Link
                       href="/login"
                       onClick={() => {
                         setIsMobileMenuOpen(false)
                         scrollToTop()
                       }}
-                      className="block px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg"
+                      className="block px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-xl border border-gray-300 text-center transition-all duration-300"
                     >
                       Đăng nhập
                     </Link>
@@ -369,7 +371,7 @@ export function Header() {
                         setIsMobileMenuOpen(false)
                         scrollToTop()
                       }}
-                      className="block px-3 py-2 text-sm font-medium text-white bg-red-600 rounded-lg"
+                      className="block px-4 py-3 text-sm font-medium text-white bg-gradient-to-r from-red-500 to-red-600 rounded-xl text-center shadow-lg transition-all duration-300"
                     >
                       Đăng ký
                     </Link>

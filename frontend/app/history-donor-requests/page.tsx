@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
+import { ProtectedRoute } from "@/components/auth/protected-route"
 import { Clock, Droplets, MapPin, Calendar, FileText, User, Activity, X, ArrowUpDown } from "lucide-react"
 import api from "@/lib/axios"
 import { useAuth } from "@/contexts/auth-context"
@@ -46,16 +47,79 @@ export default function DonorRequestHistoryPage() {
   const [sortOrder, setSortOrder] = useState<"newest" | "oldest" | "status">("newest")
   const [cancellingId, setCancellingId] = useState<string | null>(null)
 
+  // Show loading state while checking auth
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-red-50 via-pink-50 to-rose-100 flex flex-col">
+        <Header />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-500 mx-auto mb-4"></div>
+            <p className="text-gray-600">Đang tải...</p>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    )
+  }
+
+  // Check if user is authorized
+  if (!user) {
+    return <GuestAccessWarning />
+  }
+
+  if (user.role !== "donor") {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-red-50 via-pink-50 to-rose-100 flex flex-col">
+        <Header />
+        <div className="flex-1 flex items-center justify-center p-4">
+          <Card className="w-full max-w-md">
+            <CardHeader className="text-center">
+              <CardTitle className="text-red-600">Không có quyền truy cập</CardTitle>
+              <CardDescription>
+                Trang này chỉ dành cho người hiến máu. Bạn cần đăng ký là người hiến máu để xem lịch sử yêu cầu.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </div>
+        <Footer />
+      </div>
+    )
+  }
+
   useEffect(() => {
     async function fetchBloodRequests() {
-      if (!user?._id) return
+      if (!user?._id) {
+        console.log("User or user._id is missing:", user)
+        setLoading(false)
+        return
+      }
+      
+      // Debug user object
+      console.log("Current user object:", {
+        id: user._id,
+        role: user.role,
+        email: user.email,
+        full_name: user.full_name
+      })
       
       try {
+        console.log("Fetching donor requests for user ID:", user._id)
         setLoading(true)
         const response = await api.get(`/users/donor/get-requests-by-id/${user._id}`)
+        console.log("API Response:", response.data)
         setBloodRequests(response.data.requests || [])
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error fetching donor requests:", error)
+        console.error("Error details:", error.response?.data)
+        
+        // Show user-friendly error message
+        if (error.response?.status === 404) {
+          console.error("User not found or not a valid donor")
+        } else if (error.response?.status === 500) {
+          console.error("Server error occurred")
+        }
+        
         setBloodRequests([])
       } finally {
         setLoading(false)
@@ -192,7 +256,8 @@ export default function DonorRequestHistoryPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-red-50 to-white">
+    <ProtectedRoute requiredRole="donor">
+      <div className="min-h-screen bg-gradient-to-b from-red-50 to-white">
       <Header />
 
       <div className="container mx-auto px-4 py-8">
@@ -403,6 +468,7 @@ export default function DonorRequestHistoryPage() {
       </div>
 
       <Footer />
-    </div>
+      </div>
+    </ProtectedRoute>
   )
 }

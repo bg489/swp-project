@@ -21,28 +21,27 @@ import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { useAuth } from "@/contexts/auth-context"
 import { GuestAccessWarning } from "@/components/auth/guest-access-warning"
+import { ProtectedRoute } from "@/components/auth/protected-route"
+import { toast } from "@/hooks/use-toast"
 import api from "@/lib/axios"
 
 export default function DonatePage() {
   const { user, isLoading } = useAuth()
-  const today = new Date().toISOString().split("T")[0];
+  
+  // Sử dụng ngày địa phương thay vì UTC để tránh bị lùi ngày
+  const today = new Date();
+  const todayString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  
+  // Tính toán ngày tối đa (3 tháng từ hôm nay)
+  const maxDate = new Date();
+  maxDate.setMonth(maxDate.getMonth() + 3);
+  const maxDateString = `${maxDate.getFullYear()}-${String(maxDate.getMonth() + 1).padStart(2, '0')}-${String(maxDate.getDate()).padStart(2, '0')}`;
 
   const [loading, setLoading] = useState(false);
-
-
-
-  const handleCheckboxChange = (component: string) => {
-    const selected = formData.components_offered.includes(component);
-    const updated = selected
-      ? formData.components_offered.filter((c) => c !== component)
-      : [...formData.components_offered, component];
-
-    setFormData((prev) => ({ ...prev, components_offered: updated }));
-  };
-
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date>()
   const [formData, setFormData] = useState({
-    available_date: today,
+    available_date: todayString,
     available_time_range: {
       from: "",
       to: "",
@@ -62,21 +61,169 @@ export default function DonatePage() {
     "Không sử dụng thuốc kháng sinh trong 7 ngày",
     "Không hiến máu trong vòng 3 tháng gần đây",
     "Sức khỏe tốt, không có triệu chứng cảm cúm",
+    "Đăng ký trước từ 1 ngày đến 3 tháng",
   ]
+
+  const handleCheckboxChange = (component: string) => {
+    const selected = formData.components_offered.includes(component);
+    const updated = selected
+      ? formData.components_offered.filter((c) => c !== component)
+      : [...formData.components_offered, component];
+
+    setFormData((prev) => ({ ...prev, components_offered: updated }));
+  };
+
+  // Show loading state while checking auth
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-red-50 via-pink-50 to-rose-100 flex flex-col">
+        <Header />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-500 mx-auto mb-4"></div>
+            <p className="text-gray-600">Đang tải...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Check if user is authorized
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-red-50 via-pink-50 to-rose-100 flex flex-col">
+        <Header />
+        <div className="flex-1 flex items-center justify-center p-4">
+          <Card className="w-full max-w-md">
+            <CardHeader className="text-center">
+              <CardTitle className="text-red-600">Vui lòng đăng nhập</CardTitle>
+              <CardDescription>
+                Bạn cần đăng nhập để đăng ký hiến máu.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="text-center">
+              <Link href="/login">
+                <Button className="bg-red-600 hover:bg-red-700">
+                  Đăng nhập ngay
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    )
+  }
+
+  if (user.role !== "donor") {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-red-50 via-pink-50 to-rose-100 flex flex-col">
+        <Header />
+        <div className="flex-1 flex items-center justify-center p-4">
+          <Card className="w-full max-w-md">
+            <CardHeader className="text-center">
+              <CardTitle className="text-red-600">Không có quyền truy cập</CardTitle>
+              <CardDescription>
+                Trang này chỉ dành cho người hiến máu. Bạn cần đăng ký là người hiến máu để sử dụng tính năng này.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </div>
+      </div>
+    )
+  }
 
 
   const handleSubmit = async (e: React.FormEvent) => {
-    console.log("Form submitted:", formData, selectedDate)
     e.preventDefault();
+    
+    // Prevent double submission
+    if (loading) return;
+    
     setLoading(true);
-
-    if (!user?._id) {
-      alert("Vui lòng đăng nhập trước khi đăng ký hiến máu!");
-      setLoading(false);
-      return;
-    }
-
+    
     try {
+      // Validate required fields
+      if (!formData.available_date) {
+        toast({
+          variant: "destructive",
+          title: "Lỗi",
+          description: "Vui lòng chọn ngày hiến máu.",
+        })
+        return;
+      }
+
+      // Validate date range
+      const selectedDate = new Date(formData.available_date);
+      const todayDate = new Date(todayString);
+      const maxDateObj = new Date(maxDateString);
+      
+      if (selectedDate < todayDate) {
+        toast({
+          variant: "destructive",
+          title: "Lỗi",
+          description: "Ngày hiến máu không thể là ngày trong quá khứ.",
+        })
+        return;
+      }
+      
+      if (selectedDate > maxDateObj) {
+        toast({
+          variant: "destructive",
+          title: "Lỗi",
+          description: "Ngày hiến máu không thể quá 3 tháng từ hôm nay.",
+        })
+        return;
+      }
+
+      if (!formData.available_time_range.from || !formData.available_time_range.to) {
+        toast({
+          variant: "destructive",
+          title: "Lỗi",
+          description: "Vui lòng chọn khung giờ hiến máu.",
+        })
+        return;
+      }
+
+      if (!formData.amount_offered) {
+        toast({
+          variant: "destructive",
+          title: "Lỗi",
+          description: "Vui lòng nhập lượng máu dự kiến hiến.",
+        })
+        return;
+      }
+
+      console.log("Submitting form with user:", user)
+      console.log("Form data:", formData)
+
+      // Validate user
+      if (!user || !user._id) {
+        toast({
+          variant: "destructive",
+          title: "Lỗi",
+          description: "Vui lòng đăng nhập trước khi đăng ký hiến máu!",
+        })
+        return;
+      }
+
+      // Debug user info
+      console.log("Current user:", {
+        id: user._id,
+        role: user.role,
+        email: user.email,
+        full_name: user.full_name
+      });
+
+      // Validate form data before submitting
+      if (formData.components_offered.length === 0) {
+        toast({
+          variant: "destructive",
+          title: "Lỗi",
+          description: "Vui lòng chọn ít nhất một thành phần máu để hiến.",
+        })
+        return;
+      }
+
       const requestData = {
         donor_id: user._id,
         available_date: formData.available_date,
@@ -86,24 +233,63 @@ export default function DonatePage() {
         comment: formData.notes,
       };
 
+      console.log("Submitting donor request:", requestData);
+
       const response = await api.post("/users/donor/request", requestData);
 
       if (response.status === 201) {
-        alert("Đăng ký hiến máu thành công!");
-        // Reset form
-        setFormData({
-          available_date: today,
-          available_time_range: { from: "", to: "" },
-          amount_offered: "",
-          components_offered: [],
-          hospital: "",
-          notes: "",
-        });
+        // Show success state
+        setShowSuccessMessage(true);
+        
+        toast({
+          title: "🎉 Đăng ký hiến máu thành công!",
+          description: `Cảm ơn bạn đã đăng ký hiến máu vào ngày ${formData.available_date} từ ${formData.available_time_range.from} - ${formData.available_time_range.to}. Chúng tôi sẽ liên hệ với bạn sớm nhất!`,
+          duration: 6000,
+        })
+        
+        // Show additional success message
+        setTimeout(() => {
+          toast({
+            title: "🩸 Bạn là người hùng!",
+            description: "Hành động của bạn có thể cứu sống 3 người. Hãy theo dõi email để nhận thông báo từ chúng tôi.",
+            duration: 5000,
+          })
+        }, 2000)
+        
+        // Reset form after 3 seconds
+        setTimeout(() => {
+          setFormData({
+            available_date: todayString,
+            available_time_range: { from: "", to: "" },
+            amount_offered: "",
+            components_offered: [],
+            hospital: "",
+            notes: "",
+          });
+          setShowSuccessMessage(false);
+        }, 3000)
       }
     } catch (error: any) {
       console.error("Error submitting donor request:", error);
-      const errorMessage = error.response?.data?.message || "Đã xảy ra lỗi khi gửi yêu cầu.";
-      alert(errorMessage);
+      console.error("Error response:", error.response?.data);
+      
+      let errorMessage = "Đã xảy ra lỗi khi gửi yêu cầu.";
+      
+      if (error.response?.status === 404) {
+        errorMessage = "Không tìm thấy thông tin người dùng. Vui lòng kiểm tra lại tài khoản của bạn.";
+      } else if (error.response?.status === 400) {
+        errorMessage = error.response?.data?.message || "Thông tin không hợp lệ. Vui lòng kiểm tra lại.";
+      } else if (error.response?.status === 500) {
+        errorMessage = "Lỗi hệ thống. Vui lòng thử lại sau.";
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+      
+      toast({
+        variant: "destructive",
+        title: "Lỗi",
+        description: errorMessage,
+      })
     } finally {
       setLoading(false);
     }
@@ -117,35 +303,9 @@ export default function DonatePage() {
     return comp; // Default case, should not happen
   }
 
-  // Show loading state
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-red-50 to-white">
-        <Header />
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
-        </div>
-        <Footer />
-      </div>
-    )
-  }
-
-  // Show guest access warning if not logged in
-  if (!user) {
-    return (
-      <>
-        <Header />
-        <GuestAccessWarning
-          title="Đăng ký hiến máu"
-          description="Để đăng ký hiến máu tình nguyện, bạn cần đăng nhập hoặc tạo tài khoản mới"
-        />
-        <Footer />
-      </>
-    )
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-b from-red-50 to-white">
+    <ProtectedRoute requiredRole="donor">
+      <div className="min-h-screen bg-gradient-to-b from-red-50 to-white">
       <Header />
 
       <div className="container mx-auto px-4 py-8">
@@ -207,6 +367,22 @@ export default function DonatePage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
+                  {showSuccessMessage && (
+                    <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                      <div className="flex items-center mb-2">
+                        <CheckCircle className="w-5 h-5 text-green-600 mr-2" />
+                        <h3 className="font-semibold text-green-800">Đăng ký thành công! 🎉</h3>
+                      </div>
+                      <p className="text-sm text-green-700 mb-2">
+                        Cảm ơn bạn đã đăng ký hiến máu tình nguyện! Chúng tôi sẽ liên hệ với bạn trong thời gian sớm nhất.
+                      </p>
+                      <div className="flex items-center text-sm text-green-600">
+                        <Heart className="w-4 h-4 mr-1" />
+                        <span>Bạn có thể cứu sống đến 3 người bằng hành động này!</span>
+                      </div>
+                    </div>
+                  )}
+                  
                   <form onSubmit={handleSubmit} className="space-y-6">
                     {/* Personal Information */}
 
@@ -220,7 +396,8 @@ export default function DonatePage() {
                             <Input
                               type="date"
                               id="available_date"
-                              min={today}
+                              min={todayString}
+                              max={maxDateString}
                               value={formData.available_date}
                               onChange={(e) =>
                                 setFormData((prev) => ({
@@ -230,46 +407,38 @@ export default function DonatePage() {
                               }
                               required
                             />
+                            <p className="text-xs text-gray-500 mt-1">
+                              Chọn ngày trong vòng 3 tháng tới (từ {new Date(todayString).toLocaleDateString('vi-VN')} đến {new Date(maxDateString).toLocaleDateString('vi-VN')})
+                            </p>
                           </div>
 
                           {/* Khung giờ */}
-                          <div className="flex gap-4">
-                            <div className="flex-1">
-                              <Label htmlFor="from">Từ giờ</Label>
-                              <Input
-                                type="time"
-                                id="from"
-                                value={formData.available_time_range.from}
-                                onChange={(e) =>
-                                  setFormData((prev) => ({
-                                    ...prev,
-                                    available_time_range: {
-                                      ...prev.available_time_range,
-                                      from: e.target.value,
-                                    },
-                                  }))
-                                }
-                                required
-                              />
-                            </div>
-                            <div className="flex-1">
-                              <Label htmlFor="to">Đến giờ</Label>
-                              <Input
-                                type="time"
-                                id="to"
-                                value={formData.available_time_range.to}
-                                onChange={(e) =>
-                                  setFormData((prev) => ({
-                                    ...prev,
-                                    available_time_range: {
-                                      ...prev.available_time_range,
-                                      to: e.target.value,
-                                    },
-                                  }))
-                                }
-                                required
-                              />
-                            </div>
+                          <div>
+                            <Label htmlFor="timeSlot">Khung giờ hiến máu</Label>
+                            <Select
+                              value={`${formData.available_time_range.from} - ${formData.available_time_range.to}`}
+                              onValueChange={(value) => {
+                                const [from, to] = value.split(' - ');
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  available_time_range: {
+                                    from: from,
+                                    to: to,
+                                  },
+                                }))
+                              }}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Chọn khung giờ phù hợp" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {timeSlots.map((slot) => (
+                                  <SelectItem key={slot} value={slot}>
+                                    {slot}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           </div>
 
                           {/* Lượng máu muốn hiến */}
@@ -322,8 +491,28 @@ export default function DonatePage() {
                           </div>
 
                           {/* Submit */}
-                          <Button type="submit" disabled={loading} className="w-full">
-                            {loading ? "Đang gửi..." : "Đăng ký hiến máu"}
+                          <Button 
+                            type="submit" 
+                            disabled={loading || showSuccessMessage} 
+                            className={`w-full transition-all duration-300 ${
+                              showSuccessMessage 
+                                ? 'bg-green-600 hover:bg-green-700' 
+                                : 'bg-red-600 hover:bg-red-700'
+                            }`}
+                          >
+                            {loading ? (
+                              <>
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                Đang gửi...
+                              </>
+                            ) : showSuccessMessage ? (
+                              <>
+                                <CheckCircle className="w-4 h-4 mr-2" />
+                                Đăng ký thành công!
+                              </>
+                            ) : (
+                              "Đăng ký hiến máu"
+                            )}
                           </Button>
                         </div>
                       </div>
@@ -374,6 +563,7 @@ export default function DonatePage() {
       </div>
 
       <Footer />
-    </div>
+      </div>
+    </ProtectedRoute>
   )
 }

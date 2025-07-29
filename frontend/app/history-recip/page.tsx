@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
+import { ProtectedRoute } from "@/components/auth/protected-route"
 import { Clock, Droplets, MapPin, Phone, User, AlertTriangle, FileText, Calendar, Activity, X } from "lucide-react"
 import api from "@/lib/axios"
 import { useAuth } from "@/contexts/auth-context"
@@ -71,7 +72,7 @@ export default function RequestHistoryPage() {
       approved: "Đã duyệt",
       matched: "Đã ghép",
       in_progress: "Đang xử lý",
-      completed: "Hoàn tất",
+      completed: "Đã ghép",
       cancelled: "Đã hủy",
       rejected: "Từ chối",
     }
@@ -95,6 +96,7 @@ export default function RequestHistoryPage() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "completed":
+      case "matched":
         return "bg-green-100 text-green-800"
       case "pending":
         return "bg-yellow-100 text-yellow-800"
@@ -103,7 +105,6 @@ export default function RequestHistoryPage() {
         return "bg-red-100 text-red-800"
       case "in_progress":
       case "approved":
-      case "matched":
         return "bg-blue-100 text-blue-800"
       default:
         return "bg-gray-100 text-gray-800"
@@ -150,7 +151,8 @@ export default function RequestHistoryPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-red-50">
+    <ProtectedRoute requiredRole="recipient">
+      <div className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-red-50">
       <Header />
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-7xl mx-auto">
@@ -187,9 +189,9 @@ export default function RequestHistoryPage() {
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-green-600 text-sm font-medium">Đã hoàn thành</p>
+                      <p className="text-green-600 text-sm font-medium">Đã ghép</p>
                       <p className="text-2xl font-bold text-green-800">
-                        {bloodRequests.filter(req => req.status === 'completed').length}
+                        {bloodRequests.filter(req => req.status === 'completed' || req.status === 'matched').length}
                       </p>
                     </div>
                     <Droplets className="w-8 h-8 text-green-600" />
@@ -258,10 +260,7 @@ export default function RequestHistoryPage() {
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <Badge className={`${getStatusColor(request.status)} shadow-sm`}>
-                          {translateStatus(request.status)}
-                        </Badge>
+                      <div className="flex flex-col items-end space-y-2">
                         {/* Cancel Button - Small text in top right */}
                         {canCancelRequest(request.status) && (
                           <Button
@@ -274,6 +273,9 @@ export default function RequestHistoryPage() {
                             Hủy yêu cầu
                           </Button>
                         )}
+                        <Badge className={`${getStatusColor(request.status)} shadow-sm`}>
+                          {translateStatus(request.status)}
+                        </Badge>
                       </div>
                     </div>
                   </CardHeader>
@@ -364,6 +366,7 @@ export default function RequestHistoryPage() {
         </div>
       </div>
       <Footer />
-    </div>
+      </div>
+    </ProtectedRoute>
   )
 }

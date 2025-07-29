@@ -400,43 +400,6 @@ export default function PrivacyPage() {
             </div>
           </div>
         </div>
-
-        {/* Legal Notice */}
-        <div className="mt-16">
-          <Card className="bg-gradient-to-r from-red-600 via-red-700 to-red-800 text-white border-0 shadow-2xl overflow-hidden">
-            <CardContent className="p-12 text-center relative">
-              <div className="absolute inset-0 bg-black opacity-10"></div>
-              <div className="relative z-10">
-                <div className="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <Shield className="w-8 h-8 text-white" />
-                </div>
-                <h3 className="text-3xl font-bold mb-6">Thông báo pháp lý</h3>
-                <p className="text-red-100 mb-8 leading-relaxed text-lg max-w-4xl mx-auto">
-                  Chính sách bảo mật này được soạn thảo tuân thủ Luật An toàn thông tin mạng 2015, Nghị định
-                  13/2023/NĐ-CP về bảo vệ dữ liệu cá nhân và các quy định pháp luật Việt Nam có liên quan.
-                </p>
-                <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Button
-                    variant="secondary"
-                    size="lg"
-                    className="bg-white text-red-600 hover:bg-gray-100 font-semibold px-8 py-3"
-                    onClick={() => handleNavigation("/contact")}
-                  >
-                    📞 Liên hệ về bảo mật
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="lg"
-                    className="border-2 border-white text-white hover:bg-white hover:text-red-600 font-semibold px-8 py-3"
-                    onClick={() => handleNavigation("/")}
-                  >
-                    🏠 Về trang chủ
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
       </div>
 
       <Footer />

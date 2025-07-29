@@ -343,12 +343,22 @@ export default function HomePage() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               {user ? (
                 <>
-                  <Button size="lg" className="bg-red-600 hover:bg-red-700" asChild>
-                    <Link href="/donate" onClick={scrollToTop}>
-                      <Heart className="w-5 h-5 mr-2" />
-                      Đăng ký hiến máu
-                    </Link>
-                  </Button>
+                  {user.role === "donor" && (
+                    <Button size="lg" className="bg-red-600 hover:bg-red-700" asChild>
+                      <Link href="/donate" onClick={scrollToTop}>
+                        <Heart className="w-5 h-5 mr-2" />
+                        Đăng ký hiến máu
+                      </Link>
+                    </Button>
+                  )}
+                  {user.role === "recipient" && (
+                    <Button size="lg" className="bg-red-600 hover:bg-red-700" asChild>
+                      <Link href="/blood-request" onClick={scrollToTop}>
+                        <Heart className="w-5 h-5 mr-2" />
+                        Yêu cầu máu
+                      </Link>
+                    </Button>
+                  )}
                   <Button
                     size="lg"
                     variant="outline"
