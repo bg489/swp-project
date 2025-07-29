@@ -81,7 +81,7 @@ export function Header() {
       case "donor":
         return [
           { href: "/donate", label: "Hiến máu" },
-          { href: "/history-donor", label: "Lịch sử hiến máu" },
+          { href: "/history-donor-requests", label: "Lịch sử yêu cầu" },
         ]
       case "recipient":
         return [
@@ -93,7 +93,7 @@ export function Header() {
         return [
           { href: "/donate", label: "Hiến máu" },
           { href: "/blood-request", label: "Yêu cầu máu" },
-          { href: "/history-donor", label: "Lịch sử hiến máu" },
+          { href: "/history-donor-requests", label: "Lịch sử yêu cầu hiến" },
           { href: "/history-recip", label: "Lịch sử nhận máu" },
         ]
       default:

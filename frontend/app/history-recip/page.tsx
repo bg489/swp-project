@@ -3,9 +3,10 @@
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
-import { Clock, Droplets, MapPin, Phone, User, AlertTriangle, FileText, Calendar, Activity } from "lucide-react"
+import { Clock, Droplets, MapPin, Phone, User, AlertTriangle, FileText, Calendar, Activity, X } from "lucide-react"
 import api from "@/lib/axios"
 import { useAuth } from "@/contexts/auth-context"
 
@@ -109,6 +110,45 @@ export default function RequestHistoryPage() {
     }
   }
 
+  const handleCancelRequest = async (requestId: string) => {
+    try {
+      const confirmed = window.confirm("Bạn có chắc chắn muốn hủy yêu cầu này?");
+      if (!confirmed) return;
+
+      // Use the correct endpoint from backend: /api/staff/blood-requests/:requestId/status
+      await api.put(`/staff/blood-requests/${requestId}/status`, { 
+        status: 'cancelled' 
+      });
+      
+      // Update local state
+      setBloodRequests(prev => 
+        prev.map(req => 
+          req._id === requestId 
+            ? { ...req, status: 'cancelled' }
+            : req
+        )
+      );
+      
+      alert("Yêu cầu đã được hủy thành công!");
+    } catch (error: any) {
+      console.error("Lỗi khi hủy yêu cầu:", error);
+      
+      if (error.response?.status === 404) {
+        alert("Không tìm thấy yêu cầu hoặc endpoint. Vui lòng liên hệ quản trị viên.");
+      } else if (error.response?.status === 403) {
+        alert("Bạn không có quyền hủy yêu cầu này.");
+      } else if (error.response?.status === 400) {
+        alert("Yêu cầu này không thể hủy được hoặc dữ liệu không hợp lệ.");
+      } else {
+        alert("Có lỗi xảy ra khi hủy yêu cầu. Vui lòng thử lại.");
+      }
+    }
+  }
+
+  const canCancelRequest = (status: string) => {
+    return status === 'pending' || status === 'approved';
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-red-50">
       <Header />
@@ -130,7 +170,7 @@ export default function RequestHistoryPage() {
 
           {/* Stats Section */}
           {bloodRequests.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
               <Card className="bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200 hover:shadow-lg transition-all duration-300">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
@@ -170,6 +210,20 @@ export default function RequestHistoryPage() {
                   </div>
                 </CardContent>
               </Card>
+
+              <Card className="bg-gradient-to-r from-red-50 to-red-100 border-red-200 hover:shadow-lg transition-all duration-300">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-red-600 text-sm font-medium">Đã hủy</p>
+                      <p className="text-2xl font-bold text-red-800">
+                        {bloodRequests.filter(req => req.status === 'cancelled').length}
+                      </p>
+                    </div>
+                    <X className="w-8 h-8 text-red-600" />
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           )}
 
@@ -193,7 +247,7 @@ export default function RequestHistoryPage() {
                           <User className="w-6 h-6 text-white" />
                         </div>
                         <div>
-                          <p className="font-bold text-gray-900">{request?.recipient_id?.fullName || "Bạn"}</p>
+                          <p className="font-bold text-gray-900">{request?.recipient_id?.fullName || `Yêu cầu nhận máu #${bloodRequests.length - index}`}</p>
                           <div className="flex items-center space-x-2 mt-1">
                             <Badge 
                               variant="outline" 
@@ -204,9 +258,23 @@ export default function RequestHistoryPage() {
                           </div>
                         </div>
                       </div>
-                      <Badge className={`${getStatusColor(request.status)} shadow-sm`}>
-                        {translateStatus(request.status)}
-                      </Badge>
+                      <div className="flex items-center space-x-2">
+                        <Badge className={`${getStatusColor(request.status)} shadow-sm`}>
+                          {translateStatus(request.status)}
+                        </Badge>
+                        {/* Cancel Button - Small text in top right */}
+                        {canCancelRequest(request.status) && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleCancelRequest(request._id)}
+                            className="h-8 px-3 py-1 text-red-500 border-red-200 hover:text-red-700 hover:bg-red-50 hover:border-red-300 rounded-md text-xs font-medium"
+                            title="Hủy yêu cầu"
+                          >
+                            Hủy yêu cầu
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </CardHeader>
 

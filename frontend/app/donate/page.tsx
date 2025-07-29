@@ -21,6 +21,7 @@ import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { useAuth } from "@/contexts/auth-context"
 import { GuestAccessWarning } from "@/components/auth/guest-access-warning"
+import api from "@/lib/axios"
 
 export default function DonatePage() {
   const { user, isLoading } = useAuth()
@@ -69,32 +70,40 @@ export default function DonatePage() {
     e.preventDefault();
     setLoading(true);
 
+    if (!user?._id) {
+      alert("Vui lòng đăng nhập trước khi đăng ký hiến máu!");
+      setLoading(false);
+      return;
+    }
+
     try {
-      const res = await fetch("/api/donor-request", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      });
+      const requestData = {
+        donor_id: user._id,
+        available_date: formData.available_date,
+        available_time_range: formData.available_time_range,
+        amount_offered: parseInt(formData.amount_offered),
+        components_offered: formData.components_offered,
+        comment: formData.notes,
+      };
 
-      if (!res.ok) {
-        throw new Error("Failed to submit donor request");
+      const response = await api.post("/users/donor/request", requestData);
+
+      if (response.status === 201) {
+        alert("Đăng ký hiến máu thành công!");
+        // Reset form
+        setFormData({
+          available_date: today,
+          available_time_range: { from: "", to: "" },
+          amount_offered: "",
+          components_offered: [],
+          hospital: "",
+          notes: "",
+        });
       }
-
-      alert("Đăng ký hiến máu thành công!");
-      // Reset form
-      setFormData({
-        available_date: today,
-        available_time_range: { from: "", to: "" },
-        amount_offered: "",
-        components_offered: [],
-        hospital: "",
-        notes: "",
-      });
-    } catch (error) {
-      console.error(error);
-      alert("Đã xảy ra lỗi khi gửi yêu cầu.");
+    } catch (error: any) {
+      console.error("Error submitting donor request:", error);
+      const errorMessage = error.response?.data?.message || "Đã xảy ra lỗi khi gửi yêu cầu.";
+      alert(errorMessage);
     } finally {
       setLoading(false);
     }

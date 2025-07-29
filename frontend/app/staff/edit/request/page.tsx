@@ -17,6 +17,68 @@ import api from "@/lib/axios"
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 
+interface BloodRequest {
+  _id?: string;
+  recipient_id?: {
+    _id?: string;
+    full_name?: string;
+    email?: string;
+    phone?: string;
+  };
+  blood_type_needed?: string;
+  components_needed?: string[];
+  amount_needed?: number;
+  distance?: number;
+  hospital?: {
+    _id?: string;
+    name?: string;
+    address?: string;
+  };
+  status?: string;
+  is_emergency?: boolean;
+  comment?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+interface Staff {
+  _id?: string;
+  user_id?: {
+    _id?: string;
+    full_name?: string;
+  };
+  hospital?: {
+    _id?: string;
+    name?: string;
+    address?: string;
+  };
+}
+
+interface DonorList {
+  donors?: Array<{
+    _id: string;
+    user_id: {
+      _id: string;
+      full_name: string;
+      email: string;
+      phone: string;
+    };
+    hospital: {
+      name: string;
+    };
+    blood_type: string;
+    distance: number;
+    availability_date: string;
+  }>;
+}
+
+interface BloodInventory {
+  _id: string;
+  blood_type: string;
+  component: string;
+  quantity: number;
+}
+
 export default function EditRequestPage() {
   const { user, logout } = useAuth()
   const router = useRouter();
@@ -24,13 +86,13 @@ export default function EditRequestPage() {
   const searchParams = useSearchParams()
   const requestId = searchParams.get("requestId") || ""
   const [availableDonors, setAvailableDonors] = useState<any[]>([]);
-  const [staff, setStaff] = useState({});
-  const [donorList, setDonorList] = useState([]);
-  const [bloodReq, setBloodReq] = useState({});
+  const [staff, setStaff] = useState<Staff | null>(null);
+  const [donorList, setDonorList] = useState<DonorList | null>(null);
+  const [bloodReq, setBloodReq] = useState<BloodRequest | null>(null);
   const [selectedStatus, setSelectedStatus] = useState("");
   const [donationDate, setDonationDate] = useState("");
   const [donationComment, setDonationComment] = useState("");
-  const [bloodInven, setBloodInven] = useState<any[]>([]);
+  const [bloodInven, setBloodInven] = useState<BloodInventory[]>([]);
   const [warehouseDonationDate, setWarehouseDonationDate] = useState("");
 
   function getInventoryAmount(inventory: any[], bloodType: string, component: string) {
@@ -42,9 +104,16 @@ export default function EditRequestPage() {
 
   const handleWarehouseConfirm = async () => {
     try {
+      if (!bloodReq || !staff?.hospital?._id || !bloodReq.blood_type_needed || !bloodReq.recipient_id?._id || !staff.user_id?._id) {
+        toast.error("Thiếu thông tin cần thiết để xác nhận");
+        return;
+      }
 
       const bloodInvenId = bloodInven.find(item => item.blood_type === bloodReq.blood_type_needed);
-      console.log(staff.hospital._id)
+      if (!bloodInvenId) {
+        toast.error("Không tìm thấy thông tin máu trong kho");
+        return;
+      }
 
       await api.post(`/staff/donation-blood-inventory`, {
         inventory_item: bloodInvenId._id,
@@ -80,7 +149,8 @@ export default function EditRequestPage() {
   };
 
 
-  const formatDate = (dateStr: string) => {
+  const formatDate = (dateStr?: string) => {
+    if (!dateStr) return "Không rõ";
     const date = new Date(dateStr);
     const day = String(date.getDate()).padStart(2, "0");
     const month = String(date.getMonth() + 1).padStart(2, "0"); // tháng tính từ 0
@@ -91,18 +161,20 @@ export default function EditRequestPage() {
   useEffect(() => {
     async function fetchProfile() {
       try {
+        if (!user?._id) {
+          console.error("User ID not available");
+          return;
+        }
+
         const profileRes = await api.get(`/users/staff-profiles/active/${user._id}`);
         const staffData = profileRes.data.staffProfile;
         setStaff(staffData);
 
         // Chỉ fetch donor list sau khi staffData có hospital
         if (staffData?.hospital?._id) {
-
-
           const profileBR = await api.get(`/staff/blood-request/get-by-id/${requestId}`);
           setBloodReq(profileBR.data);
-          setSelectedStatus(bloodReq?.status)
-
+          setSelectedStatus(profileBR.data?.status || "")
 
           const profileDonList = await api.post("/users/donors/by-hospitals-and-bloodtype", {
             hospitalIds: [staffData.hospital._id],
@@ -111,12 +183,6 @@ export default function EditRequestPage() {
           setDonorList(profileDonList.data);
 
           const bloodinvens = await api.get(`/blood-in/blood-inventory/hospital/${staffData.hospital._id}`);
-
-          // setBloodInven([
-          //   { blood_type: "A+", component: "RBC", quantity: 5 },
-          //   { blood_type: "O+", component: "RBC", quantity: 1 },
-          // ]);
-
           setBloodInven(bloodinvens.data.inventories);
         }
       } catch (error) {
@@ -127,7 +193,7 @@ export default function EditRequestPage() {
     if (user?._id) {
       fetchProfile();
     }
-  }, [user]);
+  }, [user, requestId]);
 
   useEffect(() => {
     setRequest({
@@ -178,6 +244,11 @@ export default function EditRequestPage() {
 
   const handleMatchDonor = async (donorId: string) => {
     try {
+      if (!bloodReq?.recipient_id?._id || !bloodReq.components_needed?.[0] || !bloodReq.amount_needed || !staff?.user_id?._id) {
+        toast.error("Thiếu thông tin cần thiết để ghép người hiến");
+        return;
+      }
+
       await api.post("/staff/donation", {
         donor_id: donorId,
         recipient_id: bloodReq.recipient_id._id,
@@ -226,7 +297,7 @@ export default function EditRequestPage() {
               <div className="space-y-2">
                 <p className="text-gray-700"><strong>Bệnh viện:</strong> {bloodReq?.hospital?.name || "Không rõ"}</p>
                 <p className="text-gray-700"><strong>Địa chỉ BV:</strong> {bloodReq?.hospital?.address || "Không rõ"}</p>
-                <p className="text-gray-700"><strong>Tình trạng:</strong> <Badge className="capitalize">{bloodReq?.status || "Pending"}</Badge></p>
+                <div className="text-gray-700"><strong>Tình trạng:</strong> <Badge className="capitalize">{bloodReq?.status || "Pending"}</Badge></div>
                 <p className="text-gray-700"><strong>Khẩn cấp:</strong> {bloodReq?.is_emergency ? "Có" : "Không"}</p>
                 <p className="text-gray-700"><strong>Ghi chú:</strong> {bloodReq?.comment || "Không có"}</p>
                 <p className="text-gray-700"><strong>Ngày tạo:</strong> {formatDate(bloodReq?.createdAt)}</p>
@@ -259,7 +330,7 @@ export default function EditRequestPage() {
 
               <Button
                 className="mt-2 bg-blue-600 text-white hover:bg-blue-700"
-                disabled={!selectedStatus || selectedStatus === bloodReq?.status}
+                disabled={!selectedStatus || selectedStatus === bloodReq?.status || !bloodReq}
                 onClick={() => handleStatusUpdate(selectedStatus)}
               >
                 Cập nhật trạng thái
@@ -274,16 +345,17 @@ export default function EditRequestPage() {
             <Droplets className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            {bloodInven.length > 0 && isBloodInventorySufficient(bloodInven, bloodReq.blood_type_needed, bloodReq.amount_needed) ? (
+            {bloodInven.length > 0 && bloodReq?.blood_type_needed && bloodReq?.amount_needed && 
+             isBloodInventorySufficient(bloodInven, bloodReq.blood_type_needed, bloodReq.amount_needed) ? (
               <>
                 <div className="text-green-600 font-bold mb-2">
-                  ✅ Có đủ máu ({bloodReq.blood_type_needed}) trong kho
+                  ✅ Có đủ máu ({bloodReq?.blood_type_needed}) trong kho
                 </div>
                 <p className="text-xs text-muted-foreground mb-4">
-                  Cần {bloodReq.amount_needed} đơn vị nhóm {bloodReq.blood_type_needed}
+                  Cần {bloodReq?.amount_needed} đơn vị nhóm {bloodReq?.blood_type_needed}
                 </p>
                 <div className="flex items-center gap-2 text-sm font-semibold text-blue-600 bg-blue-50 px-4 py-2 rounded-lg border border-blue-200 w-fit mb-5">
-                  💉 Hiện có: {getInventoryAmount(bloodInven, bloodReq.blood_type_needed, "RBC")} đơn vị
+                  💉 Hiện có: {bloodReq?.blood_type_needed ? getInventoryAmount(bloodInven, bloodReq.blood_type_needed, "RBC") : 0} đơn vị
                 </div>
 
 
@@ -325,12 +397,12 @@ export default function EditRequestPage() {
               </>
             ) : (
               <>
-                <div className="text-red-600 font-bold">❌ Không đủ máu {bloodReq.blood_type_needed} trong kho</div>
+                <div className="text-red-600 font-bold">❌ Không đủ máu {bloodReq?.blood_type_needed || "N/A"} trong kho</div>
                 <p className="text-xs text-muted-foreground mb-1">
-                  Cần {bloodReq.amount_needed} đơn vị nhóm {bloodReq.blood_type_needed}
+                  Cần {bloodReq?.amount_needed || 0} đơn vị nhóm {bloodReq?.blood_type_needed || "N/A"}
                 </p>
                 <div className="flex items-center gap-2 text-sm font-semibold text-red-600 bg-red-50 px-4 py-2 rounded-lg border border-red-200 w-fit mb-5">
-                  💉 Hiện có: {getInventoryAmount(bloodInven, bloodReq.blood_type_needed, "RBC")} đơn vị
+                  💉 Hiện có: {bloodReq?.blood_type_needed ? getInventoryAmount(bloodInven, bloodReq.blood_type_needed, "RBC") : 0} đơn vị
                 </div>
 
               </>
@@ -349,10 +421,9 @@ export default function EditRequestPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {donorList.length === 0 ? (
+            {!donorList?.donors || donorList.donors.length === 0 ? (
               <p className="text-gray-600">Không tìm thấy người hiến phù hợp.</p>
             ) : (
-              Array.isArray(donorList?.donors) &&
               donorList.donors.map((donor) => (
                 <div
                   key={donor._id}
