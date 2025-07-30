@@ -46,6 +46,7 @@ export default function StaffDashboard() {
   const [bloodManageFilter, setBloodManageFilter] = useState("donor");
   const [warehouseDonationsList2, setWarehouseDonationsList2] = useState<any>([]);
   const [selectedWarehouseStatus, setSelectedWarehouseStatus] = useState("");
+  const [mockDonorRequests, setMockDonorRequests] = useState<any>([]);
 
   const warehouseDonationsList = [
     {
@@ -266,6 +267,9 @@ export default function StaffDashboard() {
 
           const wareHouseDonations = await api.get(`/staff/donations-warehouse/by-staff/${user._id}`);
           setWarehouseDonationsList2(wareHouseDonations.data.data);
+
+          const mockDonor = await api.get(`/users/donor/staff/get-requests-by-hospital/${staffData.hospital._id}`);
+          setMockDonorRequests(mockDonor.data.requests);
 
         }
       } catch (error) {
@@ -885,6 +889,7 @@ export default function StaffDashboard() {
                       <SelectContent>
                         <SelectItem value="donor">Người Hiến Máu</SelectItem>
                         <SelectItem value="blood-inventory">Kho Máu</SelectItem>
+                        <SelectItem value="donor-request">Hiến Máu Vào Kho</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -988,7 +993,7 @@ export default function StaffDashboard() {
                       ))
                     ) : bloodManageFilter === "blood-inventory" ? (
                       ""
-                    ) : <p className="text-gray-600">Không tìm thấy người hiến máu.</p>}
+                    ) : bloodManageFilter === "donor-request" ? "" : <p className="text-gray-600">Không tìm thấy người hiến máu.</p>}
 
                     {bloodManageFilter === "blood-inventory" && Array.isArray(warehouseDonationsList2) && warehouseDonationsList2.length > 0 ? (
                       warehouseDonationsList2.map((donation) => (
@@ -1102,7 +1107,109 @@ export default function StaffDashboard() {
                       ))
                     ) : bloodManageFilter === "donor" ? (
                       ""
-                    ) : <p className="text-gray-600">Không tìm thấy dữ liệu rút máu từ kho.</p>}
+                    ) : bloodManageFilter === "donor-request" ? "" : <p className="text-gray-600">Không tìm thấy dữ liệu rút máu từ kho.</p>}
+
+                    {bloodManageFilter === "donor-request" &&
+                      Array.isArray(mockDonorRequests) &&
+                      mockDonorRequests.length > 0 ? (
+                      mockDonorRequests.map((request) => (
+                        <div
+                          key={request._id}
+                          className="flex flex-col md:flex-row justify-between p-6 border border-yellow-300 rounded-xl bg-gradient-to-br from-yellow-50 via-white to-blue-50 hover:shadow-md transition"
+                        >
+                          {/* PHẦN TRÁI - THÔNG TIN HIẾN */}
+                          <div className="flex-1 flex flex-col space-y-3">
+                            <div className="flex items-center space-x-4">
+                              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                                <Droplet className="w-6 h-6 text-red-600" />
+                              </div>
+                              <div>
+                                <p className="font-semibold text-yellow-800">Nhóm máu: {request.blood_type_offered}</p>
+                                <p className="text-sm text-gray-700">Thành phần hiến: {request.components_offered?.join(", ")}</p>
+                                <p className="text-sm text-gray-700">Số lượng: {request.amount_offered} đơn vị</p>
+                              </div>
+                            </div>
+
+                            {request.donor_id && (
+                              <div className="border-t border-yellow-200 pt-3 space-y-1">
+                                <p className="font-medium text-gray-800">👤 Người hiến: {request.donor_id.full_name}</p>
+                                <p className="text-sm text-gray-600">📧 {request.donor_id.email}</p>
+                                <p className="text-sm text-gray-600">📞 {request.donor_id.phone}</p>
+                              </div>
+                            )}
+
+                            <div className="flex flex-wrap gap-2 mt-2">
+                              {request.components_offered.map((c) => (
+                                <Badge key={c} className="bg-yellow-200 text-yellow-900 border border-yellow-400">
+                                  {c}
+                                </Badge>
+                              ))}
+                              <Badge
+                                className={
+                                  request.status === "in_progress"
+                                    ? "bg-yellow-300 text-yellow-900"
+                                    : request.status === "fulfilled"
+                                    ? "bg-green-100 text-green-800"
+                                    : request.status === "cancelled"
+                                    ? "bg-red-200 text-red-800"
+                                    : "bg-gray-200 text-gray-800"
+                                }
+                              >
+                                {request.status}
+                              </Badge>
+                            </div>
+
+                            <div className="text-sm text-gray-700 mt-1 space-y-1">
+                              <p>📅 Ngày hiến dự kiến: <strong>{formatDate(request.available_date)}</strong></p>
+                              <p>🕓 Khung giờ: <strong>{request.available_time_range?.from} - {request.available_time_range?.to}</strong></p>
+                              <p>📝 Ghi chú: {request.comment || "Không có"}</p>
+                              <p>⏱ Ngày tạo: {formatDate(request.createdAt)}</p>
+                            </div>
+                          </div>
+
+                          {/* PHẦN PHẢI - BỆNH VIỆN & HÀNH ĐỘNG */}
+                          <div className="flex flex-col justify-between items-end space-y-4 min-w-[240px] pl-4 border-l border-blue-200">
+                            <div className="text-right text-sm text-blue-900 space-y-1">
+                              <p className="font-semibold text-blue-800">🏥 Bệnh viện:</p>
+                              <p>{request.hospital?.name}</p>
+                              <p className="text-blue-700">{request.hospital?.address}</p>
+
+                              <div className="mt-3">
+                                <p className="font-semibold text-gray-800 mb-1">⚙️ Trạng thái:</p>
+                                <Select onValueChange={setSelectedWarehouseStatus} value={selectedWarehouseStatus}>
+                                  <SelectTrigger className="w-full md:w-[240px] border-blue-300 focus:ring-blue-400">
+                                    <SelectValue placeholder="Chọn trạng thái" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {[
+                                      { key: "pending", label: "Đang đề nghị" },
+                                      { key: "in_progress", label: "Đang tiến hành" },
+                                      { key: "completed", label: "Hoàn tất" },
+                                      { key: "cancelled", label: "Đã hủy" },
+                                    ].map((status) => (
+                                      <SelectItem key={status.key} value={status.key}>
+                                        {status.label}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+
+                              <Button
+                                className="mt-3 bg-blue-600 hover:bg-blue-700 text-white shadow"
+                                disabled={!selectedWarehouseStatus || selectedWarehouseStatus === request.status}
+                                onClick={() => handleWarehouseStatusUpdate(selectedWarehouseStatus, request._id)}
+                              >
+                                Cập nhật
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    ) : bloodManageFilter === "donor" ? (
+                      ""
+                    ) : bloodManageFilter === "blood-inventory" ? "" : <p className="text-gray-600">Không tìm thấy yêu cầu hiến máu từ người hiến.</p>}
+
 
                   </CardContent>
                 </CardContent>

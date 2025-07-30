@@ -29,7 +29,9 @@ import {
 } from "../controllers/donationController.js";
 import {
   createDonorRequest,
-  getDonorRequestsByDonorId
+  getDonorRequestsByDonorId,
+  getDonorRequestsByHospitalId,
+  updateDonorRequestStatus
 } from "../controllers/donorRequestController.js";
 
 const router = express.Router();
@@ -60,6 +62,9 @@ router.post("/donors/by-hospitals", getDonorsByHospitals);
 router.post("/donors/by-hospitals-and-bloodtype", getCompatibleDonorsByHospitalAndRecipientBloodType);
 router.post("/donor/request", createDonorRequest);
 router.get("/donor/get-requests-by-id/:donorId", getDonorRequestsByDonorId);
+router.get("/donor/staff/get-requests-by-hospital/:hospitalId", getDonorRequestsByHospitalId);
+router.put("/donor-requests/staff/:requestId/status", updateDonorRequestStatus);
+
 
 
 
