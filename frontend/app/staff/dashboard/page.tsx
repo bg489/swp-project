@@ -37,14 +37,14 @@ import toast, { Toaster } from "react-hot-toast"
 
 export default function StaffDashboard() {
   const { user, logout } = useAuth()
-  const [staff, setStaff] = useState({});
-  const [donorList, setDonorList] = useState([]);
-  const [bloodReqList, setBloodReqList] = useState([]);
-  const [donationList, setDonationList] = useState([]);
-  const [bloodInven, setBloodInven] = useState([])
+  const [staff, setStaff] = useState<any>({});
+  const [donorList, setDonorList] = useState<any>([]);
+  const [bloodReqList, setBloodReqList] = useState<any>([]);
+  const [donationList, setDonationList] = useState<any>([]);
+  const [bloodInven, setBloodInven] = useState<any>([])
   const [selectedDonationStatus, setSelectedDonationStatus] = useState("");
   const [bloodManageFilter, setBloodManageFilter] = useState("donor");
-  const [warehouseDonationsList2, setWarehouseDonationsList2] = useState([]);
+  const [warehouseDonationsList2, setWarehouseDonationsList2] = useState<any>([]);
   const [selectedWarehouseStatus, setSelectedWarehouseStatus] = useState("");
 
   const warehouseDonationsList = [
@@ -139,8 +139,8 @@ export default function StaffDashboard() {
       });
 
 
-      setDonationList((prev) =>
-        prev.map((donation) =>
+      setDonationList((prev: any) =>
+        prev.map((donation: any) =>
           donation._id === donationId ? { ...donation, status: newStatus } : donation
         )
       );
@@ -180,8 +180,8 @@ export default function StaffDashboard() {
         status: newStatus,
       });
 
-      setWarehouseDonationsList2((prev) =>
-        prev.map((donation) => {
+      setWarehouseDonationsList2((prev: any) =>
+        prev.map((donation: any) => {
           if (donation._id !== donationId) return donation;
 
           const isCancelling = newStatus === "cancelled" && donation.status !== "cancelled";
@@ -244,6 +244,8 @@ export default function StaffDashboard() {
   useEffect(() => {
     async function fetchProfile() {
       try {
+        if (!user?._id) return;
+        
         const profileRes = await api.get(`/users/staff-profiles/active/${user._id}`);
         const staffData = profileRes.data.staffProfile;
         setStaff(staffData);
@@ -337,14 +339,14 @@ export default function StaffDashboard() {
 
   // Mock blood inventory
   const bloodInventory = [
-    { type: "O-", available: 45, reserved: 5, status: "low", target: 100, color: "bg-red-500" },
-    { type: "O+", available: 120, reserved: 10, status: "good", target: 150, color: "bg-red-400" },
-    { type: "A-", available: 78, reserved: 8, status: "good", target: 100, color: "bg-blue-500" },
-    { type: "A+", available: 156, reserved: 15, status: "good", target: 150, color: "bg-blue-400" },
-    { type: "B-", available: 34, reserved: 3, status: "critical", target: 80, color: "bg-green-500" },
-    { type: "B+", available: 89, reserved: 9, status: "good", target: 120, color: "bg-green-400" },
-    { type: "AB-", available: 23, reserved: 2, status: "critical", target: 60, color: "bg-purple-500" },
-    { type: "AB+", available: 67, reserved: 7, status: "good", target: 80, color: "bg-purple-400" },
+    { type: "O-", available: 45, reserved: 5, status: "low", target: 100, color: "bg-red-500", expiringSoon: 5 },
+    { type: "O+", available: 120, reserved: 10, status: "good", target: 150, color: "bg-red-400", expiringSoon: 8 },
+    { type: "A-", available: 78, reserved: 8, status: "good", target: 100, color: "bg-blue-500", expiringSoon: 3 },
+    { type: "A+", available: 156, reserved: 15, status: "good", target: 150, color: "bg-blue-400", expiringSoon: 12 },
+    { type: "B-", available: 34, reserved: 3, status: "critical", target: 80, color: "bg-green-500", expiringSoon: 2 },
+    { type: "B+", available: 89, reserved: 9, status: "good", target: 120, color: "bg-green-400", expiringSoon: 7 },
+    { type: "AB-", available: 23, reserved: 2, status: "critical", target: 60, color: "bg-purple-500", expiringSoon: 1 },
+    { type: "AB+", available: 67, reserved: 7, status: "good", target: 80, color: "bg-purple-400", expiringSoon: 4 },
   ]
 
   // Mock blood requests
@@ -584,8 +586,8 @@ export default function StaffDashboard() {
                   </div>
 
                   <div className="space-y-4">
-                    {Array.isArray(donorList?.donors) && donorList.donors.map((donor) => (
-                      <div key={donor.id} className="flex items-center justify-between p-4 border rounded-lg">
+                    {Array.isArray(donorList?.donors) && donorList.donors.map((donor: any) => (
+                      <div key={donor._id || donor.user_id._id} className="flex items-center justify-between p-4 border rounded-lg">
                         <div className="flex items-center space-x-4">
                           <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
                             <Heart className="w-6 h-6 text-blue-600" />
@@ -650,7 +652,7 @@ export default function StaffDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                    {bloodInven.map((blood) => (
+                    {bloodInven.map((blood: any) => (
                       <Card key={blood.blood_type} className="relative">
                         <CardHeader className="pb-2">
                           <div className="flex items-center justify-between">
@@ -778,7 +780,7 @@ export default function StaffDashboard() {
                   </div>
 
                   <div className="space-y-4">
-                    {Array.isArray(bloodReqList.data) && bloodReqList.data.map((recipient) => (
+                    {Array.isArray(bloodReqList.data) && bloodReqList.data.map((recipient: any) => (
                       <Link
                         key={recipient._id}
                         href={`/staff/edit/request?requestId=${recipient._id}`}

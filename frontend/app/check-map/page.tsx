@@ -1,6 +1,7 @@
 "use client"
 
 import { LoginForm } from "@/components/auth/login-form"
+import { ProtectedRoute } from "@/components/auth/protected-route"
 import { useSearchParams } from "next/navigation"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { CheckCircle } from "lucide-react"
@@ -13,12 +14,14 @@ export default function LoginPage() {
   const message = searchParams.get("message")
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-red-50 to-white flex flex-col">
-      <Header />
+    <ProtectedRoute requiredRole="user">
+      <div className="min-h-screen bg-gradient-to-b from-red-50 to-white flex flex-col">
+        <Header />
 
-      <MapboxMap/>
+        <MapboxMap/>
 
-      <Footer />
-    </div>
+        <Footer />
+      </div>
+    </ProtectedRoute>
   )
 }

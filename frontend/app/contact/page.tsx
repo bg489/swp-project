@@ -268,18 +268,6 @@ export default function ContactPage() {
             </Card>
           </div>
         </div>
-
-        {/* Emergency Contact */}
-        <div className="mt-16">
-          <Card className="bg-gradient-to-r from-red-600 to-red-700 text-white">
-            <CardContent className="p-8 text-center">
-              <h3 className="text-2xl font-bold mb-4">Liên hệ khẩn cấp</h3>
-              <p className="text-red-100 mb-6">Trong trường hợp khẩn cấp cần máu ngay lập tức, vui lòng gọi hotline:</p>
-              <div className="text-3xl font-bold mb-4">1900-1234</div>
-              <p className="text-red-100">Hoạt động 24/7 - Phản hồi trong 15 phút</p>
-            </CardContent>
-          </Card>
-        </div>
       </div>
       <Footer />
     </div>

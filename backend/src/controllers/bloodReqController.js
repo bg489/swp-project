@@ -116,7 +116,7 @@ export async function getBloodRequestById(req, res) {
 
     const request = await BloodRequest.findById(requestId)
       .populate("recipient_id", "full_name email phone")
-      .populate("hospital", "name address");
+      .populate("hospital", "name address latitude longitude");
 
     if (!request) {
       return res.status(404).json({ message: "Blood request not found" });

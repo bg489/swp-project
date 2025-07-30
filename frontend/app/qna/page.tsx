@@ -1,9 +1,15 @@
+"use client"
+
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Badge } from "@/components/ui/badge"
-import { Heart, Users, Shield, Clock, AlertTriangle, CheckCircle, Phone, Mail, MapPin } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Heart, Users, Shield, Clock, AlertTriangle, CheckCircle, Phone, Mail, MapPin, Search, HelpCircle, BookOpen, MessageSquare } from "lucide-react"
+import { useState } from "react"
+import Image from "next/image"
 
 const qnaData = [
   {
@@ -91,84 +97,18 @@ const qnaData = [
       Hiến máu theo hướng dẫn của thầy thuốc không có hại cho sức khỏe. Điều đó đã được chứng minh bằng các cơ sở khoa học và cơ sở thực tế:
 
       Cơ sở khoa học:
-      • Máu có nhiều thành phần, mỗi thành phần chỉ có đời sống nhất định và luôn luôn được đổi mới hằng ngày. Ví dụ: Hồng cầu sống được 120 ngày, huyết tương thường xuyên được thay thế và đổi mới.
-      • Nhiều công trình nghiên cứu đã chứng minh rằng, sau khi hiến máu, các chỉ số máu có thay đổi chút ít nhưng vẫn nằm trong giới hạn sinh lý bình thường không hề gây ảnh hưởng đến các hoạt động thường ngày của cơ thể.
+      • Máu có nhiều thành phần, mỗi thành phần chỉ có đời sống nhất định và luôn luôn được đổi mới hằng ngày.
+      • Nhiều công trình nghiên cứu đã chứng minh rằng, sau khi hiến máu, các chỉ số máu có thay đổi chút ít nhưng vẫn nằm trong giới hạn sinh lý bình thường.
 
       Cơ sở thực tế:
-      • Thực tế đã có hàng triệu người hiến máu nhiều lần mà sức khỏe vẫn hoàn toàn tốt. Trên thế giới có người hiến máu trên 400 lần. Ở Việt Nam, người hiến máu nhiều lần nhất đã hiến gần 100 lần, sức khỏe hoàn toàn tốt.
-      • Như vậy, mỗi người nếu thấy sức khoẻ tốt, không có các bệnh lây nhiễm qua đường truyền máu, đạt tiêu chuẩn hiến máu thì có thể hiến máu từ 3-4 lần trong một năm, vừa không ảnh hưởng xấu đến sức khoẻ của bản thân, vừa đảm bảo máu có chất lượng tốt, an toàn cho người bệnh.
+      • Thực tế đã có hàng triệu người hiến máu nhiều lần mà sức khỏe vẫn hoàn toàn tốt.
+      • Trên thế giới có người hiến máu trên 400 lần. Ở Việt Nam, người hiến máu nhiều lần nhất đã hiến gần 100 lần, sức khỏe hoàn toàn tốt.
     `,
     icon: CheckCircle,
-    category: "An toàn sức khỏe",
-  },
-  {
-    id: "9",
-    question: "Quyền lợi đối với người hiến máu tình nguyện?",
-    answer: `
-      Quyền lợi và chế độ đối với người hiến máu tình nguyện theo Thông tư số 05/2017/TT-BYT:
-      • Được khám và tư vấn sức khỏe miễn phí.
-      • Được kiểm tra và thông báo kết quả các xét nghiệm máu (hoàn toàn bí mật): nhóm máu, HIV, virut viêm gan B, virut viêm gan C, giang mai, sốt rét.
-      • Được bồi dưỡng và chăm sóc theo các quy định hiện hành:
-        + Phục vụ ăn nhẹ tại chỗ: tương đương 30.000 đồng.
-        + Hỗ trợ chi phí đi lại (bằng tiền mặt): 50.000 đồng.
-        + Lựa chọn nhận quà tặng bằng hiện vật có giá trị như sau:
-          - Một đơn vị máu thể tích 250 ml: 100.000 đồng.
-          - Một đơn vị máu thể tích 350 ml: 150.000 đồng.
-          - Một đơn vị máu thể tích 450 ml: 180.000 đồng.
-        + Được cấp giấy chứng nhận hiến máu tình nguyện của Ban chỉ đạo hiến máu nhân đạo Tỉnh, Thành phố.
-    `,
-    icon: Heart,
-    category: "Quyền lợi",
-  },
-  {
-    id: "10",
-    question: "Khi hiến máu có thể bị nhiễm bệnh không?",
-    answer: `
-      Kim dây lấy máu vô trùng, chỉ sử dụng một lần cho một người, vì vậy không thể lây bệnh cho người hiến máu.
-    `,
-    icon: Shield,
     category: "An toàn",
   },
   {
-    id: "11",
-    question: "Ngày mai tôi sẽ hiến máu, tôi nên chuẩn bị như thế nào?",
-    answer: `
-      • Tối nay bạn không nên thức quá khuya (ngủ trước 23:00).
-      • Nên ăn và không uống rượu, bia trước khi hiến máu.
-      • Mang giấy CMND, đủ giấy tờ tùy thân và thẻ hiến máu(nếu có) khi đi hiến máu.
-    `,
-    icon: CheckCircle,
-    category: "Chuẩn bị",
-  },
-  {
-    id: "12",
-    question: "Những trường hợp nào cần phải trì hoãn hiến máu?",
-    answer: `
-      Những người phải trì hoãn hiến máu trong 12 tháng kể từ thời điểm:
-      • Phục hồi hoàn toàn sau các can thiệp ngoại khoa.
-      • Khỏi bệnh sau khi mắc một trong các bệnh sốt rét, giang mai, lao, uốn ván, viêm não, viêm màng não.
-      • Kết thúc đợt tiêm vắc xin phòng bệnh dại sau khi bị động vật cắn hoặc tiêm, truyền máu, chế phẩm máu và các chế phẩm sinh học nguồn gốc từ máu.
-      • Sinh con hoặc chấm dứt thai nghén.
-
-      Những người phải trì hoãn hiến máu trong 06 tháng kể từ thời điểm:
-      • Xăm trổ trên da.
-      • Bấm dái tai, bấm mũi, bấm rốn hoặc các vị trí khác của cơ thể.
-      • Phơi nhiễm với máu và dịch cơ thể từ người có nguy cơ hoặc đã nhiễm các bệnh lây truyền qua đường máu.
-      • Khỏi bệnh sau khi mắc một trong các bệnh thương hàn, nhiễm trùng huyết, bị rắn cắn, viêm tắc động mạch, viêm tắc tĩnh mạch, viêm tuỷ xương, viêm tụy.
-
-      Những người phải trì hoãn hiến máu trong 04 tuần kể từ thời điểm:
-      • Khỏi bệnh sau khi mắc một trong các bệnh viêm dạ dày ruột, viêm đường tiết niệu, viêm da nhiễm trùng, viêm phế quản, viêm phổi, sởi, ho gà, quai bị, sốt xuất huyết, kiết lỵ, rubella, tả, quai bị.
-      • Kết thúc đợt tiêm vắc xin phòng rubella, sởi, thương hàn, tả, quai bị, thủy đậu, BCG.
-
-      Những người phải trì hoãn hiến máu trong 07 ngày kể từ thời điểm:
-      • Khỏi bệnh sau khi mắc một trong các bệnh cúm, cảm lạnh, dị ứng mũi họng, viêm họng, đau nửa đầu Migraine.
-      • Tiêm các loại vắc xin, trừ các loại đã được quy định tại Điểm c Khoản 1 và Điểm b Khoản 3 Điều này.
-    `,
-    icon: Clock,
-    category: "Trì hoãn hiến máu",
-  },
-  {
-    id: "13",
+    id: "9",
     question: "Tôi có thể hiến máu sau khi tiêm vắc xin Covid-19 không?",
     answer: `
       Khi tiêm vắc xin ngừa Covid-19, có thể tham gia hiến máu sau: 7 NGÀY, để đảm bảo bạn không bị tác dụng phụ và đảm bảo đủ sức khỏe vào ngày hiến máu.
@@ -177,7 +117,7 @@ const qnaData = [
     category: "COVID-19",
   },
   {
-    id: "14",
+    id: "10",
     question: "Tôi bị nhiễm Covid-19. Tôi có thể hiến máu sau khi hồi phục không?",
     answer: `
       Khi mắc bệnh Covid-19, có thể tham gia hiến máu sau: 14 ngày kể từ thời điểm có kết quả khẳng định "ÂM TÍNH" với virus SarS-CoV-2.
@@ -185,113 +125,198 @@ const qnaData = [
     icon: Shield,
     category: "COVID-19",
   },
-  {
-    id: "15",
-    question: "Khi phát hiện bất thường, cảm thấy không an toàn với túi máu vừa hiến",
-    answer: `
-      Sau khi tham gia hiến máu, nếu phát hiện có bất cứ điều gì khiến bạn cảm thấy không an toàn với túi máu vừa hiến (chợt nhớ ra 1 hành vi nguy cơ, có sử dụng loại thuốc nào đó mà bạn quên báo bác sĩ khi thăm khám, có xét nghiệm "DƯƠNG TÍNH" với SarS-CoV-2 bằng kỹ thuật test nhanh hoặc Real time RT-PCR,...) vui lòng báo lại cho đơn vị tiếp nhận túi máu nơi mà bạn đã tham gia hiến.
-    `,
-    icon: AlertTriangle,
-    category: "Sau hiến máu",
-  },
-  {
-    id: "16",
-    question: "Cảm thấy không khỏe sau khi hiến máu?",
-    answer: `
-      Sau khi hiến máu, nếu có các triệu chứng chóng mặt, mệt mỏi, buồn nôn,... hãy liên hệ ngay cho đơn vị tiếp nhận máu để được hỗ trợ về mặt y khoa.
-    `,
-    icon: AlertTriangle,
-    category: "Sau hiến máu",
-  },
-  {
-    id: "17",
-    question: "Có dấu hiệu sưng, phù nơi vết chích?",
-    answer: `
-      Sau khi hiến máu, nếu bạn có các dấu hiệu sưng, phù nơi vết chích. Xin đừng quá lo lắng, hãy chườm lạnh ngay vị trí sưng đó và theo dõi các dấu hiệu trên, nếu không giảm sau 24 giờ hãy liên hệ lại cho đơn vị tiếp nhận máu để được hỗ trợ.
-    `,
-    icon: AlertTriangle,
-    category: "Sau hiến máu",
-  },
 ]
 
 const categories = [
-  "Tất cả",
-  "Điều kiện hiến máu",
-  "Xét nghiệm",
-  "Kiến thức cơ bản",
-  "Nhu cầu máu",
-  "Thủ tục",
-  "An toàn sức khỏe",
-  "Quyền lợi",
-  "An toàn",
-  "Chuẩn bị",
-  "Trì hoãn hiến máu",
-  "COVID-19",
-  "Sau hiến máu",
+  { id: "all", name: "Tất cả", icon: BookOpen },
+  { id: "Điều kiện hiến máu", name: "Điều kiện", icon: Users },
+  { id: "Xét nghiệm", name: "Xét nghiệm", icon: Shield },
+  { id: "An toàn", name: "An toàn", icon: CheckCircle },
+  { id: "COVID-19", name: "COVID-19", icon: AlertTriangle },
+  { id: "Kiến thức cơ bản", name: "Kiến thức", icon: Heart },
 ]
 
 export default function QnAPage() {
+  const [searchQuery, setSearchQuery] = useState("")
+  const [selectedCategory, setSelectedCategory] = useState("all")
+
+  const filteredQnA = qnaData.filter((item) => {
+    const matchesSearch = item.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         item.answer.toLowerCase().includes(searchQuery.toLowerCase())
+    const matchesCategory = selectedCategory === "all" || item.category === selectedCategory
+    return matchesSearch && matchesCategory
+  })
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-red-50 to-white">
+    <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-red-50">
       <Header />
 
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto">
-          {/* Hero Section */}
-          <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Heart className="w-8 h-8 text-white" />
+      {/* Hero Section */}
+      <section className="relative py-24 px-4 overflow-hidden">
+        {/* Background Pattern */}
+        <div className="absolute inset-0 z-0">
+          <div className="w-full h-full bg-gradient-to-br from-red-500/5 via-red-400/10 to-red-600/5"></div>
+          <div className="absolute top-10 left-10 w-32 h-32 bg-red-200/20 rounded-full blur-xl"></div>
+          <div className="absolute bottom-10 right-10 w-40 h-40 bg-red-300/15 rounded-full blur-2xl"></div>
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-red-100/10 rounded-full blur-3xl"></div>
+        </div>
+        
+        <div className="container mx-auto text-center relative z-10 max-w-5xl">
+          {/* Main Icon with Animation */}
+          <div className="relative mb-8">
+            <div className="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-br from-red-500 via-red-600 to-red-700 rounded-3xl mb-6 shadow-2xl transform hover:scale-105 transition-all duration-300">
+              <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent rounded-3xl"></div>
+              <HelpCircle className="w-12 h-12 text-white relative z-10" />
             </div>
-            <Badge className="mb-4 bg-red-100 text-red-800">❓ Câu hỏi thường gặp về hiến máu</Badge>
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">Hỏi đáp về hiến máu</h1>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Tìm hiểu tất cả thông tin cần thiết về hiến máu nhân đạo. Những câu hỏi thường gặp và câu trả lời chi tiết
-              từ các chuyên gia y tế.
+            {/* Floating Elements */}
+            <div className="absolute -top-2 -right-2 w-6 h-6 bg-red-400 rounded-full animate-pulse"></div>
+            <div className="absolute -bottom-1 -left-1 w-4 h-4 bg-red-300 rounded-full animate-bounce delay-300"></div>
+          </div>
+          
+          {/* Badge with improved styling */}
+          <div className="mb-6">
+            <Badge className="bg-gradient-to-r from-red-50 to-red-100 text-red-700 hover:from-red-100 hover:to-red-150 px-6 py-3 text-base font-medium border border-red-200 shadow-sm">
+              <span className="mr-2">💡</span>
+              Hỏi đáp về hiến máu
+            </Badge>
+          </div>
+          
+          {/* Enhanced Title */}
+          <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-gray-900 mb-8 leading-tight">
+            <span className="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 bg-clip-text text-transparent">
+              Câu hỏi
+            </span>
+            <br />
+            <span className="bg-gradient-to-r from-red-500 via-red-600 to-red-700 bg-clip-text text-transparent">
+              thường gặp
+            </span>
+          </h1>
+          
+          {/* Enhanced Description */}
+          <div className="max-w-3xl mx-auto mb-10">
+            <p className="text-xl md:text-2xl text-gray-600 leading-relaxed font-light">
+              Tìm hiểu thông tin chi tiết về quy trình hiến máu, điều kiện tham gia và các quyền lợi của người hiến máu
             </p>
+            <div className="flex items-center justify-center mt-4 space-x-6 text-sm text-gray-500">
+              <div className="flex items-center">
+                <CheckCircle className="w-4 h-4 text-green-500 mr-1" />
+                Thông tin chính xác
+              </div>
+              <div className="flex items-center">
+                <Shield className="w-4 h-4 text-blue-500 mr-1" />
+                Được xác minh y khoa
+              </div>
+              <div className="flex items-center">
+                <Heart className="w-4 h-4 text-red-500 mr-1" />
+                Cập nhật liên tục
+              </div>
+            </div>
           </div>
 
+          {/* Enhanced Search Bar */}
+          <div className="relative max-w-xl mx-auto mb-10">
+            <div className="absolute inset-0 bg-gradient-to-r from-red-500/20 to-red-600/20 rounded-2xl blur-lg"></div>
+            <div className="relative bg-white/90 backdrop-blur-sm rounded-2xl border border-red-200/50 shadow-xl">
+              <Search className="absolute left-5 top-1/2 transform -translate-y-1/2 text-red-400 w-6 h-6" />
+              <Input
+                type="text"
+                placeholder="Tìm kiếm câu hỏi của bạn..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-14 pr-6 py-4 text-lg border-0 bg-transparent focus:ring-2 focus:ring-red-500/20 rounded-2xl placeholder:text-gray-400"
+              />
+            </div>
+          </div>
+
+          {/* Enhanced Category Filter */}
+          <div className="flex flex-wrap justify-center gap-3 mb-8">
+            {categories.map((category) => {
+              const Icon = category.icon
+              return (
+                <Button
+                  key={category.id}
+                  variant={selectedCategory === category.id ? "default" : "outline"}
+                  onClick={() => setSelectedCategory(category.id)}
+                  className={`group relative rounded-2xl px-5 py-3 transition-all duration-300 font-medium ${
+                    selectedCategory === category.id
+                      ? "bg-gradient-to-r from-red-500 to-red-600 text-white shadow-xl shadow-red-500/25 scale-105 border-0"
+                      : "border-2 border-red-200/60 text-red-600 hover:bg-red-50 hover:border-red-300 hover:shadow-lg bg-white/70 backdrop-blur-sm"
+                  }`}
+                >
+                  <div className="flex items-center space-x-2">
+                    <Icon className={`w-4 h-4 transition-transform duration-300 ${
+                      selectedCategory === category.id ? "scale-110" : "group-hover:scale-110"
+                    }`} />
+                    <span>{category.name}</span>
+                  </div>
+                  {selectedCategory === category.id && (
+                    <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent rounded-2xl"></div>
+                  )}
+                </Button>
+              )
+            })}
+          </div>
+
+          {/* Statistics Banner */}
+          <div className="max-w-4xl mx-auto">
+            <div className="bg-white/80 backdrop-blur-sm rounded-3xl border border-red-100 shadow-xl p-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="text-center">
+                  <div className="w-12 h-12 bg-gradient-to-r from-red-500 to-red-600 rounded-xl flex items-center justify-center mx-auto mb-3">
+                    <BookOpen className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="text-3xl font-bold text-red-600 mb-1">{qnaData.length}</div>
+                  <div className="text-sm text-gray-600 font-medium">Câu hỏi thường gặp</div>
+                </div>
+                <div className="text-center">
+                  <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mx-auto mb-3">
+                    <Users className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="text-3xl font-bold text-blue-600 mb-1">1.8M</div>
+                  <div className="text-sm text-gray-600 font-medium">Nhu cầu đơn vị máu/năm</div>
+                </div>
+                <div className="text-center">
+                  <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-green-600 rounded-xl flex items-center justify-center mx-auto mb-3">
+                    <Heart className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="text-3xl font-bold text-green-600 mb-1">24/7</div>
+                  <div className="text-sm text-gray-600 font-medium">Hỗ trợ khẩn cấp</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Main Content */}
+      <section className="py-16 px-4">
+        <div className="container mx-auto max-w-6xl">
           <div className="grid lg:grid-cols-4 gap-8">
             {/* Sidebar */}
             <div className="lg:col-span-1">
               <div className="sticky top-24 space-y-6">
                 {/* Quick Stats */}
-                <Card className="bg-white/80 backdrop-blur-sm border-red-100">
+                <Card className="bg-white/80 backdrop-blur-sm border-red-100 shadow-lg">
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-lg font-semibold text-red-700">Thống kê nhanh</CardTitle>
+                    <CardTitle className="text-lg font-semibold text-red-700 flex items-center">
+                      <MessageSquare className="w-5 h-5 mr-2" />
+                      Thống kê
+                    </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-                        <Users className="w-5 h-5 text-red-600" />
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-600">Câu hỏi</p>
-                        <p className="font-semibold text-gray-900">{qnaData.length} câu hỏi</p>
-                      </div>
+                    <div className="text-center">
+                      <div className="text-3xl font-bold text-red-600">{qnaData.length}</div>
+                      <div className="text-sm text-gray-600">Câu hỏi</div>
                     </div>
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-                        <Heart className="w-5 h-5 text-red-600" />
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-600">Nhu cầu hàng năm</p>
-                        <p className="font-semibold text-gray-900">1.8 triệu đơn vị</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-                        <CheckCircle className="w-5 h-5 text-red-600" />
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-600">Đáp ứng hiện tại</p>
-                        <p className="font-semibold text-gray-900">54%</p>
-                      </div>
+                    <div className="text-center">
+                      <div className="text-3xl font-bold text-green-600">{filteredQnA.length}</div>
+                      <div className="text-sm text-gray-600">Kết quả tìm kiếm</div>
                     </div>
                   </CardContent>
                 </Card>
 
                 {/* Contact Info */}
-                <Card className="bg-white/80 backdrop-blur-sm border-red-100">
+                <Card className="bg-white/80 backdrop-blur-sm border-red-100 shadow-lg">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-lg font-semibold text-red-700">Liên hệ hỗ trợ</CardTitle>
                   </CardHeader>
@@ -324,88 +349,88 @@ export default function QnAPage() {
 
             {/* Main Q&A Content */}
             <div className="lg:col-span-3">
-              <Card className="bg-white/80 backdrop-blur-sm border-red-100">
+              <Card className="bg-white/80 backdrop-blur-sm border-red-100 shadow-lg">
                 <CardHeader>
                   <CardTitle className="text-2xl font-bold bg-gradient-to-r from-red-600 to-red-700 bg-clip-text text-transparent">
-                    Câu hỏi thường gặp
+                    Danh sách câu hỏi
                   </CardTitle>
                   <p className="text-gray-600">
-                    Tìm hiểu thông tin chi tiết về quy trình hiến máu, điều kiện tham gia và các quyền lợi của người
-                    hiến máu.
+                    {filteredQnA.length > 0 
+                      ? `Tìm thấy ${filteredQnA.length} câu hỏi${searchQuery ? ` cho "${searchQuery}"` : ""}`
+                      : "Không tìm thấy câu hỏi nào phù hợp"}
                   </p>
                 </CardHeader>
                 <CardContent>
-                  <Accordion type="single" collapsible className="space-y-4">
-                    {qnaData.map((item) => {
-                      const IconComponent = item.icon
-                      return (
-                        <AccordionItem
-                          key={item.id}
-                          value={item.id}
-                          className="border border-red-100 rounded-lg px-4 bg-white/50"
-                        >
-                          <AccordionTrigger className="hover:no-underline py-4">
-                            <div className="flex items-start space-x-3 text-left">
-                              <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
-                                <IconComponent className="w-4 h-4 text-red-600" />
-                              </div>
-                              <div className="flex-1">
-                                <h3 className="font-semibold text-gray-900 mb-1">{item.question}</h3>
-                                <span className="inline-block px-2 py-1 bg-red-50 text-red-600 text-xs rounded-full">
-                                  {item.category}
-                                </span>
-                              </div>
-                            </div>
-                          </AccordionTrigger>
-                          <AccordionContent className="pb-4">
-                            <div className="ml-11 text-gray-700 leading-relaxed">
-                              {item.answer.split("\n").map((line, index) => (
-                                <div key={index} className="mb-2">
-                                  {line.trim() && (
-                                    <p className={line.trim().startsWith("•") ? "ml-4" : ""}>{line.trim()}</p>
-                                  )}
+                  {filteredQnA.length > 0 ? (
+                    <Accordion type="single" collapsible className="space-y-4">
+                      {filteredQnA.map((item) => {
+                        const IconComponent = item.icon
+                        return (
+                          <AccordionItem
+                            key={item.id}
+                            value={item.id}
+                            className="border border-red-100 rounded-xl px-6 py-2 bg-gradient-to-r from-white to-red-50/30 hover:shadow-md transition-all duration-200"
+                          >
+                            <AccordionTrigger className="hover:no-underline py-4">
+                              <div className="flex items-start space-x-4 text-left">
+                                <div className="w-10 h-10 bg-gradient-to-r from-red-500 to-red-600 rounded-xl flex items-center justify-center flex-shrink-0 mt-1 shadow-sm">
+                                  <IconComponent className="w-5 h-5 text-white" />
                                 </div>
-                              ))}
-                            </div>
-                          </AccordionContent>
-                        </AccordionItem>
-                      )
-                    })}
-                  </Accordion>
-                </CardContent>
-              </Card>
-
-              {/* Call to Action */}
-              <Card className="mt-8 bg-gradient-to-r from-red-600 to-red-700 text-white">
-                <CardContent className="p-8 text-center">
-                  <Heart className="w-12 h-12 mx-auto mb-4 text-white" />
-                  <h3 className="text-2xl font-bold mb-4">Sẵn sàng trở thành người hùng?</h3>
-                  <p className="text-red-100 mb-6 max-w-2xl mx-auto">
-                    Mỗi lần hiến máu của bạn có thể cứu sống tới 3 người. Hãy tham gia cùng chúng tôi để mang lại hy
-                    vọng cho những người cần máu.
-                  </p>
-                  <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                    <a
-                      href="/donate"
-                      className="inline-flex items-center justify-center px-6 py-3 bg-white text-red-600 font-semibold rounded-lg hover:bg-red-50 transition-colors duration-200"
-                    >
-                      <Heart className="w-5 h-5 mr-2" />
-                      Đăng ký hiến máu
-                    </a>
-                    <a
-                      href="/contact"
-                      className="inline-flex items-center justify-center px-6 py-3 border-2 border-white text-white font-semibold rounded-lg hover:bg-white hover:text-red-600 transition-colors duration-200"
-                    >
-                      <Phone className="w-5 h-5 mr-2" />
-                      Liên hệ tư vấn
-                    </a>
-                  </div>
+                                <div className="flex-1">
+                                  <h3 className="font-semibold text-gray-900 mb-2 text-lg">{item.question}</h3>
+                                  <Badge variant="secondary" className="bg-red-100 text-red-700 hover:bg-red-100">
+                                    {item.category}
+                                  </Badge>
+                                </div>
+                              </div>
+                            </AccordionTrigger>
+                            <AccordionContent className="pb-6">
+                              <div className="ml-14 text-gray-700 leading-relaxed">
+                                {item.answer.split("\n").map((line, index) => (
+                                  <div key={index} className="mb-2">
+                                    {line.trim() && (
+                                      <p className={`${line.trim().startsWith("•") ? "ml-4 flex items-start" : ""} ${
+                                        line.trim().includes(":") && !line.trim().startsWith("•") ? "font-semibold text-gray-900 mt-3 mb-1" : ""
+                                      }`}>
+                                        {line.trim().startsWith("•") && (
+                                          <span className="text-red-500 mr-2 flex-shrink-0">•</span>
+                                        )}
+                                        <span>{line.trim().replace(/^•\s*/, "")}</span>
+                                      </p>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </AccordionContent>
+                          </AccordionItem>
+                        )
+                      })}
+                    </Accordion>
+                  ) : (
+                    <div className="text-center py-12">
+                      <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Search className="w-8 h-8 text-gray-400" />
+                      </div>
+                      <h3 className="text-xl font-semibold text-gray-900 mb-2">Không tìm thấy kết quả</h3>
+                      <p className="text-gray-600 mb-4">Thử tìm kiếm với từ khóa khác hoặc chọn danh mục khác</p>
+                      <Button
+                        onClick={() => {
+                          setSearchQuery("")
+                          setSelectedCategory("all")
+                        }}
+                        variant="outline"
+                        className="border-red-200 text-red-600 hover:bg-red-50"
+                      >
+                        Xem tất cả câu hỏi
+                      </Button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
       <Footer />
     </div>

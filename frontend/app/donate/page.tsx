@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -17,65 +17,40 @@ import { Heart, CalendarIcon, User, Droplets, Shield, CheckCircle } from "lucide
 import { format } from "date-fns"
 import { vi } from "date-fns/locale"
 import Link from "next/link"
-import api from "@/lib/axios";
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
-import toast, { Toaster } from "react-hot-toast"
 import { useAuth } from "@/contexts/auth-context"
+import { GuestAccessWarning } from "@/components/auth/guest-access-warning"
+import { ProtectedRoute } from "@/components/auth/protected-route"
+import { toast } from "@/hooks/use-toast"
+import api from "@/lib/axios"
 
 export default function DonatePage() {
-  const { user, logout } = useAuth()
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    const year = date.getFullYear()
-    const month = String(date.getMonth() + 1).padStart(2, "0")
-    const day = String(date.getDate()).padStart(2, "0")
-    return `${year}-${month}-${day}`
-  }
-
-  const today = new Date().toISOString().split("T")[0];
-
-  const [formData, setFormData] = useState({
-      name: user?.full_name,
-      email: user?.email,
-      phone: user?.phone,
-      address: user?.address,
-      gender: user?.gender,
-      date_of_birth: user?.date_of_birth ? formatDate(user.date_of_birth) : "",
-      role: user?.role,
-      available_date: today,
-      available_time_range: {
-        from: "",
-        to: "",
-      },
-      amount_offered: "",
-      components_offered: [] as string[],
-      notes: "",
-    })
-
+  const { user, isLoading } = useAuth()
   
-
+  // Sử dụng ngày địa phương thay vì UTC để tránh bị lùi ngày
+  const today = new Date();
+  const todayString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
   
+  // Tính toán ngày tối đa (3 tháng từ hôm nay)
+  const maxDate = new Date();
+  maxDate.setMonth(maxDate.getMonth() + 3);
+  const maxDateString = `${maxDate.getFullYear()}-${String(maxDate.getMonth() + 1).padStart(2, '0')}-${String(maxDate.getDate()).padStart(2, '0')}`;
 
   const [loading, setLoading] = useState(false);
-
-
-    
-
-  
-    
-
-  const handleCheckboxChange = (component: string) => {
-    const selected = formData.components_offered.includes(component);
-    const updated = selected
-      ? formData.components_offered.filter((c) => c !== component)
-      : [...formData.components_offered, component];
-
-    setFormData((prev) => ({ ...prev, components_offered: updated }));
-  };
-
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date>()
+  const [formData, setFormData] = useState({
+    available_date: todayString,
+    available_time_range: {
+      from: "",
+      to: "",
+    },
+    amount_offered: "",
+    components_offered: [] as string[],
+    hospital: "",
+    notes: "",
+  });
 
   const bloodTypes = ["O-", "O+", "A-", "A+", "B-", "B+", "AB-", "AB+"]
   const timeSlots = ["6:00 - 8:00", "8:00 - 10:00", "10:00 - 12:00", "14:00 - 16:00", "16:00 - 18:00", "18:00 - 20:00"]
@@ -86,57 +61,235 @@ export default function DonatePage() {
     "Không sử dụng thuốc kháng sinh trong 7 ngày",
     "Không hiến máu trong vòng 3 tháng gần đây",
     "Sức khỏe tốt, không có triệu chứng cảm cúm",
+    "Đăng ký trước từ 1 ngày đến 3 tháng",
   ]
+
+  const handleCheckboxChange = (component: string) => {
+    const selected = formData.components_offered.includes(component);
+    const updated = selected
+      ? formData.components_offered.filter((c) => c !== component)
+      : [...formData.components_offered, component];
+
+    setFormData((prev) => ({ ...prev, components_offered: updated }));
+  };
+
+  // Show loading state while checking auth
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-red-50 via-pink-50 to-rose-100 flex flex-col">
+        <Header />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-500 mx-auto mb-4"></div>
+            <p className="text-gray-600">Đang tải...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Check if user is authorized
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-red-50 via-pink-50 to-rose-100 flex flex-col">
+        <Header />
+        <div className="flex-1 flex items-center justify-center p-4">
+          <Card className="w-full max-w-md">
+            <CardHeader className="text-center">
+              <CardTitle className="text-red-600">Vui lòng đăng nhập</CardTitle>
+              <CardDescription>
+                Bạn cần đăng nhập để đăng ký hiến máu.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="text-center">
+              <Link href="/login">
+                <Button className="bg-red-600 hover:bg-red-700">
+                  Đăng nhập ngay
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    )
+  }
+
+  if (user.role !== "donor") {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-red-50 via-pink-50 to-rose-100 flex flex-col">
+        <Header />
+        <div className="flex-1 flex items-center justify-center p-4">
+          <Card className="w-full max-w-md">
+            <CardHeader className="text-center">
+              <CardTitle className="text-red-600">Không có quyền truy cập</CardTitle>
+              <CardDescription>
+                Trang này chỉ dành cho người hiến máu. Bạn cần đăng ký là người hiến máu để sử dụng tính năng này.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </div>
+      </div>
+    )
+  }
 
 
   const handleSubmit = async (e: React.FormEvent) => {
-    console.log("Form submitted:", formData, selectedDate)
     e.preventDefault();
+    
+    // Prevent double submission
+    if (loading) return;
+    
     setLoading(true);
-
+    
     try {
-      const { from, to } = formData.available_time_range;
-
-      if (to <= from) {
-        toast.error("Giờ kết thúc phải sau giờ bắt đầu!");
-        setLoading(false);
+      // Validate required fields
+      if (!formData.available_date) {
+        toast({
+          variant: "destructive",
+          title: "Lỗi",
+          description: "Vui lòng chọn ngày hiến máu.",
+        })
         return;
       }
 
-      if (Number(formData.amount_offered) <= 1 || Number(formData.amount_offered) >= 50) {
-        toast.error("Lượng máu hiến phải lớn hơn 1 và nhỏ hơn 50 (ml)!");
-        setLoading(false);
+      // Validate date range
+      const selectedDate = new Date(formData.available_date);
+      const todayDate = new Date(todayString);
+      const maxDateObj = new Date(maxDateString);
+      
+      if (selectedDate < todayDate) {
+        toast({
+          variant: "destructive",
+          title: "Lỗi",
+          description: "Ngày hiến máu không thể là ngày trong quá khứ.",
+        })
+        return;
+      }
+      
+      if (selectedDate > maxDateObj) {
+        toast({
+          variant: "destructive",
+          title: "Lỗi",
+          description: "Ngày hiến máu không thể quá 3 tháng từ hôm nay.",
+        })
         return;
       }
 
+      if (!formData.available_time_range.from || !formData.available_time_range.to) {
+        toast({
+          variant: "destructive",
+          title: "Lỗi",
+          description: "Vui lòng chọn khung giờ hiến máu.",
+        })
+        return;
+      }
 
+      if (!formData.amount_offered) {
+        toast({
+          variant: "destructive",
+          title: "Lỗi",
+          description: "Vui lòng nhập lượng máu dự kiến hiến.",
+        })
+        return;
+      }
 
-      const response = await api.post("/users/donor/request", {
-        donor_id: user?._id,
-        available_date: formData.available_date,
-        available_time_range: {
-          from: formData.available_time_range.from,
-          to: formData.available_time_range.to,
-        },
-        amount_offered: formData.amount_offered,
-        components_offered: formData.components_offered,
-        comment: formData.notes,
+      console.log("Submitting form with user:", user)
+      console.log("Form data:", formData)
+
+      // Validate user
+      if (!user || !user._id) {
+        toast({
+          variant: "destructive",
+          title: "Lỗi",
+          description: "Vui lòng đăng nhập trước khi đăng ký hiến máu!",
+        })
+        return;
+      }
+
+      // Debug user info
+      console.log("Current user:", {
+        id: user._id,
+        role: user.role,
+        email: user.email,
+        full_name: user.full_name
       });
 
-      toast.success("Đăng ký hiến máu thành công!");
-      // Reset form
-      setFormData(prev => ({
-        ...prev,
-        available_date: today,
-        available_time_range: { from: "", to: "" },
-        amount_offered: "",
-        components_offered: [],
-        notes: "",
-      }));
-      console.log("_id: ", user?._id, "Form reset:", formData);
-    } catch (error) {
-      console.error(error);
-      toast.error("Đã xảy ra lỗi khi gửi yêu cầu.");
+      // Validate form data before submitting
+      if (formData.components_offered.length === 0) {
+        toast({
+          variant: "destructive",
+          title: "Lỗi",
+          description: "Vui lòng chọn ít nhất một thành phần máu để hiến.",
+        })
+        return;
+      }
+
+      const requestData = {
+        donor_id: user._id,
+        available_date: formData.available_date,
+        available_time_range: formData.available_time_range,
+        amount_offered: parseInt(formData.amount_offered),
+        components_offered: formData.components_offered,
+        comment: formData.notes,
+      };
+
+      console.log("Submitting donor request:", requestData);
+
+      const response = await api.post("/users/donor/request", requestData);
+
+      if (response.status === 201) {
+        // Show success state
+        setShowSuccessMessage(true);
+        
+        toast({
+          title: "🎉 Đăng ký hiến máu thành công!",
+          description: `Cảm ơn bạn đã đăng ký hiến máu vào ngày ${formData.available_date} từ ${formData.available_time_range.from} - ${formData.available_time_range.to}. Chúng tôi sẽ liên hệ với bạn sớm nhất!`,
+          duration: 6000,
+        })
+        
+        // Show additional success message
+        setTimeout(() => {
+          toast({
+            title: "🩸 Bạn là người hùng!",
+            description: "Hành động của bạn có thể cứu sống 3 người. Hãy theo dõi email để nhận thông báo từ chúng tôi.",
+            duration: 5000,
+          })
+        }, 2000)
+        
+        // Reset form after 3 seconds
+        setTimeout(() => {
+          setFormData({
+            available_date: todayString,
+            available_time_range: { from: "", to: "" },
+            amount_offered: "",
+            components_offered: [],
+            hospital: "",
+            notes: "",
+          });
+          setShowSuccessMessage(false);
+        }, 3000)
+      }
+    } catch (error: any) {
+      console.error("Error submitting donor request:", error);
+      console.error("Error response:", error.response?.data);
+      
+      let errorMessage = "Đã xảy ra lỗi khi gửi yêu cầu.";
+      
+      if (error.response?.status === 404) {
+        errorMessage = "Không tìm thấy thông tin người dùng. Vui lòng kiểm tra lại tài khoản của bạn.";
+      } else if (error.response?.status === 400) {
+        errorMessage = error.response?.data?.message || "Thông tin không hợp lệ. Vui lòng kiểm tra lại.";
+      } else if (error.response?.status === 500) {
+        errorMessage = "Lỗi hệ thống. Vui lòng thử lại sau.";
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+      
+      toast({
+        variant: "destructive",
+        title: "Lỗi",
+        description: errorMessage,
+      })
     } finally {
       setLoading(false);
     }
@@ -151,7 +304,8 @@ export default function DonatePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-red-50 to-white">
+    <ProtectedRoute requiredRole="donor">
+      <div className="min-h-screen bg-gradient-to-b from-red-50 to-white">
       <Header />
 
       <div className="container mx-auto px-4 py-8">
@@ -213,19 +367,37 @@ export default function DonatePage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
+                  {showSuccessMessage && (
+                    <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                      <div className="flex items-center mb-2">
+                        <CheckCircle className="w-5 h-5 text-green-600 mr-2" />
+                        <h3 className="font-semibold text-green-800">Đăng ký thành công! 🎉</h3>
+                      </div>
+                      <p className="text-sm text-green-700 mb-2">
+                        Cảm ơn bạn đã đăng ký hiến máu tình nguyện! Chúng tôi sẽ liên hệ với bạn trong thời gian sớm nhất.
+                      </p>
+                      <div className="flex items-center text-sm text-green-600">
+                        <Heart className="w-4 h-4 mr-1" />
+                        <span>Bạn có thể cứu sống đến 3 người bằng hành động này!</span>
+                      </div>
+                    </div>
+                  )}
+                  
                   <form onSubmit={handleSubmit} className="space-y-6">
                     {/* Personal Information */}
 
                     {/* Availability */}
                     <div className="space-y-4">
                       <div className="max-w-xl mx-auto p-6">
+                        <div className="space-y-4">
                           {/* Ngày hiến */}
                           <div>
                             <Label htmlFor="available_date">Ngày hiến máu</Label>
                             <Input
                               type="date"
                               id="available_date"
-                              min={today}
+                              min={todayString}
+                              max={maxDateString}
                               value={formData.available_date}
                               onChange={(e) =>
                                 setFormData((prev) => ({
@@ -235,47 +407,38 @@ export default function DonatePage() {
                               }
                               required
                             />
+                            <p className="text-xs text-gray-500 mt-1">
+                              Chọn ngày trong vòng 3 tháng tới (từ {new Date(todayString).toLocaleDateString('vi-VN')} đến {new Date(maxDateString).toLocaleDateString('vi-VN')})
+                            </p>
                           </div>
 
                           {/* Khung giờ */}
-                          <div className="flex gap-4">
-                            <div className="flex-1">
-                              <Label htmlFor="from">Từ giờ</Label>
-                              <Input
-                                type="time"
-                                id="from"
-                                value={formData.available_time_range.from}
-                                onChange={(e) =>
-                                  setFormData((prev) => ({
-                                    ...prev,
-                                    available_time_range: {
-                                      ...prev.available_time_range,
-                                      from: e.target.value,
-                                    },
-                                  }))
-                                }
-                                required
-                              />
-                            </div>
-                            <div className="flex-1">
-                              <Label htmlFor="to">Đến giờ</Label>
-                              <Input
-                                type="time"
-                                id="to"
-                                min={formData.available_time_range.from}
-                                value={formData.available_time_range.to}
-                                onChange={(e) =>
-                                  setFormData((prev) => ({
-                                    ...prev,
-                                    available_time_range: {
-                                      ...prev.available_time_range,
-                                      to: e.target.value,
-                                    },
-                                  }))
-                                }
-                                required
-                              />
-                            </div>
+                          <div>
+                            <Label htmlFor="timeSlot">Khung giờ hiến máu</Label>
+                            <Select
+                              value={`${formData.available_time_range.from} - ${formData.available_time_range.to}`}
+                              onValueChange={(value) => {
+                                const [from, to] = value.split(' - ');
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  available_time_range: {
+                                    from: from,
+                                    to: to,
+                                  },
+                                }))
+                              }}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Chọn khung giờ phù hợp" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {timeSlots.map((slot) => (
+                                  <SelectItem key={slot} value={slot}>
+                                    {slot}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           </div>
 
                           {/* Lượng máu muốn hiến */}
@@ -293,8 +456,7 @@ export default function DonatePage() {
                               }
                               placeholder="Ví dụ: 350"
                               required
-                              min={1}
-                              max={50}
+                              min={50}
                             />
                           </div>
 
@@ -329,9 +491,30 @@ export default function DonatePage() {
                           </div>
 
                           {/* Submit */}
-                          <Button type="submit" disabled={loading} className="w-full">
-                            {loading ? "Đang gửi..." : "Đăng ký hiến máu"}
+                          <Button 
+                            type="submit" 
+                            disabled={loading || showSuccessMessage} 
+                            className={`w-full transition-all duration-300 ${
+                              showSuccessMessage 
+                                ? 'bg-green-600 hover:bg-green-700' 
+                                : 'bg-red-600 hover:bg-red-700'
+                            }`}
+                          >
+                            {loading ? (
+                              <>
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                Đang gửi...
+                              </>
+                            ) : showSuccessMessage ? (
+                              <>
+                                <CheckCircle className="w-4 h-4 mr-2" />
+                                Đăng ký thành công!
+                              </>
+                            ) : (
+                              "Đăng ký hiến máu"
+                            )}
                           </Button>
+                        </div>
                       </div>
                       </div>
                   </form>
@@ -380,10 +563,7 @@ export default function DonatePage() {
       </div>
 
       <Footer />
-
-      <Toaster position="top-center" containerStyle={{
-        top: 80,
-      }}/>
-    </div>
+      </div>
+    </ProtectedRoute>
   )
 }

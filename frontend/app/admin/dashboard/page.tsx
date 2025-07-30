@@ -50,7 +50,7 @@ export default function AdminDashboard() {
   const [nearbyHospitals, setNearbyHospitals] = useState<{ _id: string; name: string, address: string, phone: string }[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isFocused, setIsFocused] = useState(false);
-  const [bloodInven, setBloodInven] = useState([]);
+  const [bloodInven, setBloodInven] = useState<{ blood_type: string; quantity: number; expiring_quantity: number }[]>([]);
   const [bloodInventoryQuantity, setBloodInventoryQuantity] = useState(0);
   const [bloodInventoryExpiringQuantity, setBloodInventoryExpiringQuantity] = useState(0);
   const [selectedRole, setSelectedRole] = useState("staff")
@@ -58,7 +58,7 @@ export default function AdminDashboard() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [bloodType, setBloodType] = useState("")
-  const [pendingUsers, setPendingUsers] = useState([])
+  const [pendingUsers, setPendingUsers] = useState<UserType[]>([])
   const [selectedUser, setSelectedUser] = useState<UserType | null>(null);
   const [openEditDialog, setOpenEditDialog] = useState(false);
 
@@ -123,6 +123,7 @@ export default function AdminDashboard() {
         gender: selectedUser?.gender,
         date_of_birth: selectedUser?.date_of_birth,
         address: selectedUser?.address,
+        role: selectedUser?.role,
       });
 
       const updatedUser = response.data.user; // đảm bảo API trả về user đã cập nhật
@@ -136,9 +137,10 @@ export default function AdminDashboard() {
 
       setUser({
         ...user!,
-        full_name: selectedUser?.full_name,
+        full_name: selectedUser?.full_name || user!.full_name,
       });
 
+      setOpenEditDialog(false);
       toast.success("Chỉnh sửa thông tin tài khoản thành công");
     } catch (error) {
       toast.error("Không thể chỉnh sửa user");
@@ -798,6 +800,28 @@ export default function AdminDashboard() {
                             )
                           }
                         />
+                      </div>
+
+                      <div className="grid gap-2">
+                        <Label>Vai trò</Label>
+                        <Select
+                          value={selectedUser.role}
+                          onValueChange={(value) =>
+                            setSelectedUser((prev) =>
+                              prev ? { ...prev, role: value } : prev
+                            )
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="admin">Admin</SelectItem>
+                            <SelectItem value="staff">Nhân viên</SelectItem>
+                            <SelectItem value="donor">Người hiến máu</SelectItem>
+                            <SelectItem value="recipient">Người nhận máu</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
 
                       <DialogFooter>
