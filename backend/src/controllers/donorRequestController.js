@@ -163,7 +163,7 @@ export async function updateDonorRequestStatus(req, res) {
     }
 
     // Kiểm tra trạng thái hợp lệ
-    const validStatuses = ["in_progress", "completed", "cancelled"];
+    const validStatuses = ["in_progress", "completed", "cancelled", "pending"];
     if (!validStatuses.includes(status)) {
       return res.status(400).json({ message: "Invalid status value" });
     }

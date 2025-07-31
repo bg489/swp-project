@@ -31,8 +31,9 @@ import Image from "next/image"
 import { useAuth } from "@/contexts/auth-context"
 import { Footer } from "@/components/footer"
 import api from "@/lib/axios"
-import { useEffect, useState } from "react"
+import { JSXElementConstructor, Key, ReactElement, ReactNode, ReactPortal, useEffect, useState } from "react"
 import toast, { Toaster } from "react-hot-toast"
+import { get } from "http"
 
 
 export default function StaffDashboard() {
@@ -47,6 +48,11 @@ export default function StaffDashboard() {
   const [warehouseDonationsList2, setWarehouseDonationsList2] = useState<any>([]);
   const [selectedWarehouseStatus, setSelectedWarehouseStatus] = useState("");
   const [mockDonorRequests, setMockDonorRequests] = useState<any>([]);
+
+  function getInventoryByBloodType(inventories: any[], bloodType: any) {
+    return inventories.find((item) => item.blood_type === bloodType);
+  }
+
 
   const warehouseDonationsList = [
     {
@@ -201,6 +207,19 @@ export default function StaffDashboard() {
             updatedQuantity -= donation.volume;
           }
 
+          // Cập nhật local bloodInventory
+          setBloodInven((prevInventories: any[]) =>
+            prevInventories.map((inventory: any) => {
+              if (inventory.blood_type === donation.inventory_item?.blood_type) {
+                return {
+                  ...inventory,
+                  quantity: updatedQuantity,
+                };
+              }
+              return inventory;
+            })
+          );
+
           return {
             ...donation,
             status: newStatus,
@@ -223,6 +242,71 @@ export default function StaffDashboard() {
       console.error(error);
     }
   };
+
+  const handleDonorRequestStatusUpdate = async (
+    newStatus: string,
+    bloodRequest: any,
+    bloodInventory: any
+  ) => {
+    console.log("Updating donor request status:", newStatus, bloodRequest, bloodInventory, user?._id);
+
+    try {
+      await api.put(`/users/donor-requests/staff/${bloodRequest._id}/status`, {
+        status: newStatus,
+        staff_id: user?._id
+      });
+
+      const wasCancelled = bloodRequest.status === "cancelled";
+      const wasCompleted = bloodRequest.status === "completed";
+      const isNowCompleted = newStatus === "completed";
+      const isNowCancelled = newStatus === "cancelled";
+
+      let updatedQuantity = bloodInventory.quantity;
+      let shouldUpdateInventory = false;
+
+      // Từ trạng thái khác sang completed: cộng máu
+      if (isNowCompleted && !wasCompleted) {
+        updatedQuantity += bloodRequest.amount_offered;
+        shouldUpdateInventory = true;
+      }
+
+      // Từ completed sang cancelled: trừ máu
+      if (wasCompleted && isNowCancelled) {
+        updatedQuantity -= bloodRequest.amount_offered;
+        shouldUpdateInventory = true;
+      }
+
+      if (shouldUpdateInventory) {
+        await api.put(`/blood-in/blood-inventory/update/${bloodInventory._id}`, {
+          quantity: updatedQuantity,
+        });
+
+        setBloodInven((prevInventories: any[]) =>
+          prevInventories.map((inventory: any) =>
+            inventory.blood_type === bloodRequest.blood_type_offered
+              ? { ...inventory, quantity: updatedQuantity }
+              : inventory
+          )
+        );
+      }
+
+      setMockDonorRequests((prev: any) =>
+        prev.map((request: any) =>
+          request._id === bloodRequest._id
+            ? { ...request, status: newStatus }
+            : request
+        )
+      );
+
+      toast.success(`Đã thay đổi status thành ${newStatus}`);
+    } catch (error) {
+      toast.error("Đã xảy ra lỗi khi cập nhật trạng thái. Vui lòng thử lại!");
+      console.error(error);
+    }
+  };
+
+
+
 
   const isActive = (availabilityDate: string) => {
     const now = new Date();
@@ -264,6 +348,8 @@ export default function StaffDashboard() {
 
           const bloodInvent = await api.get(`/blood-in/blood-inventory/hospital/${staffData.hospital._id}`);
           setBloodInven(bloodInvent.data.inventories);
+
+        console.log("Blood Inventory:", getInventoryByBloodType(bloodInvent.data.inventories, "O-"));
 
           const wareHouseDonations = await api.get(`/staff/donations-warehouse/by-staff/${user._id}`);
           setWarehouseDonationsList2(wareHouseDonations.data.data);
@@ -1126,7 +1212,8 @@ export default function StaffDashboard() {
                               <div>
                                 <p className="font-semibold text-yellow-800">Nhóm máu: {request.blood_type_offered}</p>
                                 <p className="text-sm text-gray-700">Thành phần hiến: {request.components_offered?.join(", ")}</p>
-                                <p className="text-sm text-gray-700">Số lượng: {request.amount_offered} đơn vị</p>
+                                <p className="text-sm text-gray-700">Lượng tồn: {getInventoryByBloodType(bloodInven, request.blood_type_offered).quantity} đơn vị</p>
+                                <p className="text-sm text-gray-700">Số lượng muốn hiến: {request.amount_offered} đơn vị</p>
                               </div>
                             </div>
 
@@ -1139,7 +1226,7 @@ export default function StaffDashboard() {
                             )}
 
                             <div className="flex flex-wrap gap-2 mt-2">
-                              {request.components_offered.map((c) => (
+                              {request.components_offered.map((c: boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | Key | null | undefined) => (
                                 <Badge key={c} className="bg-yellow-200 text-yellow-900 border border-yellow-400">
                                   {c}
                                 </Badge>
@@ -1198,7 +1285,7 @@ export default function StaffDashboard() {
                               <Button
                                 className="mt-3 bg-blue-600 hover:bg-blue-700 text-white shadow"
                                 disabled={!selectedWarehouseStatus || selectedWarehouseStatus === request.status}
-                                onClick={() => handleWarehouseStatusUpdate(selectedWarehouseStatus, request._id)}
+                                onClick={() => handleDonorRequestStatusUpdate(selectedWarehouseStatus, request, getInventoryByBloodType(bloodInven, request.blood_type_offered) )}
                               >
                                 Cập nhật
                               </Button>
