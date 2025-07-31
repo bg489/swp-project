@@ -461,15 +461,23 @@ export default function BloodRequestPage() {
                       </div>
 
                       <div>
-                        <Label htmlFor="amount">Số lượng (ml)</Label>
-                        <Input
-                          id="amount"
-                          type="number"
-                          value={requestForm.amount || ""}
-                          onChange={(e) => setRequestForm((prev) => ({ ...prev, amount: Number(e.target.value) }))}
-                          placeholder="Ví dụ: 450"
-                          min={1}
-                        />
+                        <Label htmlFor="amount">Mức độ cần máu</Label>
+                        <Select
+                          value={requestForm.amount.toString()}
+                          onValueChange={(value) => setRequestForm((prev) => ({ ...prev, amount: Number(value) }))}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Chọn mức độ cần máu" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="300">Hạ huyết áp nhẹ (250–350 ml)</SelectItem>
+                            <SelectItem value="525">Thiếu máu vừa (350–700 ml)</SelectItem>
+                            <SelectItem value="1050">Thiếu máu nặng (700–1.400 ml)</SelectItem>
+                            <SelectItem value="1500">Mất máu cấp tính (&gt;1.400 ml)</SelectItem>
+                            <SelectItem value="1350">Phẫu thuật lớn (700–2.000 ml)</SelectItem>
+                            <SelectItem value="15">Trẻ sơ sinh (10–20 ml/kg)</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
 

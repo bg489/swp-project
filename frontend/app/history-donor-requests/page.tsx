@@ -47,46 +47,6 @@ export default function DonorRequestHistoryPage() {
   const [sortOrder, setSortOrder] = useState<"newest" | "oldest" | "status">("newest")
   const [cancellingId, setCancellingId] = useState<string | null>(null)
 
-  // Show loading state while checking auth
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-red-50 via-pink-50 to-rose-100 flex flex-col">
-        <Header />
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-500 mx-auto mb-4"></div>
-            <p className="text-gray-600">Đang tải...</p>
-          </div>
-        </div>
-        <Footer />
-      </div>
-    )
-  }
-
-  // Check if user is authorized
-  if (!user) {
-    return <GuestAccessWarning />
-  }
-
-  if (user.role !== "donor") {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-red-50 via-pink-50 to-rose-100 flex flex-col">
-        <Header />
-        <div className="flex-1 flex items-center justify-center p-4">
-          <Card className="w-full max-w-md">
-            <CardHeader className="text-center">
-              <CardTitle className="text-red-600">Không có quyền truy cập</CardTitle>
-              <CardDescription>
-                Trang này chỉ dành cho người hiến máu. Bạn cần đăng ký là người hiến máu để xem lịch sử yêu cầu.
-              </CardDescription>
-            </CardHeader>
-          </Card>
-        </div>
-        <Footer />
-      </div>
-    )
-  }
-
   useEffect(() => {
     async function fetchBloodRequests() {
       if (!user?._id) {
@@ -129,6 +89,46 @@ export default function DonorRequestHistoryPage() {
     fetchBloodRequests()
   }, [user])
 
+  // Show loading state while checking auth
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-red-50 via-pink-50 to-rose-100 flex flex-col">
+        <Header />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-500 mx-auto mb-4"></div>
+            <p className="text-gray-600">Đang tải...</p>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    )
+  }
+
+  // Check if user is authorized
+  if (!user) {
+    return <GuestAccessWarning />
+  }
+
+  if (user.role !== "donor") {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-red-50 via-pink-50 to-rose-100 flex flex-col">
+        <Header />
+        <div className="flex-1 flex items-center justify-center p-4">
+          <Card className="w-full max-w-md">
+            <CardHeader className="text-center">
+              <CardTitle className="text-red-600">Không có quyền truy cập</CardTitle>
+              <CardDescription>
+                Trang này chỉ dành cho người hiến máu. Bạn cần đăng ký là người hiến máu để xem lịch sử yêu cầu.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </div>
+        <Footer />
+      </div>
+    )
+  }
+
   // Hàm hủy yêu cầu
   const handleCancelRequest = async (requestId: string) => {
     if (!window.confirm("Bạn có chắc chắn muốn hủy yêu cầu hiến máu này?")) {
@@ -168,16 +168,22 @@ export default function DonorRequestHistoryPage() {
       case "oldest":
         return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
       case "status":
-        const statusOrder = ["pending", "in_progress", "completed", "cancelled", "rejected"]
-        return statusOrder.indexOf(a.status) - statusOrder.indexOf(b.status)
+        const statusOrder = ["pending", "in_progress", "approved", "matched", "completed", "cancelled", "rejected"]
+        const statusA = statusOrder.indexOf(a.status)
+        const statusB = statusOrder.indexOf(b.status)
+        // Nếu không tìm thấy status, đặt ở cuối
+        const indexA = statusA === -1 ? statusOrder.length : statusA
+        const indexB = statusB === -1 ? statusOrder.length : statusB
+        return indexA - indexB
       default:
-        return 0
+        // Mặc định sắp xếp theo ngày mới nhất
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     }
   })
 
   function translateStatus(status: string) {
     const map: Record<string, string> = {
-      pending: "Chờ duyệt",
+      pending: "Đang xử lý",
       approved: "Đã duyệt", 
       matched: "Đã ghép",
       in_progress: "Đang xử lý",
@@ -203,11 +209,11 @@ export default function DonorRequestHistoryPage() {
       case "completed":
         return "bg-green-100 text-green-800"
       case "pending":
+      case "in_progress":
         return "bg-yellow-100 text-yellow-800"
       case "cancelled":
       case "rejected":
         return "bg-red-100 text-red-800"
-      case "in_progress":
       case "approved":
       case "matched":
         return "bg-blue-100 text-blue-800"
@@ -217,42 +223,43 @@ export default function DonorRequestHistoryPage() {
   }
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("vi-VN", {
-      year: "numeric",
-      month: "long", 
-      day: "numeric"
-    })
+    try {
+      return new Date(dateString).toLocaleDateString("vi-VN", {
+        year: "numeric",
+        month: "long", 
+        day: "numeric",
+        weekday: "long"
+      })
+    } catch (error) {
+      return "Ngày không hợp lệ"
+    }
   }
 
   const formatTime = (timeString: string) => {
     return timeString || "Không xác định"
   }
 
-  // Show loading state
-  if (isLoading || loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-red-50 to-white">
-        <Header />
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
-        </div>
-        <Footer />
-      </div>
-    )
-  }
-
-  // Show guest access warning if not logged in
-  if (!user) {
-    return (
-      <>
-        <Header />
-        <GuestAccessWarning
-          title="Lịch sử yêu cầu hiến máu"
-          description="Để xem lịch sử yêu cầu hiến máu của bạn, vui lòng đăng nhập"
-        />
-        <Footer />
-      </>
-    )
+  const formatCreatedDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString)
+      const now = new Date()
+      const diffTime = Math.abs(now.getTime() - date.getTime())
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+      
+      if (diffDays === 1) {
+        return "Hôm qua"
+      } else if (diffDays <= 7) {
+        return `${diffDays} ngày trước`
+      } else {
+        return date.toLocaleDateString("vi-VN", {
+          year: "numeric",
+          month: "short",
+          day: "numeric"
+        })
+      }
+    } catch (error) {
+      return "Ngày không hợp lệ"
+    }
   }
 
   return (
@@ -260,6 +267,11 @@ export default function DonorRequestHistoryPage() {
       <div className="min-h-screen bg-gradient-to-b from-red-50 to-white">
       <Header />
 
+      {loading ? (
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
+        </div>
+      ) : (
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto">
           {/* Hero Section */}
@@ -341,15 +353,17 @@ export default function DonorRequestHistoryPage() {
             </Card>
           ) : (
             <div className="space-y-6">
-              {sortedRequests.map((request) => (
+              {sortedRequests.map((request, index) => (
                 <Card key={request._id} className="overflow-hidden">
                   <CardHeader className="pb-4">
                     <div className="flex justify-between items-start">
                       <div>
-                        <CardTitle className="text-lg">Yêu cầu hiến máu #{request._id.slice(-6)}</CardTitle>
+                        <CardTitle className="text-lg">
+                          Yêu cầu hiến máu
+                        </CardTitle>
                         <CardDescription className="flex items-center mt-1">
                           <Calendar className="w-4 h-4 mr-1" />
-                          Đăng ký ngày: {formatDate(request.createdAt)}
+                          Đăng ký: {formatCreatedDate(request.createdAt)}
                         </CardDescription>
                       </div>
                       <div className="flex items-center gap-2">
@@ -466,6 +480,7 @@ export default function DonorRequestHistoryPage() {
           )}
         </div>
       </div>
+      )}
 
       <Footer />
       </div>

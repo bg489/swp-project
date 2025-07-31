@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
+import "./mapbox-custom.css";
 import api from "../../lib/axios";
 
 mapboxgl.accessToken = "pk.eyJ1IjoiZ2lhYmFvMTIzOTYzIiwiYSI6ImNtY2J1ejZ6ZTAxYjYybG9wOXJkYnRxMmkifQ.AL0ZjkYXmVV7UsTAPrgVxA";
@@ -299,78 +300,10 @@ export default function MapboxMap() {
             ))}
           </ul>
         )}
-
-        <div style={{ marginTop: 10 }}>
-          <button onClick={async () => {
-            const allowed = await checkLocationPermission();
-            alert(allowed ? "✅ Đã cho phép định vị" : "❌ Đã từ chối định vị");
-          }} style={{
-            padding: "8px 12px", borderRadius: 4, background: "#007bff", color: "#fff",
-            border: "none", cursor: "pointer", marginRight: 8
-          }}>Kiểm tra quyền vị trí</button>
-
-          <button onClick={() => addHospital("Bệnh viện ABC", 106.81, 10.88)} style={{
-            padding: "8px 12px", borderRadius: 4, background: "#28a745", color: "#fff",
-            border: "none", cursor: "pointer"
-          }}>Thêm BV ABC</button>
-        </div>
-
-        <div style={{ marginTop: 10 }}>
-          <input type="number" placeholder="Khoảng cách km..." id="radiusInput" style={{
-            padding: "8px", width: "140px", borderRadius: 4, marginRight: 8, border: "1px solid #ccc"
-          }} />
-          <button onClick={() => {
-            const radius = document.getElementById("radiusInput").value;
-            if (!radius || isNaN(radius) || radius <= 0) {
-              alert("Nhập bán kính hợp lệ (km)!");
-              return;
-            }
-            navigator.geolocation.getCurrentPosition(
-              (position) => {
-                findHospitalsNearby(position.coords.latitude, position.coords.longitude, parseFloat(radius));
-              },
-              (err) => {
-                console.error(err);
-                alert("Không thể lấy vị trí của bạn.");
-              }
-            );
-          }} style={{
-            padding: "8px 12px", borderRadius: 4, background: "#17a2b8", color: "#fff",
-            border: "none", cursor: "pointer"
-          }}>Tìm bệnh viện gần</button>
-        </div>
-
-        <div style={{ marginTop: 10 }}>
-          <input
-            type="text"
-            placeholder="Nhập địa điểm gần bạn..."
-            value={placeSearchTerm}
-            onChange={handlePlaceSearchChange}
-            style={{ padding: "8px", width: "300px", borderRadius: 4, marginRight: 8, border: "1px solid #ccc" }}
-          />
-          <button onClick={() => findLocationByName(placeSearchTerm)} style={{
-            padding: "8px 12px", borderRadius: 4, background: "#ffc107", color: "#000",
-            border: "none", cursor: "pointer"
-          }}>Xác định bằng địa điểm</button>
-
-          {placeSuggestions.length > 0 && (
-            <ul style={{
-              background: "#fff", border: "1px solid #ccc", marginTop: 4,
-              maxHeight: 150, overflowY: "auto", listStyle: "none", padding: 0, width: "300px"
-            }}>
-              {placeSuggestions.map((s, i) => (
-                <li key={i} onClick={() => findLocationByName(s.place_name)} style={{
-                  padding: "8px", cursor: "pointer", borderBottom: "1px solid #eee"
-                }}>
-                  {s.place_name}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
       </div>
 
-      <div ref={mapContainerRef} style={{ width: "100%", height: "100vh" }} />
+      {/* Map Container */}
+      <div ref={mapContainerRef} className="mapbox-map-container" style={{ width: "100%", height: "100%" }} />
     </div>
   );
 }

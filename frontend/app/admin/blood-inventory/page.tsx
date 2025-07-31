@@ -93,7 +93,7 @@ export default function ManageInventoryPage() {
                                         </CardTitle>
                                     </div>
                                     <span className="text-sm text-gray-500">
-                                        Đang có: <strong>{item.quantity}</strong> đơn vị
+                                        Đang có: <strong>{item.quantity}</strong> ml
                                     </span>
                                 </CardHeader>
                                 <CardContent className="space-y-4">
@@ -118,8 +118,8 @@ export default function ManageInventoryPage() {
                                         </div>
                                     </div>
                                     <div>
-                                        <Label>Tiến độ đạt mục tiêu (500 đơn vị)</Label>
-                                        <Progress value={Math.min((item.quantity / 500) * 100, 100)} className="h-2 mt-1" />
+                                        <Label>Tiến độ đạt mục tiêu (50000 ml)</Label>
+                                        <Progress value={Math.min((item.quantity / 50000) * 100, 100)} className="h-2 mt-1" />
                                     </div>
                                 </CardContent>
                             </Card>

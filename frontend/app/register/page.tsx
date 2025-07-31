@@ -507,7 +507,7 @@ const filteredHospitals = nearbyHospitals.filter((h) =>
 
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="dob">Ngày sinh *</Label>
+                    <Label htmlFor="dob">Ngày sinh (18-60 tuổi) *</Label>
                     <div className="relative">
                       <Calendar className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                       <Input
@@ -516,6 +516,8 @@ const filteredHospitals = nearbyHospitals.filter((h) =>
                         value={formData.date_of_birth}
                         onChange={(e) => setFormData((prev) => ({ ...prev, date_of_birth: e.target.value }))}
                         className="pl-10"
+                        min={new Date(new Date().setFullYear(new Date().getFullYear() - 60)).toISOString().split('T')[0]}
+                        max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]}
                         required
                       />
                     </div>
@@ -561,6 +563,7 @@ const filteredHospitals = nearbyHospitals.filter((h) =>
                         value={formData.date_begin_donate}
                         onChange={(e) => setFormData((prev) => ({ ...prev, date_begin_donate: e.target.value }))}
                         className="pl-10"
+                        min={new Date().toISOString().split('T')[0]}
                         required
                       />
                     </div>

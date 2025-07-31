@@ -58,12 +58,12 @@ export function LoginForm({ onSuccess, redirectTo }: LoginFormProps) {
 
       if (result.message && result.user) {
         console.log(result)
-        if(!result.user.user.is_verified){
+        if(!result.user.is_verified){
           setError("Tài khoản chưa được xác minh, Hãy xác minh tài khoản!");
           return;
         }
-        setUser(result.user.user)
-        toast.success("Chào mừng, " + result.user.user.full_name)
+        setUser(result.user)
+        toast.success("Chào mừng, " + result.user.full_name)
         if (onSuccess) {
           router.push(redirectTo || "/");
         } else {

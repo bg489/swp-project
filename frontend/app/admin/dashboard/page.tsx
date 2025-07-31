@@ -61,21 +61,34 @@ export default function AdminDashboard() {
   const [pendingUsers, setPendingUsers] = useState<UserType[]>([])
   const [selectedUser, setSelectedUser] = useState<UserType | null>(null);
   const [openEditDialog, setOpenEditDialog] = useState(false);
+  const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<'delete' | 'verify' | null>(null);
+  const [userToAction, setUserToAction] = useState<string | null>(null);
+  const [recentActivities, setRecentActivities] = useState<ActivityType[]>([]);
 
   useEffect(() => {
     // Lấy vị trí người dùng
 
     async function use() {
       try {
-        const allUsers = await api.get(`/users/admin/get-all/${user?._id}`);
+        // Check if user exists and has valid _id before making API call
+        if (!user || !user._id) {
+          console.log("User not loaded yet or missing _id:", user);
+          return;
+        }
+
+        const allUsers = await api.get(`/users/admin/get-all/${user._id}`);
         setPendingUsers(allUsers.data.users);
       } catch (error) {
-        console.error("Lỗi khi lấy danh sách bệnh viện:", error);
+        console.error("Lỗi khi lấy danh sách người dùng:", error);
       }
     }
-    use();
-  }
-    , [user]);
+    
+    // Only call the function if user is loaded
+    if (user) {
+      use();
+    }
+  }, [user]); // Add user as dependency
 
   type UserType = {
     _id: string;
@@ -89,6 +102,17 @@ export default function AdminDashboard() {
     is_active: boolean;
     is_verified: boolean;
     createdAt: string;
+  };
+
+  type ActivityType = {
+    id: string;
+    type: 'user_created' | 'user_verified' | 'user_deleted' | 'user_edited' | 'blood_updated' | 'system' | 'login' | 'logout';
+    message: string;
+    user_name?: string;
+    user_role?: string;
+    timestamp: string;
+    icon: any;
+    color: string;
   };
 
   const handleVerifyUser = async (user_Id: any) => {
@@ -105,6 +129,12 @@ export default function AdminDashboard() {
         )
       );
 
+      // Find user name for activity
+      const user = pendingUsers.find(u => u._id === user_Id);
+      if (user) {
+        addActivity('user_verified', `${user.full_name} (${user.role}) đã được xác minh bởi quản trị viên`, user.full_name, user.role);
+      }
+
       toast.success("Duyệt thành công");
     } catch (error) {
       toast.error("Không thể duyệt user");
@@ -116,6 +146,8 @@ export default function AdminDashboard() {
   const handleEditUser = async (user_Id: any) => {
     console.log(selectedUser);
     try {
+      const originalUser = pendingUsers.find(u => u._id === selectedUser?._id);
+      
       const response = await api.put(`/users/edit/${selectedUser?._id}`, {
         full_name: selectedUser?.full_name,
         email: selectedUser?.email,
@@ -140,6 +172,18 @@ export default function AdminDashboard() {
         full_name: selectedUser?.full_name || user!.full_name,
       });
 
+      // Add activity for user edit
+      if (selectedUser) {
+        const changes = [];
+        if (originalUser?.full_name !== selectedUser.full_name) changes.push('tên');
+        if (originalUser?.email !== selectedUser.email) changes.push('email');
+        if (originalUser?.role !== selectedUser.role) changes.push('vai trò');
+        if (originalUser?.phone !== selectedUser.phone) changes.push('số điện thoại');
+        
+        const changeText = changes.length > 0 ? ` (${changes.join(', ')})` : '';
+        addActivity('user_edited', `Thông tin ${selectedUser.full_name} đã được cập nhật${changeText}`, selectedUser.full_name, selectedUser.role);
+      }
+
       setOpenEditDialog(false);
       toast.success("Chỉnh sửa thông tin tài khoản thành công");
     } catch (error) {
@@ -151,8 +195,16 @@ export default function AdminDashboard() {
 
   const handleDeleteUser = async (user_Id: any) => {
     try {
+      const userToDelete = pendingUsers.find(u => u._id === user_Id);
+      
       await api.delete(`/users/admin/users/delete/${user?._id}/${user_Id}`)
       setPendingUsers(prev => prev.filter(user => user._id !== user_Id));
+      
+      // Add activity for user deletion
+      if (userToDelete) {
+        addActivity('user_deleted', `Tài khoản ${userToDelete.full_name} (${userToDelete.role}) đã bị xóa`, userToDelete.full_name, userToDelete.role);
+      }
+      
       toast.success("Xóa tài khoản thành công")
     } catch (error) {
       toast.error("Không thể xóa user");
@@ -160,76 +212,60 @@ export default function AdminDashboard() {
     }
   }
 
+  const handleConfirmAction = async () => {
+    if (!userToAction || !confirmAction) return;
+
+    if (confirmAction === 'delete') {
+      await handleDeleteUser(userToAction);
+    } else if (confirmAction === 'verify') {
+      await handleVerifyUser(userToAction);
+    }
+
+    setOpenConfirmDialog(false);
+    setConfirmAction(null);
+    setUserToAction(null);
+  }
+
+  const openConfirmModal = (action: 'delete' | 'verify', userId: string) => {
+    setConfirmAction(action);
+    setUserToAction(userId);
+    setOpenConfirmDialog(true);
+  }
+
 
 
   const handleCreateUser = async () => {
     try {
-      if (selectedRole === "staff") {
-        const response = await api.post("/users/register", {
-          full_name: name,
-          email: email,
-          password: password, // raw password (to be hashed)
-          role: selectedRole,
-          phone: "0",
-          gender: "other",
-          date_of_birth: "",
-          address: "",
-        })
+      const response = await api.post("/users/register", {
+        full_name: name,
+        email: email,
+        password: password, // raw password (to be hashed)
+        role: selectedRole,
+        phone: "0",
+        gender: "other",
+        date_of_birth: "",
+        address: "",
+      })
 
-        await api.put(`/users/verify/${response.data.user.id}`)
+      await api.put(`/users/verify/${response.data.user.id}`)
 
-        await api.post("/users/staff-profiles", {
-          user_id: response.data.user.id,
-          department: "0",
-          assigned_area: "0",
-          shift_time: "0",
-          hospital: hospitalId
-        })
+      await api.post("/users/staff-profiles", {
+        user_id: response.data.user.id,
+        department: "0",
+        assigned_area: "0",
+        shift_time: "0",
+        hospital: hospitalId
+      })
 
-      } else if (selectedRole === "donor") {
-        const response = await api.post("/users/register", {
-          full_name: name,
-          email: email,
-          password: password, // raw password (to be hashed)
-          role: selectedRole,
-          phone: "0",
-          gender: "other",
-          date_of_birth: "",
-          address: "",
-        })
+      // Add activity for user creation
+      addActivity('user_created', `Tài khoản ${selectedRole} mới "${name}" đã được tạo và xác minh`, name, selectedRole);
 
-        await api.put(`/users/verify/${response.data.user.id}`)
-
-        await api.post("/users/donor-profile", {
-          user_id: response.data.user.id,
-          blood_type: "unknown",
-          availability_date: new Date().toISOString(),
-          health_cert_url: "",
-          cooldown_until: "",
-          hospital: hospitalId
-        })
-
-      } else if (selectedRole === "recipient") {
-        const response = await api.post("/users/register", {
-          full_name: name,
-          email: email,
-          password: password, // raw password (to be hashed)
-          role: selectedRole,
-          phone: "0",
-          gender: "other",
-          date_of_birth: "",
-          address: "",
-        })
-
-        await api.put(`/users/verify/${response.data.user.id}`)
-
-        await api.post("/users/recipient-profile", {
-          user_id: response.data.user.id,
-          medical_doc_url: "unknown",
-          hospital: hospitalId
-        })
-
+      // Refresh user list - only if user exists and has valid _id
+      if (user && user._id) {
+        const allUsers = await api.get(`/users/admin/get-all/${user._id}`);
+        setPendingUsers(allUsers.data.users);
       }
+
       toast.success("Tạo tài khoản thành công!");
       // Reset form
       setName("");
@@ -241,9 +277,6 @@ export default function AdminDashboard() {
       console.error(error);
     }
   };
-
-
-  let eight = 0;
 
   function getTotalQuantity(inventories: any[]) {
     return inventories.reduce((total, item) => total + item.quantity, 0);
@@ -307,8 +340,12 @@ export default function AdminDashboard() {
     try {
       const bloodInvent = await api.get(`/blood-in/blood-inventory/hospital/${hospital._id}`);
       setBloodInven(bloodInvent.data.inventories);
+      
+      // Add activity for hospital selection
+      addActivity('blood_updated', `Đã chọn bệnh viện ${hospital.name} - ${bloodInvent.data.inventories.length} loại máu có sẵn`);
     } catch (error) {
       setBloodInven([]);
+      addActivity('system', `Không thể tải thông tin kho máu cho ${hospital.name}`);
     }
 
   };
@@ -357,65 +394,120 @@ export default function AdminDashboard() {
     logout()
   }
 
-  // Mock admin data
-  const adminStats = {
-    totalUsers: 2547,
-    activeUsers: 1823,
-    pendingApprovals: 45,
-    totalDonations: 15420,
-    emergencyRequests: 23,
-    bloodUnitsAvailable: 1250,
-    monthlyGrowth: 12.5,
-    systemHealth: 98.2,
-  }
-
-  const bloodInventory = [
-    { type: "O-", units: 45, status: "low", target: 100, color: "bg-red-500" },
-    { type: "O+", units: 120, status: "good", target: 150, color: "bg-red-400" },
-    { type: "A-", units: 78, status: "medium", target: 100, color: "bg-blue-500" },
-    { type: "A+", units: 156, status: "good", target: 150, color: "bg-blue-400" },
-    { type: "B-", units: 34, status: "critical", target: 80, color: "bg-green-500" },
-    { type: "B+", units: 89, status: "medium", target: 120, color: "bg-green-400" },
-    { type: "AB-", units: 23, status: "critical", target: 60, color: "bg-purple-500" },
-    { type: "AB+", units: 67, status: "medium", target: 80, color: "bg-purple-400" },
+  const bloodTypeColors = [
+    "bg-red-500", "bg-red-400", "bg-blue-500", "bg-blue-400", 
+    "bg-green-500", "bg-green-400", "bg-purple-500", "bg-purple-400"
   ]
 
+  // Function to add new activity
+  const addActivity = (type: ActivityType['type'], message: string, user_name?: string, user_role?: string) => {
+    const icons = {
+      user_created: Users,
+      user_verified: UserCheck,
+      user_deleted: UserX,
+      user_edited: Edit,
+      blood_updated: Droplets,
+      system: Settings,
+      login: Shield,
+      logout: LogOut
+    };
 
+    const colors = {
+      user_created: "text-blue-600",
+      user_verified: "text-green-600", 
+      user_deleted: "text-red-600",
+      user_edited: "text-orange-600",
+      blood_updated: "text-red-500",
+      system: "text-gray-600",
+      login: "text-purple-600",
+      logout: "text-yellow-600"
+    };
 
-  const recentActivities = [
-    {
-      id: 1,
-      type: "donation",
-      message: "Nguyễn Văn A đã hoàn thành hiến máu",
-      time: "10 phút trước",
-      icon: Heart,
-      color: "text-green-600",
-    },
-    {
-      id: 2,
-      type: "emergency",
-      message: "Yêu cầu khẩn cấp từ BV Chợ Rẫy - O- 2 đơn vị",
-      time: "25 phút trước",
-      icon: AlertTriangle,
-      color: "text-red-600",
-    },
-    {
-      id: 3,
-      type: "registration",
-      message: "3 người dùng mới đăng ký hiến máu",
-      time: "1 giờ trước",
-      icon: UserCheck,
-      color: "text-blue-600",
-    },
-    {
-      id: 4,
-      type: "system",
-      message: "Cập nhật hệ thống thành công",
-      time: "2 giờ trước",
-      icon: Settings,
-      color: "text-gray-600",
-    },
-  ]
+    const newActivity: ActivityType = {
+      id: Date.now().toString() + Math.random(),
+      type,
+      message,
+      user_name,
+      user_role,
+      timestamp: new Date().toISOString(),
+      icon: icons[type],
+      color: colors[type]
+    };
+
+    setRecentActivities(prev => [newActivity, ...prev.slice(0, 9)]); // Keep only 10 most recent
+  };
+
+  // Initialize activities from existing users
+  useEffect(() => {
+    if (pendingUsers.length > 0) {
+      const initialActivities: ActivityType[] = [];
+
+      // Add system startup activity
+      initialActivities.push({
+        id: 'system-start',
+        type: 'system',
+        message: 'Hệ thống khởi động thành công',
+        timestamp: new Date().toISOString(),
+        icon: Settings,
+        color: "text-gray-600"
+      });
+
+      // Add admin login activity
+      if (user?.full_name) {
+        initialActivities.push({
+          id: 'admin-login',
+          type: 'login',
+          message: `Quản trị viên ${user.full_name} đăng nhập hệ thống`,
+          user_name: user.full_name,
+          user_role: 'admin',
+          timestamp: new Date().toISOString(),
+          icon: Shield,
+          color: "text-purple-600"
+        });
+      }
+
+      // Add activities for recent users
+      pendingUsers.slice(0, 5).forEach((user, index) => {
+        if (user.is_verified) {
+          initialActivities.push({
+            id: `verify-${user._id}`,
+            type: 'user_verified',
+            message: `${user.full_name} (${user.role}) đã được xác minh`,
+            user_name: user.full_name,
+            user_role: user.role,
+            timestamp: new Date(Date.now() - index * 3600000).toISOString(), // Stagger times
+            icon: UserCheck,
+            color: "text-green-600"
+          });
+        } else {
+          initialActivities.push({
+            id: `create-${user._id}`,
+            type: 'user_created',
+            message: `${user.full_name} đăng ký tài khoản ${user.role}`,
+            user_name: user.full_name,
+            user_role: user.role,
+            timestamp: user.createdAt,
+            icon: Users,
+            color: "text-blue-600"
+          });
+        }
+      });
+
+      // Add blood inventory activity if available
+      if (bloodInventoryQuantity > 0) {
+        initialActivities.push({
+          id: 'blood-update',
+          type: 'blood_updated',
+          message: `Cập nhật kho máu - Tổng ${bloodInventoryQuantity} ml, ${bloodInventoryExpiringQuantity} sắp hết hạn`,
+          timestamp: new Date(Date.now() - 1800000).toISOString(), // 30 minutes ago
+          icon: Droplets,
+          color: "text-red-500"
+        });
+      }
+
+      setRecentActivities(initialActivities.slice(0, 10));
+    }
+  }, [pendingUsers, bloodInventoryQuantity, bloodInventoryExpiringQuantity, user]);
 
   const getStatusColor = (quantity: number) => {
     if (quantity < 30) {
@@ -482,94 +574,159 @@ export default function AdminDashboard() {
         </header>
 
         <div className="container mx-auto px-4 py-8 flex-grow">
-          {/* Admin Stats Overview */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Tổng người dùng</CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{adminStats.totalUsers.toLocaleString()}</div>
-                <p className="text-xs text-muted-foreground">
-                  <span className="text-green-600 flex items-center">
-                    <TrendingUp className="w-3 h-3 mr-1" />+{adminStats.monthlyGrowth}%
-                  </span>
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Đã hết hạn</CardTitle>
-                <UserCheck className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-orange-600">{bloodInventoryExpiringQuantity}</div>
-                <p className="text-xs text-muted-foreground">Cần xem xét</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Kho máu</CardTitle>
-                <Droplets className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{bloodInventoryQuantity}</div>
-                <p className="text-xs text-muted-foreground">Đơn vị có sẵn</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Khẩn cấp</CardTitle>
-                <AlertTriangle className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-red-600">{adminStats.emergencyRequests}</div>
-                <p className="text-xs text-muted-foreground">Đang xử lý</p>
-              </CardContent>
-            </Card>
-          </div>
-
           <Tabs defaultValue="overview" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-6">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="overview">Tổng quan</TabsTrigger>
               <TabsTrigger value="users">Người dùng</TabsTrigger>
               <TabsTrigger value="inventory">Kho máu</TabsTrigger>
-              <TabsTrigger value="requests">Yêu cầu</TabsTrigger>
               <TabsTrigger value="create-users">Tạo tài khoản</TabsTrigger>
-              <TabsTrigger value="settings">Cài đặt</TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview" className="space-y-6">
+              {/* Top Stats Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <Card className="border-l-4 border-l-blue-500">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-600">Tổng người dùng</p>
+                        <p className="text-2xl font-bold text-gray-900">{pendingUsers.length}</p>
+                      </div>
+                      <Users className="w-8 h-8 text-blue-500" />
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card className="border-l-4 border-l-green-500">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-600">Đã xác minh</p>
+                        <p className="text-2xl font-bold text-gray-900">{pendingUsers.filter(user => user.is_verified).length}</p>
+                      </div>
+                      <UserCheck className="w-8 h-8 text-green-500" />
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card className="border-l-4 border-l-red-500">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-600">Tổng kho máu</p>
+                        <p className="text-2xl font-bold text-gray-900">{bloodInventoryQuantity.toLocaleString()}</p>
+                        <p className="text-xs text-gray-500">ml</p>
+                      </div>
+                      <Droplets className="w-8 h-8 text-red-500" />
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card className="border-l-4 border-l-orange-500">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-600">Sắp hết hạn</p>
+                        <p className="text-2xl font-bold text-gray-900">{bloodInventoryExpiringQuantity.toLocaleString()}</p>
+                        <p className="text-xs text-gray-500">ml</p>
+                      </div>
+                      <AlertTriangle className="w-8 h-8 text-orange-500" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
               <div className="grid lg:grid-cols-2 gap-6">
                 {/* System Health */}
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center">
                       <Activity className="w-5 h-5 mr-2 text-green-600" />
-                      Tình trạng hệ thống
+                      Thống kê hệ thống
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
                       <div>
                         <div className="flex justify-between mb-2">
-                          <span className="text-sm">Hiệu suất hệ thống</span>
-                          <span className="text-sm font-medium">{adminStats.systemHealth}%</span>
+                          <span className="text-sm text-gray-600">Tổng người dùng</span>
+                          <span className="text-sm font-semibold text-gray-900">{pendingUsers.length}</span>
                         </div>
-                        <Progress value={adminStats.systemHealth} className="h-2" />
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div 
+                            className="bg-blue-500 h-2 rounded-full transition-all duration-300" 
+                            style={{ width: `${Math.min((pendingUsers.length / 5000) * 100, 100)}%` }}
+                          ></div>
+                        </div>
                       </div>
                       <div>
                         <div className="flex justify-between mb-2">
-                          <span className="text-sm">Người dùng hoạt động</span>
-                          <span className="text-sm font-medium">
-                            {((adminStats.activeUsers / adminStats.totalUsers) * 100).toFixed(1)}%
+                          <span className="text-sm text-gray-600">Người dùng đã xác minh</span>
+                          <span className="text-sm font-semibold text-gray-900">
+                            {pendingUsers.filter(user => user.is_verified).length} / {pendingUsers.length}
                           </span>
                         </div>
-                        <Progress value={(adminStats.activeUsers / adminStats.totalUsers) * 100} className="h-2" />
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div 
+                            className="bg-green-500 h-2 rounded-full transition-all duration-300" 
+                            style={{ width: `${pendingUsers.length > 0 ? (pendingUsers.filter(user => user.is_verified).length / pendingUsers.length) * 100 : 0}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex justify-between mb-2">
+                          <span className="text-sm text-gray-600">Tổng kho máu</span>
+                          <span className="text-sm font-semibold text-red-600">{bloodInventoryQuantity.toLocaleString()} ml</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div 
+                            className="bg-red-500 h-2 rounded-full transition-all duration-300" 
+                            style={{ width: `${Math.min((bloodInventoryQuantity / 400000) * 100, 100)}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex justify-between mb-2">
+                          <span className="text-sm text-gray-600">Máu sắp hết hạn</span>
+                          <span className="text-sm font-semibold text-orange-600">{bloodInventoryExpiringQuantity.toLocaleString()} ml</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div 
+                            className="bg-orange-400 h-2 rounded-full transition-all duration-300" 
+                            style={{ width: `${bloodInventoryQuantity > 0 ? (bloodInventoryExpiringQuantity / bloodInventoryQuantity) * 100 : 0}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                      
+                      {/* User Role Statistics */}
+                      <div className="pt-4 border-t">
+                        <h4 className="text-sm font-medium text-gray-700 mb-3">Thống kê theo vai trò</h4>
+                        {['donor', 'recipient', 'staff', 'admin'].map((role) => {
+                          const count = pendingUsers.filter(user => user.role === role).length;
+                          const percentage = pendingUsers.length > 0 ? (count / pendingUsers.length) * 100 : 0;
+                          return (
+                            <div key={role} className="mb-2">
+                              <div className="flex justify-between mb-1">
+                                <span className="text-xs text-gray-600 capitalize">
+                                  {role === 'donor' ? 'Người hiến máu' : 
+                                   role === 'recipient' ? 'Người nhận máu' :
+                                   role === 'staff' ? 'Nhân viên' : 'Quản trị viên'}
+                                </span>
+                                <span className="text-xs font-medium text-gray-900">{count}</span>
+                              </div>
+                              <div className="w-full bg-gray-200 rounded-full h-1.5">
+                                <div 
+                                  className={`h-1.5 rounded-full transition-all duration-300 ${
+                                    role === 'donor' ? 'bg-red-400' :
+                                    role === 'recipient' ? 'bg-blue-400' :
+                                    role === 'staff' ? 'bg-green-400' : 'bg-purple-400'
+                                  }`}
+                                  style={{ width: `${percentage}%` }}
+                                ></div>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   </CardContent>
@@ -578,22 +735,92 @@ export default function AdminDashboard() {
                 {/* Recent Activities */}
                 <Card>
                   <CardHeader>
-                    <CardTitle>Hoạt động gần đây</CardTitle>
+                    <CardTitle className="flex items-center justify-between">
+                      <span>Hoạt động gần đây</span>
+                      <Badge variant="outline">{recentActivities.length} hoạt động</Badge>
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-4">
-                      {recentActivities.map((activity) => (
-                        <div key={activity.id} className="flex items-start space-x-3">
-                          <div className={`w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center`}>
-                            <activity.icon className={`w-4 h-4 ${activity.color}`} />
+                    <div className="space-y-3 max-h-96 overflow-y-auto">
+                      {recentActivities.length > 0 ? (
+                        recentActivities.map((activity) => (
+                          <div key={activity.id} className="flex items-start space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors">
+                            <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+                              <activity.icon className={`w-4 h-4 ${activity.color}`} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm text-gray-900 font-medium">{activity.message}</p>
+                              {activity.user_name && (
+                                <p className="text-xs text-gray-600">
+                                  Người dùng: {activity.user_name} 
+                                  {activity.user_role && <span className="ml-1 text-gray-500">({activity.user_role})</span>}
+                                </p>
+                              )}
+                              <p className="text-xs text-gray-500">
+                                {new Date(activity.timestamp).toLocaleString("vi-VN", {
+                                  year: 'numeric',
+                                  month: 'short', 
+                                  day: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </p>
+                            </div>
+                            <div className="flex-shrink-0">
+                              <Badge 
+                                variant="outline" 
+                                className={`text-xs ${
+                                  activity.type === 'user_verified' ? 'border-green-200 text-green-700' :
+                                  activity.type === 'user_created' ? 'border-blue-200 text-blue-700' :
+                                  activity.type === 'user_deleted' ? 'border-red-200 text-red-700' :
+                                  activity.type === 'user_edited' ? 'border-orange-200 text-orange-700' :
+                                  activity.type === 'blood_updated' ? 'border-red-200 text-red-700' :
+                                  activity.type === 'login' ? 'border-purple-200 text-purple-700' :
+                                  'border-gray-200 text-gray-700'
+                                }`}
+                              >
+                                {activity.type === 'user_verified' ? 'Xác minh' :
+                                 activity.type === 'user_created' ? 'Tạo mới' :
+                                 activity.type === 'user_deleted' ? 'Xóa' :
+                                 activity.type === 'user_edited' ? 'Chỉnh sửa' :
+                                 activity.type === 'blood_updated' ? 'Cập nhật máu' :
+                                 activity.type === 'login' ? 'Đăng nhập' :
+                                 activity.type === 'logout' ? 'Đăng xuất' :
+                                 'Hệ thống'}
+                              </Badge>
+                            </div>
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm text-gray-900">{activity.message}</p>
-                            <p className="text-xs text-gray-500">{activity.time}</p>
+                        ))
+                      ) : (
+                        <div className="text-center py-8 text-gray-500">
+                          <Activity className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                          <p className="text-sm font-medium">Chưa có hoạt động nào</p>
+                          <p className="text-xs mt-1">Các hoạt động sẽ hiển thị tại đây</p>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {recentActivities.length > 0 && (
+                      <div className="mt-4 pt-3 border-t">
+                        <div className="flex items-center justify-between text-xs text-gray-500">
+                          <span>Hiển thị {Math.min(recentActivities.length, 10)} hoạt động gần nhất</span>
+                          <div className="flex items-center space-x-4">
+                            <span className="flex items-center">
+                              <div className="w-2 h-2 bg-green-500 rounded-full mr-1"></div>
+                              Xác minh
+                            </span>
+                            <span className="flex items-center">
+                              <div className="w-2 h-2 bg-blue-500 rounded-full mr-1"></div>
+                              Tạo mới
+                            </span>
+                            <span className="flex items-center">
+                              <div className="w-2 h-2 bg-red-500 rounded-full mr-1"></div>
+                              Xóa/Cập nhật
+                            </span>
                           </div>
                         </div>
-                      ))}
-                    </div>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </div>
@@ -677,14 +904,14 @@ export default function AdminDashboard() {
                             className="bg-green-600 hover:bg-green-700 text-white"
                             disabled={user.is_verified}
                             onClick={() => {
-                              handleVerifyUser(user._id);
+                              openConfirmModal('verify', user._id);
                             }}
                           >
                             <UserCheck className="w-4 h-4 mr-1" />
                             Duyệt
                           </Button>
                           <Button size="sm" variant="destructive" onClick={() => {
-                            handleDeleteUser(user._id);
+                            openConfirmModal('delete', user._id);
                           }}>
                             <Trash2 className="w-4 h-4 mr-1" />
                             Xóa
@@ -831,6 +1058,34 @@ export default function AdminDashboard() {
                   )}
                 </DialogContent>
               </Dialog>
+
+              {/* Confirm Dialog */}
+              <Dialog open={openConfirmDialog} onOpenChange={setOpenConfirmDialog}>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>
+                      {confirmAction === 'delete' ? 'Xác nhận xóa người dùng' : 'Xác nhận duyệt người dùng'}
+                    </DialogTitle>
+                    <DialogDescription>
+                      {confirmAction === 'delete' 
+                        ? 'Bạn có chắc chắn muốn xóa người dùng này? Hành động này không thể hoàn tác.'
+                        : 'Bạn có chắc chắn muốn duyệt người dùng này?'
+                      }
+                    </DialogDescription>
+                  </DialogHeader>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setOpenConfirmDialog(false)}>
+                      Hủy
+                    </Button>
+                    <Button 
+                      variant={confirmAction === 'delete' ? 'destructive' : 'default'}
+                      onClick={handleConfirmAction}
+                    >
+                      {confirmAction === 'delete' ? 'Xóa' : 'Duyệt'}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </TabsContent>
 
 
@@ -879,23 +1134,15 @@ export default function AdminDashboard() {
                         </ul>
                       )}
                     </div>
-                    <Button size="sm" className="bg-green-600 hover:bg-green-700">
-                      <UserCheck className="w-4 h-4 mr-1" />
-                      Duyệt
-                    </Button>
-                    <Button size="sm" variant="destructive">
-                      <UserX className="w-4 h-4 mr-1" />
-                      Từ chối
-                    </Button>
                   </div>
                 </div>
               </div>
               <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {bloodInven.map((blood) => (
+                {bloodInven.map((blood, index) => (
                   <Card key={blood.blood_type}>
                     <CardHeader className="pb-2">
                       <div className="flex items-center justify-between">
-                        <div className={`w-12 h-12 ${bloodInventory[eight++].color || "bg-red-500"} rounded-full flex items-center justify-center`}>
+                        <div className={`w-12 h-12 ${bloodTypeColors[index % bloodTypeColors.length]} rounded-full flex items-center justify-center`}>
                           <span className="text-xl font-bold text-white">{blood.blood_type}</span>
                         </div>
                         <Badge className={getStatusColor(blood.quantity)}>
@@ -913,13 +1160,13 @@ export default function AdminDashboard() {
                       <div className="space-y-2">
                         <div className="flex justify-between">
                           <span className="text-2xl font-bold">{blood.quantity}</span>
-                          <span className="text-sm text-gray-500">/ 500</span>
+                          <span className="text-sm text-gray-500">/ 50000</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-sm text-gray-500"></span>
-                          <span className="text-2xl font-bold text-orange-600">Đã hết hạn: {blood.expiring_quantity}</span>
+                          <span className="text-2xl font-bold text-orange-600">sắp hết hạn: {blood.expiring_quantity}</span>
                         </div>
-                        <Progress value={Math.min((blood.quantity / 500) * 100, 100)} className="h-2" />
+                        <Progress value={Math.min((blood.quantity / 50000) * 100, 100)} className="h-2" />
                         <div className="flex justify-between text-xs text-gray-500">
                           <span>Hiện có</span>
                           <span>Mục tiêu</span>
@@ -941,21 +1188,6 @@ export default function AdminDashboard() {
               </div>
             </TabsContent>
 
-            <TabsContent value="requests" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Quản lý yêu cầu máu</CardTitle>
-                  <CardDescription>Tất cả yêu cầu máu trong hệ thống</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center py-8 text-gray-500">
-                    <AlertTriangle className="w-12 h-12 mx-auto mb-4" />
-                    <p>Chức năng quản lý yêu cầu đang được phát triển</p>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
             <TabsContent value="create-users" className="space-y-6">
               {/* Form tạo tài khoản */}
               <Card>
@@ -974,8 +1206,6 @@ export default function AdminDashboard() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="staff">Nhân viên</SelectItem>
-                        <SelectItem value="donor">Người hiến máu</SelectItem>
-                        <SelectItem value="recipient">Người nhận máu</SelectItem>
                       </SelectContent>
                     </Select>
 
@@ -1021,54 +1251,6 @@ export default function AdminDashboard() {
                   </div>
 
                   <Button onClick={handleCreateUser}>Tạo tài khoản</Button>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-
-            <TabsContent value="settings" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Settings className="w-5 h-5 mr-2" />
-                    Cài đặt hệ thống
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-6">
-                    <div>
-                      <h3 className="text-lg font-semibold mb-4">Cài đặt chung</h3>
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between p-4 border rounded-lg">
-                          <div>
-                            <p className="font-medium">Tự động duyệt người dùng</p>
-                            <p className="text-sm text-gray-600">Tự động duyệt đăng ký người hiến máu mới</p>
-                          </div>
-                          <Button variant="outline" size="sm">
-                            Bật
-                          </Button>
-                        </div>
-                        <div className="flex items-center justify-between p-4 border rounded-lg">
-                          <div>
-                            <p className="font-medium">Thông báo khẩn cấp</p>
-                            <p className="text-sm text-gray-600">Gửi thông báo khi có yêu cầu khẩn cấp</p>
-                          </div>
-                          <Button variant="outline" size="sm">
-                            Cấu hình
-                          </Button>
-                        </div>
-                        <div className="flex items-center justify-between p-4 border rounded-lg">
-                          <div>
-                            <p className="font-medium">Sao lưu dữ liệu</p>
-                            <p className="text-sm text-gray-600">Tự động sao lưu dữ liệu hàng ngày</p>
-                          </div>
-                          <Button variant="outline" size="sm">
-                            Cài đặt
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
