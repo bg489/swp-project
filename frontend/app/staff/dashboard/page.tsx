@@ -197,7 +197,7 @@ export default function StaffDashboard() {
 
           if (isRestoring && donation.inventory_item?.quantity && donation.inventory_item.quantity < donation.volume) {
             toast.error("Không đủ máu trong kho để phục hồi lại trạng thái!");
-            return;
+            return donation; // Return the original donation instead of undefined
           }
 
           let updatedQuantity = donation.inventory_item?.quantity || 0;
@@ -235,20 +235,130 @@ export default function StaffDashboard() {
         toast.error("Không tìm thấy thông tin người dùng!");
         return;
       }
+
+      if (!staff?.hospital?._id) {
+        toast.error("Không tìm thấy thông tin bệnh viện!");
+        return;
+      }
+
+      // Tìm request hiện tại để lấy thông tin
+      const currentRequest = mockDonorRequests.find((req: any) => req._id === requestId);
+      if (!currentRequest) {
+        toast.error("Không tìm thấy thông tin yêu cầu hiến máu!");
+        return;
+      }
+
+      const isCompleting = newStatus === "completed" && currentRequest.status !== "completed";
+      const isCancelling = newStatus === "cancelled" && currentRequest.status === "completed";
       
-      // Sử dụng endpoint đúng từ backend: /api/users/donor-requests/staff/:requestId/status
+      // Xử lý cập nhật kho máu TRƯỚC khi cập nhật status
+      if (isCompleting || isCancelling) {
+        const targetComponent = currentRequest.components_offered?.[0] || 'whole';
+        
+        console.log("🔍 Debug inventory operation:");
+        console.log("Target blood_type:", currentRequest.blood_type_offered);
+        console.log("Target component:", targetComponent);
+        console.log("Request components_offered:", currentRequest.components_offered);
+        console.log("Amount:", currentRequest.amount_offered);
+        console.log("Operation:", isCompleting ? 'ADD' : 'SUBTRACT');
+        
+        try {
+          if (isCompleting) {
+            // Khi hoàn tất: tìm inventory để cập nhật hoặc tạo mới
+            const { inventory: targetInventory, action } = findOrCreateInventory(
+              currentRequest.blood_type_offered, 
+              targetComponent, 
+              currentRequest.amount_offered
+            );
+            
+            if (action === 'update' && targetInventory) {
+              // Cập nhật inventory có sẵn
+              const newQuantity = targetInventory.quantity + currentRequest.amount_offered;
+              
+              await api.put(`/blood-in/blood-inventory/update/${targetInventory._id}`, {
+                quantity: newQuantity
+              });
+              
+              console.log(`✅ Updated inventory: ${targetInventory.blood_type} (${targetInventory.component}) from ${targetInventory.quantity}ml to ${newQuantity}ml`);
+            } else if (action === 'create') {
+              // Tạo mới inventory
+              const newInventoryData = {
+                hospital: staff.hospital._id,
+                blood_type: currentRequest.blood_type_offered,
+                component: targetComponent,
+                quantity: currentRequest.amount_offered,
+                expiring_quantity: 0,
+                low_stock_alert: false
+              };
+
+              await api.post('/blood-in/blood-inventory/create', newInventoryData);
+              console.log(`✅ Created new inventory: ${currentRequest.blood_type_offered} (${targetComponent}) with ${currentRequest.amount_offered}ml`);
+            }
+          } else if (isCancelling) {
+            // Khi hủy: chỉ cập nhật inventory có sẵn
+            const { inventory: targetInventory } = findOrCreateInventory(
+              currentRequest.blood_type_offered, 
+              targetComponent, 
+              currentRequest.amount_offered
+            );
+            
+            if (targetInventory) {
+              const newQuantity = targetInventory.quantity - currentRequest.amount_offered;
+              
+              if (newQuantity < 0) {
+                toast.error("Không thể hủy: không đủ máu trong kho để trừ!");
+                return;
+              }
+              
+              await api.put(`/blood-in/blood-inventory/update/${targetInventory._id}`, {
+                quantity: newQuantity
+              });
+              
+              console.log(`✅ Updated inventory for cancellation: ${targetInventory.blood_type} (${targetInventory.component}) from ${targetInventory.quantity}ml to ${newQuantity}ml`);
+            } else {
+              toast.error("Không tìm thấy kho máu để trừ khi hủy!");
+              return;
+            }
+          }
+        } catch (inventoryError: any) {
+          console.error("Error handling inventory:", inventoryError);
+          toast.error(`Lỗi xử lý kho máu: ${inventoryError.response?.data?.message || inventoryError.message}`);
+          return;
+        }
+      }
+
+      // Cập nhật status của donor request
       await api.put(`/users/donor-requests/staff/${requestId}/status`, {
         status: newStatus,
-        staff_id: user._id, // Thêm staff_id như backend yêu cầu
+        staff_id: user._id,
       });
 
+      // Refresh dữ liệu kho máu để đảm bảo đồng bộ
+      if (isCompleting || isCancelling) {
+        try {
+          await refreshBloodInventoryData();
+          
+          toast.success(
+            isCompleting 
+              ? `✅ Đã hoàn tất hiến máu và thêm ${currentRequest.amount_offered}ml máu ${currentRequest.blood_type_offered} (${translateComponent(currentRequest.components_offered?.[0])}) vào kho`
+              : `❌ Đã hủy và trừ ${currentRequest.amount_offered}ml máu ${currentRequest.blood_type_offered} khỏi kho`
+          );
+        } catch (refreshError) {
+          console.error("Error refreshing inventory:", refreshError);
+          toast.error("Cập nhật thành công nhưng không thể làm mới dữ liệu kho. Vui lòng tải lại trang.");
+        }
+      }
+
+      // Cập nhật state donor requests (sẽ được refresh lại trong refreshBloodInventoryData nếu cần)
       setMockDonorRequests((prev: any) =>
         prev.map((request: any) =>
           request._id === requestId ? { ...request, status: newStatus } : request
         )
       );
 
-      toast.success(`Đã thay đổi status thành ${newStatus}`)
+      if (!isCompleting && !isCancelling) {
+        toast.success(`Đã thay đổi trạng thái thành ${translateStatus(newStatus)}`);
+      }
 
     } catch (error: any) {
       toast.error("Đã xảy ra lỗi khi cập nhật trạng thái. Vui lòng thử lại!");
@@ -274,6 +384,64 @@ export default function StaffDashboard() {
 
   const handleLogout = () => {
     logout()
+  }
+
+  // Function để refresh tất cả dữ liệu liên quan đến kho máu
+  const refreshBloodInventoryData = async () => {
+    try {
+      if (!staff?.hospital?._id) return;
+      
+      // Refresh inventory data
+      const bloodInvent = await api.get(`/blood-in/blood-inventory/hospital/${staff.hospital._id}`);
+      setBloodInven(bloodInvent.data.inventories);
+      
+      // Refresh donor requests
+      const mockDonor = await api.get(`/users/donor/staff/get-requests-by-hospital/${staff.hospital._id}`);
+      setMockDonorRequests(mockDonor.data.requests);
+      
+      console.log("✅ Refreshed blood inventory and donor requests data");
+    } catch (error) {
+      console.error("❌ Failed to refresh blood inventory data:", error);
+    }
+  }
+
+  // Helper function để tìm hoặc tạo inventory một cách thông minh
+  const findOrCreateInventory = (bloodType: string, component: string, amount: number) => {
+    // 1. Tìm exact match
+    let targetInventory = bloodInven.find((inv: any) => 
+      inv.blood_type === bloodType && 
+      inv.component?.toLowerCase() === component?.toLowerCase()
+    );
+    
+    if (targetInventory) {
+      console.log("✅ Found exact match:", targetInventory);
+      return { inventory: targetInventory, action: 'update' };
+    }
+    
+    // 2. Tìm với component 'whole' làm fallback
+    if (component !== 'whole') {
+      targetInventory = bloodInven.find((inv: any) => 
+        inv.blood_type === bloodType && 
+        inv.component?.toLowerCase() === 'whole'
+      );
+      
+      if (targetInventory) {
+        console.log("✅ Found fallback with 'whole' component:", targetInventory);
+        return { inventory: targetInventory, action: 'update' };
+      }
+    }
+    
+    // 3. Tìm bất kỳ inventory nào có cùng blood type
+    targetInventory = bloodInven.find((inv: any) => inv.blood_type === bloodType);
+    
+    if (targetInventory) {
+      console.log("✅ Found inventory with same blood type but different component:", targetInventory);
+      return { inventory: targetInventory, action: 'update' };
+    }
+    
+    // 4. Tạo mới nếu không tìm thấy gì
+    console.log("❗ No existing inventory found, will create new");
+    return { inventory: null, action: 'create' };
   }
 
   // Function to sort blood requests based on filter
@@ -388,6 +556,11 @@ export default function StaffDashboard() {
       return donationDate === today && donation.status === "completed";
     }).length || 0,
     totalDonationsStat: Object.values(donorDonationCounts).reduce((total: number, count: number) => total + count, 0),
+    // Thống kê hiến máu vào kho
+    pendingDonorRequests: mockDonorRequests?.filter((req: any) => req.status === "in_progress").length || 0,
+    completedDonorRequests: mockDonorRequests?.filter((req: any) => req.status === "completed").length || 0,
+    totalVolumeFromDonorRequests: mockDonorRequests?.filter((req: any) => req.status === "completed")
+      .reduce((total: number, req: any) => total + (req.amount_offered || 0), 0) || 0,
   }
 
   // Mock blood inventory
@@ -537,15 +710,18 @@ export default function StaffDashboard() {
         </header>
 
         <div className="container mx-auto px-4 py-8 flex-grow">
-          {/* Staff Stats Overview */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          {/* Staff Stats Overview - Expanded with Blood Donation to Inventory Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Kho máu</CardTitle>
+                <CardTitle className="text-sm font-medium">Kho máu tổng</CardTitle>
                 <Droplets className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-red-600">{staffStats.totalBloodUnits} ml</div>
+                <p className="text-xs text-muted-foreground">
+                  {staffStats.lowStockTypes > 0 ? `${staffStats.lowStockTypes} loại thiếu` : "Tình trạng tốt"}
+                </p>
               </CardContent>
             </Card>
 
@@ -562,12 +738,25 @@ export default function StaffDashboard() {
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Cơ sở làm việc</CardTitle>
-                <CheckCircle className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium">Hiến máu vào kho</CardTitle>
+                <Heart className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-green-600">{staff?.hospital?.name || "Không có thông tin"}</div>
-                <p className="text-xs text-muted-foreground">{staff?.hospital?.address || "Không có thông tin"}</p>
+                <div className="text-2xl font-bold text-green-600">{staffStats.completedDonorRequests}</div>
+                <p className="text-xs text-muted-foreground">
+                  đã hoàn tất | {staffStats.pendingDonorRequests} đang xử lý
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Máu nhận được</CardTitle>
+                <Droplet className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-blue-600">{staffStats.totalVolumeFromDonorRequests} ml</div>
+                <p className="text-xs text-muted-foreground">từ hiến máu vào kho</p>
               </CardContent>
             </Card>
           </div>
@@ -653,7 +842,7 @@ export default function StaffDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {getSortedBloodRequests(bloodReqList.data).map((recipient: any) => (
+                    {getSortedBloodRequests(bloodReqList.data || []).map((recipient: any) => (
                       <Link
                         key={recipient._id}
                         href={`/staff/edit/request?requestId=${recipient._id}`}
@@ -972,7 +1161,62 @@ export default function StaffDashboard() {
                             <div className="text-right text-sm">
                               <p className="font-medium text-gray-800">{request.hospital?.name}</p>
                               <p className="text-gray-600">{request.hospital?.address}</p>
-                              <p className="font-medium text-gray-800">🛠 Cập nhật trạng thái:</p>
+                              
+                              {/* Hiển thị trạng thái kho máu hiện tại với thông tin chi tiết */}
+                              {(() => {
+                                const targetComponent = request.components_offered?.[0] || 'whole';
+                                
+                                // Áp dụng cùng logic matching như trong handleDonorRequestStatusUpdate
+                                let currentInventory = bloodInven.find((inv: any) => 
+                                  inv.blood_type === request.blood_type_offered && 
+                                  inv.component?.toLowerCase() === targetComponent?.toLowerCase()
+                                );
+                                
+                                // Fallback: tìm với component 'whole' nếu không tìm thấy
+                                if (!currentInventory && targetComponent !== 'whole') {
+                                  currentInventory = bloodInven.find((inv: any) => 
+                                    inv.blood_type === request.blood_type_offered && 
+                                    inv.component?.toLowerCase() === 'whole'
+                                  );
+                                }
+                                
+                                // Fallback cuối: tìm bất kỳ inventory nào có cùng blood type
+                                if (!currentInventory) {
+                                  currentInventory = bloodInven.find((inv: any) => 
+                                    inv.blood_type === request.blood_type_offered
+                                  );
+                                }
+                                
+                                const isCompleting = selectedDonorRequestStatus[request._id] === "completed" && request.status !== "completed";
+                                const isCancelling = selectedDonorRequestStatus[request._id] === "cancelled" && request.status === "completed";
+                                
+                                return currentInventory ? (
+                                  null
+                                ) : (
+                                  <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded text-xs">
+                                    <p className="font-semibold text-yellow-800">⚠️ Chưa có trong kho</p>
+                                    <p className="text-yellow-700">
+                                      Loại: {request.blood_type_offered} ({translateComponent(targetComponent)})
+                                    </p>
+                                    <p className="text-yellow-700 text-xs mt-1">
+                                      💡 Hệ thống sẽ tìm kho có sẵn cùng nhóm máu hoặc tạo mới nếu cần
+                                    </p>
+                                    
+                                    {isCompleting && (
+                                      <div className="mt-1 p-2 bg-green-100 border border-green-300 rounded">
+                                        <p className="text-green-800 font-semibold">
+                                          ✨ Sẽ tạo mới: {request.amount_offered}ml
+                                        </p>
+                                        <p className="text-green-700 text-xs">
+                                          Tạo inventory mới cho loại máu này
+                                        </p>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })()}
+                              
+                              <p className="font-medium text-gray-800 mt-2">🛠 Cập nhật trạng thái:</p>
                               <Select 
                                 onValueChange={(value) => setSelectedDonorRequestStatus(prev => ({...prev, [request._id]: value}))} 
                                 value={selectedDonorRequestStatus[request._id] || ""}
@@ -996,7 +1240,10 @@ export default function StaffDashboard() {
                               <Button
                                 className="mt-2 bg-blue-600 text-white hover:bg-blue-700"
                                 disabled={!selectedDonorRequestStatus[request._id] || selectedDonorRequestStatus[request._id] === request.status}
-                                onClick={() => handleDonorRequestStatusUpdate(selectedDonorRequestStatus[request._id], request._id)}
+                                onClick={() => {
+                                  const newStatus = selectedDonorRequestStatus[request._id];
+                                  handleDonorRequestStatusUpdate(newStatus, request._id);
+                                }}
                               >
                                 Cập nhật trạng thái
                               </Button>
