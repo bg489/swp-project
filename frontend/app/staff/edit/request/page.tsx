@@ -413,7 +413,7 @@ export default function EditRequestPage() {
               <div className="space-y-2">
                 <p className="text-gray-700"><strong>Bệnh viện:</strong> {bloodReq?.hospital?.name || "Không rõ"}</p>
                 <p className="text-gray-700"><strong>Địa chỉ BV:</strong> {bloodReq?.hospital?.address || "Không rõ"}</p>
-                <p className="text-gray-700"><strong>Tình trạng:</strong> <Badge className="capitalize">{translateStatus(bloodReq?.status || "Đang chờ")}</Badge></p>
+                <div className="text-gray-700"><strong>Tình trạng:</strong> <Badge className="capitalize">{translateStatus(bloodReq?.status || "Đang chờ")}</Badge></div>
                 <p className="text-gray-700"><strong>Khẩn cấp:</strong> {bloodReq?.is_emergency ? "Có" : "Không"}</p>
                 <p className="text-gray-700"><strong>Ghi chú:</strong> {bloodReq?.comment || "Không có"}</p>
                 <p className="text-gray-700"><strong>Ngày tạo:</strong> {bloodReq?.createdAt ? formatDate(bloodReq.createdAt) : "Không rõ"}</p>
