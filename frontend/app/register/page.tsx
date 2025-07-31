@@ -16,7 +16,7 @@ import { useRouter } from "next/navigation"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import api from "../../lib/axios";
-import ReCAPTCHA from "react-google-recaptcha"
+// import ReCAPTCHA from "react-google-recaptcha"
 import UploadCertificate from "@/components/ui/UploadCertificate"
 import toast, { Toaster } from "react-hot-toast"
 
