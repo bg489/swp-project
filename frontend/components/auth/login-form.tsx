@@ -49,21 +49,21 @@ export function LoginForm({ onSuccess, redirectTo }: LoginFormProps) {
     try {
       // Call API instead of direct function
       const response = await api.post("/users/login", {
-          email: formData.email,
-          password: formData.password
-        });
+        email: formData.email,
+        password: formData.password
+      });
 
       const result = await response.data
 
 
       if (result.message && result.user) {
         console.log(result)
-        if(!result.user.is_verified){
+        if (!result.user.user.is_verified) {
           setError("Tài khoản chưa được xác minh, Hãy xác minh tài khoản!");
           return;
         }
-        setUser(result.user)
-        toast.success("Chào mừng, " + result.user.full_name)
+        setUser(result.user.user)
+        toast.success("Chào mừng, " + result.user.user.full_name)
         if (onSuccess) {
           router.push(redirectTo || "/");
         } else {
@@ -209,8 +209,8 @@ export function LoginForm({ onSuccess, redirectTo }: LoginFormProps) {
         </div>
       </CardContent>
       <Toaster position="top-center" containerStyle={{
-              top: 80,
-            }}/>
+        top: 80,
+      }} />
     </Card>
   )
 }

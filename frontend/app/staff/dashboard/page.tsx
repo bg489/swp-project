@@ -32,7 +32,7 @@ import toast, { Toaster } from "react-hot-toast"
 function translateStatus(status: string) {
   const map: Record<string, string> = {
     pending: "Chờ duyệt",
-    approved: "Đã duyệt", 
+    approved: "Đã duyệt",
     matched: "Đã ghép",
     in_progress: "Đang xử lý",
     completed: "Hoàn tất",
@@ -49,7 +49,7 @@ function translateStatus(status: string) {
 function translateComponent(component: string) {
   const map: Record<string, string> = {
     whole: "Máu toàn phần",
-    plasma: "Huyết tương", 
+    plasma: "Huyết tương",
     rbc: "Hồng cầu",
     RBC: "Hồng cầu",
     platelet: "Tiểu cầu",
@@ -66,13 +66,13 @@ export default function StaffDashboard() {
   const [bloodReqList, setBloodReqList] = useState<any>([]);
   const [donationList, setDonationList] = useState<any>([]);
   const [bloodInven, setBloodInven] = useState<any>([])
-  const [selectedDonationStatus, setSelectedDonationStatus] = useState<{[key: string]: string}>({});
+  const [selectedDonationStatus, setSelectedDonationStatus] = useState<{ [key: string]: string }>({});
   const [bloodManageFilter, setBloodManageFilter] = useState("donor");
   const [warehouseDonationsList2, setWarehouseDonationsList2] = useState<any>([]);
-  const [selectedWarehouseStatus, setSelectedWarehouseStatus] = useState<{[key: string]: string}>({});
-  const [selectedDonorRequestStatus, setSelectedDonorRequestStatus] = useState<{[key: string]: string}>({});
+  const [selectedWarehouseStatus, setSelectedWarehouseStatus] = useState<{ [key: string]: string }>({});
+  const [selectedDonorRequestStatus, setSelectedDonorRequestStatus] = useState<{ [key: string]: string }>({});
   const [mockDonorRequests, setMockDonorRequests] = useState<any>([]);
-  const [donorDonationCounts, setDonorDonationCounts] = useState<{[key: string]: number}>({});
+  const [donorDonationCounts, setDonorDonationCounts] = useState<{ [key: string]: number }>({});
   const [bloodRequestFilter, setBloodRequestFilter] = useState("newest");
 
   const warehouseDonationsList = [
@@ -174,6 +174,26 @@ export default function StaffDashboard() {
 
       toast.success(`Đã thay đổi status thành ${newStatus}`)
 
+      if (newStatus === "completed") {
+        const donation = await api.get(`/staff/donations/id/${donationId}`);
+        const donorId = donation.data.donation.donor_id._id;
+        const donationDateStr = donation.data.donation.donation_date; // e.g. "2025-07-01T00:00:00.000Z"
+
+        const donationDate = new Date(donationDateStr);
+
+        // Tăng 7 ngày (7 * 24 * 60 * 60 * 1000 milliseconds)
+        const cooldownUntilDate = new Date(donationDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+        // Convert về ISO string nếu cần lưu vào DB hoặc gửi API
+        const cooldownUntilStr = cooldownUntilDate.toISOString();
+
+        await api.put(`/users/donor/update-cooldown`, {
+          user_id: donorId,
+          cooldown_until: cooldownUntilStr
+        });
+
+      }
+
       // Không cần xử lý thêm gì khi status là "completed"
       // Chỉ cập nhật trạng thái là đủ
     } catch (error) {
@@ -230,7 +250,7 @@ export default function StaffDashboard() {
   const handleDonorRequestStatusUpdate = async (newStatus: string, requestId: string) => {
     try {
       console.log("Updating donor request:", { newStatus, requestId });
-      
+
       if (!user?._id) {
         toast.error("Không tìm thấy thông tin người dùng!");
         return;
@@ -250,35 +270,35 @@ export default function StaffDashboard() {
 
       const isCompleting = newStatus === "completed" && currentRequest.status !== "completed";
       const isCancelling = newStatus === "cancelled" && currentRequest.status === "completed";
-      
+
       // Xử lý cập nhật kho máu TRƯỚC khi cập nhật status
       if (isCompleting || isCancelling) {
         const targetComponent = currentRequest.components_offered?.[0] || 'whole';
-        
+
         console.log("🔍 Debug inventory operation:");
         console.log("Target blood_type:", currentRequest.blood_type_offered);
         console.log("Target component:", targetComponent);
         console.log("Request components_offered:", currentRequest.components_offered);
         console.log("Amount:", currentRequest.amount_offered);
         console.log("Operation:", isCompleting ? 'ADD' : 'SUBTRACT');
-        
+
         try {
           if (isCompleting) {
             // Khi hoàn tất: tìm inventory để cập nhật hoặc tạo mới
             const { inventory: targetInventory, action } = findOrCreateInventory(
-              currentRequest.blood_type_offered, 
-              targetComponent, 
+              currentRequest.blood_type_offered,
+              targetComponent,
               currentRequest.amount_offered
             );
-            
+
             if (action === 'update' && targetInventory) {
               // Cập nhật inventory có sẵn
               const newQuantity = targetInventory.quantity + currentRequest.amount_offered;
-              
+
               await api.put(`/blood-in/blood-inventory/update/${targetInventory._id}`, {
                 quantity: newQuantity
               });
-              
+
               console.log(`✅ Updated inventory: ${targetInventory.blood_type} (${targetInventory.component}) from ${targetInventory.quantity}ml to ${newQuantity}ml`);
             } else if (action === 'create') {
               // Tạo mới inventory
@@ -297,23 +317,23 @@ export default function StaffDashboard() {
           } else if (isCancelling) {
             // Khi hủy: chỉ cập nhật inventory có sẵn
             const { inventory: targetInventory } = findOrCreateInventory(
-              currentRequest.blood_type_offered, 
-              targetComponent, 
+              currentRequest.blood_type_offered,
+              targetComponent,
               currentRequest.amount_offered
             );
-            
+
             if (targetInventory) {
               const newQuantity = targetInventory.quantity - currentRequest.amount_offered;
-              
+
               if (newQuantity < 0) {
                 toast.error("Không thể hủy: không đủ máu trong kho để trừ!");
                 return;
               }
-              
+
               await api.put(`/blood-in/blood-inventory/update/${targetInventory._id}`, {
                 quantity: newQuantity
               });
-              
+
               console.log(`✅ Updated inventory for cancellation: ${targetInventory.blood_type} (${targetInventory.component}) from ${targetInventory.quantity}ml to ${newQuantity}ml`);
             } else {
               toast.error("Không tìm thấy kho máu để trừ khi hủy!");
@@ -337,9 +357,9 @@ export default function StaffDashboard() {
       if (isCompleting || isCancelling) {
         try {
           await refreshBloodInventoryData();
-          
+
           toast.success(
-            isCompleting 
+            isCompleting
               ? `✅ Đã hoàn tất hiến máu và thêm ${currentRequest.amount_offered}ml máu ${currentRequest.blood_type_offered} (${translateComponent(currentRequest.components_offered?.[0])}) vào kho`
               : `❌ Đã hủy và trừ ${currentRequest.amount_offered}ml máu ${currentRequest.blood_type_offered} khỏi kho`
           );
@@ -390,15 +410,15 @@ export default function StaffDashboard() {
   const refreshBloodInventoryData = async () => {
     try {
       if (!staff?.hospital?._id) return;
-      
+
       // Refresh inventory data
       const bloodInvent = await api.get(`/blood-in/blood-inventory/hospital/${staff.hospital._id}`);
       setBloodInven(bloodInvent.data.inventories);
-      
+
       // Refresh donor requests
       const mockDonor = await api.get(`/users/donor/staff/get-requests-by-hospital/${staff.hospital._id}`);
       setMockDonorRequests(mockDonor.data.requests);
-      
+
       console.log("✅ Refreshed blood inventory and donor requests data");
     } catch (error) {
       console.error("❌ Failed to refresh blood inventory data:", error);
@@ -408,37 +428,37 @@ export default function StaffDashboard() {
   // Helper function để tìm hoặc tạo inventory một cách thông minh
   const findOrCreateInventory = (bloodType: string, component: string, amount: number) => {
     // 1. Tìm exact match
-    let targetInventory = bloodInven.find((inv: any) => 
-      inv.blood_type === bloodType && 
+    let targetInventory = bloodInven.find((inv: any) =>
+      inv.blood_type === bloodType &&
       inv.component?.toLowerCase() === component?.toLowerCase()
     );
-    
+
     if (targetInventory) {
       console.log("✅ Found exact match:", targetInventory);
       return { inventory: targetInventory, action: 'update' };
     }
-    
+
     // 2. Tìm với component 'whole' làm fallback
     if (component !== 'whole') {
-      targetInventory = bloodInven.find((inv: any) => 
-        inv.blood_type === bloodType && 
+      targetInventory = bloodInven.find((inv: any) =>
+        inv.blood_type === bloodType &&
         inv.component?.toLowerCase() === 'whole'
       );
-      
+
       if (targetInventory) {
         console.log("✅ Found fallback with 'whole' component:", targetInventory);
         return { inventory: targetInventory, action: 'update' };
       }
     }
-    
+
     // 3. Tìm bất kỳ inventory nào có cùng blood type
     targetInventory = bloodInven.find((inv: any) => inv.blood_type === bloodType);
-    
+
     if (targetInventory) {
       console.log("✅ Found inventory with same blood type but different component:", targetInventory);
       return { inventory: targetInventory, action: 'update' };
     }
-    
+
     // 4. Tạo mới nếu không tìm thấy gì
     console.log("❗ No existing inventory found, will create new");
     return { inventory: null, action: 'create' };
@@ -447,9 +467,9 @@ export default function StaffDashboard() {
   // Function to sort blood requests based on filter
   const getSortedBloodRequests = (requests: any[]) => {
     if (!Array.isArray(requests)) return [];
-    
+
     const sortedRequests = [...requests];
-    
+
     switch (bloodRequestFilter) {
       case "newest":
         return sortedRequests.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -471,7 +491,7 @@ export default function StaffDashboard() {
     async function fetchProfile() {
       try {
         if (!user?._id) return;
-        
+
         const profileRes = await api.get(`/users/staff-profiles/active/${user._id}`);
         const staffData = profileRes.data.staffProfile;
         setStaff(staffData);
@@ -480,7 +500,7 @@ export default function StaffDashboard() {
         if (staffData?.hospital?._id) {
           console.log("🏥 Hospital ID:", staffData.hospital._id);
           console.log("🔗 API URL:", `/users/donor-profiles-by-hospital/${staffData.hospital._id}`);
-          
+
           const profileDonList = await api.get(`/users/donor-profiles-by-hospital/${staffData.hospital._id}`);
           console.log("📊 Raw donor list response:", profileDonList.data);
           console.log("📊 Donor count:", profileDonList.data?.count);
@@ -489,7 +509,7 @@ export default function StaffDashboard() {
           setDonorList(profileDonList.data);
 
           // Fetch donation counts for each donor
-          const donationCounts: {[key: string]: number} = {};
+          const donationCounts: { [key: string]: number } = {};
           if (profileDonList.data?.donors) {
             console.log("🔄 Starting to fetch donation counts for", profileDonList.data.donors.length, "donors");
             await Promise.all(
@@ -499,7 +519,7 @@ export default function StaffDashboard() {
                     console.warn("⚠️ Donor missing user_id or _id:", donor);
                     return;
                   }
-                  
+
                   const donationsRes = await api.get(`/donations/donor/${donor.user_id._id}`);
                   const completedDonations = donationsRes.data.data?.filter((d: any) => d.status === "completed") || [];
                   donationCounts[donor.user_id._id] = completedDonations.length;
@@ -711,7 +731,7 @@ export default function StaffDashboard() {
 
         <div className="container mx-auto px-4 py-8 flex-grow">
           {/* Staff Stats Overview - Expanded with Blood Donation to Inventory Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Kho máu tổng</CardTitle>
@@ -757,6 +777,17 @@ export default function StaffDashboard() {
               <CardContent>
                 <div className="text-2xl font-bold text-blue-600">{staffStats.totalVolumeFromDonorRequests} ml</div>
                 <p className="text-xs text-muted-foreground">từ hiến máu vào kho</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Cơ sở làm việc</CardTitle>
+                <CheckCircle className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-green-600">{staff?.hospital?.name || "Không có thông tin"}</div>
+                <p className="text-xs text-muted-foreground">{staff?.hospital?.address || "Không có thông tin"}</p>
               </CardContent>
             </Card>
           </div>
@@ -969,8 +1000,8 @@ export default function StaffDashboard() {
                               <p className="text-gray-600">{donation.updated_by?.full_name || "Chưa rõ"}</p>
                               <p className="text-gray-600">{donation.updated_by?.email || "-"}</p>
                               <p className="font-medium text-gray-800">🛠 Cập nhật trạng thái:</p>
-                              <Select 
-                                onValueChange={(value) => setSelectedDonationStatus(prev => ({...prev, [donation._id]: value}))} 
+                              <Select
+                                onValueChange={(value) => setSelectedDonationStatus(prev => ({ ...prev, [donation._id]: value }))}
                                 value={selectedDonationStatus[donation._id] || ""}
                               >
                                 <SelectTrigger className="w-full md:w-[300px] border-gray-300">
@@ -1070,8 +1101,8 @@ export default function StaffDashboard() {
                               <p className="text-gray-600">{donation.updated_by?.full_name || "Chưa rõ"}</p>
                               <p className="text-gray-600">{donation.updated_by?.email || "-"}</p>
                               <p className="font-medium text-gray-800">🛠 Cập nhật trạng thái:</p>
-                              <Select 
-                                onValueChange={(value) => setSelectedWarehouseStatus(prev => ({...prev, [donation._id]: value}))} 
+                              <Select
+                                onValueChange={(value) => setSelectedWarehouseStatus(prev => ({ ...prev, [donation._id]: value }))}
                                 value={selectedWarehouseStatus[donation._id] || ""}
                               >
                                 <SelectTrigger className="w-full md:w-[300px] border-gray-300">
@@ -1137,10 +1168,10 @@ export default function StaffDashboard() {
                                   request.status === "in_progress"
                                     ? "bg-yellow-100 text-yellow-800"
                                     : request.status === "completed"
-                                    ? "bg-green-100 text-green-800"
-                                    : request.status === "cancelled"
-                                    ? "bg-red-100 text-red-800"
-                                    : "bg-gray-100 text-gray-800"
+                                      ? "bg-green-100 text-green-800"
+                                      : request.status === "cancelled"
+                                        ? "bg-red-100 text-red-800"
+                                        : "bg-gray-100 text-gray-800"
                                 }
                               >
                                 {translateStatus(request.status)}
@@ -1161,35 +1192,35 @@ export default function StaffDashboard() {
                             <div className="text-right text-sm">
                               <p className="font-medium text-gray-800">{request.hospital?.name}</p>
                               <p className="text-gray-600">{request.hospital?.address}</p>
-                              
+
                               {/* Hiển thị trạng thái kho máu hiện tại với thông tin chi tiết */}
                               {(() => {
                                 const targetComponent = request.components_offered?.[0] || 'whole';
-                                
+
                                 // Áp dụng cùng logic matching như trong handleDonorRequestStatusUpdate
-                                let currentInventory = bloodInven.find((inv: any) => 
-                                  inv.blood_type === request.blood_type_offered && 
+                                let currentInventory = bloodInven.find((inv: any) =>
+                                  inv.blood_type === request.blood_type_offered &&
                                   inv.component?.toLowerCase() === targetComponent?.toLowerCase()
                                 );
-                                
+
                                 // Fallback: tìm với component 'whole' nếu không tìm thấy
                                 if (!currentInventory && targetComponent !== 'whole') {
-                                  currentInventory = bloodInven.find((inv: any) => 
-                                    inv.blood_type === request.blood_type_offered && 
+                                  currentInventory = bloodInven.find((inv: any) =>
+                                    inv.blood_type === request.blood_type_offered &&
                                     inv.component?.toLowerCase() === 'whole'
                                   );
                                 }
-                                
+
                                 // Fallback cuối: tìm bất kỳ inventory nào có cùng blood type
                                 if (!currentInventory) {
-                                  currentInventory = bloodInven.find((inv: any) => 
+                                  currentInventory = bloodInven.find((inv: any) =>
                                     inv.blood_type === request.blood_type_offered
                                   );
                                 }
-                                
+
                                 const isCompleting = selectedDonorRequestStatus[request._id] === "completed" && request.status !== "completed";
                                 const isCancelling = selectedDonorRequestStatus[request._id] === "cancelled" && request.status === "completed";
-                                
+
                                 return currentInventory ? (
                                   null
                                 ) : (
@@ -1201,7 +1232,7 @@ export default function StaffDashboard() {
                                     <p className="text-yellow-700 text-xs mt-1">
                                       💡 Hệ thống sẽ tìm kho có sẵn cùng nhóm máu hoặc tạo mới nếu cần
                                     </p>
-                                    
+
                                     {isCompleting && (
                                       <div className="mt-1 p-2 bg-green-100 border border-green-300 rounded">
                                         <p className="text-green-800 font-semibold">
@@ -1215,10 +1246,10 @@ export default function StaffDashboard() {
                                   </div>
                                 );
                               })()}
-                              
+
                               <p className="font-medium text-gray-800 mt-2">🛠 Cập nhật trạng thái:</p>
-                              <Select 
-                                onValueChange={(value) => setSelectedDonorRequestStatus(prev => ({...prev, [request._id]: value}))} 
+                              <Select
+                                onValueChange={(value) => setSelectedDonorRequestStatus(prev => ({ ...prev, [request._id]: value }))}
                                 value={selectedDonorRequestStatus[request._id] || ""}
                               >
                                 <SelectTrigger className="w-full md:w-[300px] border-gray-300">
