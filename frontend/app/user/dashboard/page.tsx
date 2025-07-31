@@ -363,79 +363,6 @@ export default function UserDashboard() {
 
 
 
-  // Mock user data
-  const userStats = {
-    totalDonations: 5,
-    nextEligibleDate: "2024-12-15",
-    bloodType: "O+",
-    lastDonation: "2024-09-15",
-    points: 250,
-    level: "Người hùng Bạc",
-    daysUntilNext: 45,
-  }
-
-  const donationHistory = [
-    {
-      id: "D001",
-      date: "15/09/2024",
-      location: "Trung tâm Hiến máu Nhân đạo",
-      units: 350,
-      status: "completed",
-      points: 50,
-    },
-    {
-      id: "D002",
-      date: "15/06/2024",
-      location: "Bệnh viện Chợ Rẫy",
-      units: 350,
-      status: "completed",
-      points: 50,
-    },
-    {
-      id: "D003",
-      date: "15/03/2024",
-      location: "Trung tâm Hiến máu Nhân đạo",
-      units: 350,
-      status: "completed",
-      points: 50,
-    },
-    {
-      id: "D004",
-      date: "15/12/2023",
-      location: "Bệnh viện Bình Dan",
-      units: 350,
-      status: "completed",
-      points: 50,
-    },
-    {
-      id: "D005",
-      date: "15/09/2023",
-      location: "Trung tâm Hiến máu Nhân đạo",
-      units: 350,
-      status: "completed",
-      points: 50,
-    },
-  ]
-
-  const notifications = [
-    {
-      id: 1,
-      type: "reminder",
-      title: "Nhắc nhở hiến máu",
-      message: "Bạn có thể hiến máu trở lại từ ngày 15/12/2024",
-      time: "2 ngày trước",
-      read: false,
-    },
-    {
-      id: 3,
-      type: "achievement",
-      title: "Chúc mừng!",
-      message: "Bạn đã đạt cấp độ 'Người hùng Bạc'",
-      time: "2 tuần trước",
-      read: true,
-    },
-  ]
-
   // Calculate achievements for donors based on real data
   const getDonorAchievements = () => {
     const totalDonations = donationRecords.count;
@@ -659,80 +586,13 @@ export default function UserDashboard() {
         </header>
 
         <div className="container mx-auto px-4 py-8 flex-grow">
-          <Tabs defaultValue={`${user.role === "donor" ? "overview" : "history"}`} className="space-y-6">
-            <TabsList className={`grid w-full ${user.role === "donor" ? "grid-cols-4" : "grid-cols-3"}`}>
-              {(user.role === "donor") ? <> <TabsTrigger value="overview">Tổng quan</TabsTrigger> <TabsTrigger value="history">Lịch sử</TabsTrigger></> : <TabsTrigger value="history">Lịch sử</TabsTrigger>}
+          <Tabs defaultValue="history" className="space-y-6">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="history">Lịch hẹn</TabsTrigger>
               <TabsTrigger value="achievements">Thành tích</TabsTrigger>
               <TabsTrigger value="profile">Hồ sơ</TabsTrigger>
             </TabsList>
 
-            {(user.role === "donor") &&
-              <TabsContent value="overview" className="space-y-6">
-                <div className="grid lg:grid-cols-2 gap-6">
-                  {/* Next Donation Countdown */}
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center">
-                        <Calendar className="w-5 h-5 mr-2 text-blue-600" />
-                        Lần hiến tiếp theo
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-center space-y-4">
-                        <div className="text-3xl font-bold text-blue-600">{donor?.cooldown_until ? `${daysUntil(donor.cooldown_until)} ngày` : "Không rõ"}</div>
-                        <p className="text-gray-600">
-                          Bạn có thể hiến máu trở lại từ ngày <strong>{formatDate(donor?.cooldown_until)}</strong>
-                        </p>
-                        <Progress value={((90 - userStats.daysUntilNext) / 90) * 100} className="h-2" />
-                        <Button className="w-full" disabled={userStats.daysUntilNext > 0}>
-                          <Calendar className="w-4 h-4 mr-2" />
-                          {userStats.daysUntilNext > 0 ? "Chưa đến thời gian" : "Đặt lịch hiến máu"}
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Recent Notifications */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center justify-between">
-                        <span className="flex items-center">
-                          <Bell className="w-5 h-5 mr-2 text-yellow-600" />
-                          Thông báo
-                        </span>
-                        <Badge variant="outline">{notifications.filter((n) => !n.read).length} mới</Badge>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-4">
-                        {notifications.slice(0, 3).map((notification) => {
-                          const IconComponent = getNotificationIcon(notification.type)
-                          return (
-                            <div
-                              key={notification.id}
-                              className={`flex items-start space-x-3 p-3 rounded-lg ${!notification.read ? "bg-blue-50 border border-blue-200" : "bg-gray-50"
-                                }`}
-                            >
-                              <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center">
-                                <IconComponent className="w-4 h-4 text-gray-600" />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="font-medium text-sm">{notification.title}</p>
-                                <p className="text-sm text-gray-600">{notification.message}</p>
-                                <p className="text-xs text-gray-500 mt-1">{notification.time}</p>
-                              </div>
-                              {!notification.read && <div className="w-2 h-2 bg-blue-500 rounded-full"></div>}
-                            </div>
-                          )
-                        })}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-
-              </TabsContent>
-            }
             <TabsContent value="history" className="space-y-6">
               <Card className="shadow-lg border-0">
                 <CardHeader className="bg-gradient-to-r from-red-50 to-pink-50 border-b">
@@ -743,10 +603,10 @@ export default function UserDashboard() {
                       </div>
                       <div>
                         <CardTitle className="text-xl text-gray-800">
-                          {user?.role === "donor" ? "Lịch sử hiến máu" : "Lịch sử yêu cầu máu"}
+                          {user?.role === "donor" ? "Lịch hẹn hiến máu" : "Lịch sử yêu cầu máu"}
                         </CardTitle>
                         <CardDescription className="text-gray-600">
-                          {user?.role === "donor" ? "Tất cả các lần hiến máu của bạn" : "Tất cả các lần yêu cầu của bạn"}
+                          {user?.role === "donor" ? "Các lịch hẹn hiến máu của bạn" : "Tất cả các lần yêu cầu của bạn"}
                         </CardDescription>
                       </div>
                     </div>
@@ -806,7 +666,7 @@ export default function UserDashboard() {
 
                                 <div className="text-sm text-gray-600 mt-1">
                                   <p>Ngày hiến: <strong>{formatDate(donation.donation_date)}</strong></p>
-                                  <p>Khối lượng: <strong>{donation.volume}</strong> đơn vị</p>
+                                  <p>Lượng máu hiến: <strong>{donation.volume}</strong> ml</p>
                                   <p>Ghi chú: {donation.notes || "Không có"}</p>
                                   <p>Ngày tạo: {formatDate(donation.createdAt)}</p>
                                 </div>
@@ -818,33 +678,6 @@ export default function UserDashboard() {
                                   <p className="font-medium text-gray-800">Cập nhật bởi:</p>
                                   <p className="text-gray-600">{donation.updated_by?.full_name || "Chưa rõ"}</p>
                                   <p className="text-gray-600">{donation.updated_by?.email || "-"}</p>
-                                </div>
-
-                                <div className="flex space-x-2">
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-                                  >
-                                    <Phone className="w-4 h-4 mr-1" />
-                                    Gọi
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-                                  >
-                                    <Edit className="w-4 h-4" />
-                                    Sửa
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="destructive"
-                                    className="text-white bg-red-500 hover:bg-red-600 transition"
-                                    onClick={() => handleReject(donation._id)}
-                                  >
-                                    Từ chối
-                                  </Button>
                                 </div>
                               </div>
                             </div>
@@ -891,7 +724,7 @@ export default function UserDashboard() {
                                     <span>{new Date(request.createdAt).toLocaleDateString("vi-VN")}</span>
                                   </div>
                                   <span>•</span>
-                                  <span className="font-medium">{request.amount_needed} đơn vị</span>
+                                  <span className="font-medium">{request.amount_needed} ml</span>
                                   <span>•</span>
                                   <span>{request.components_needed.map(c => translateComponent(c)).join(", ")}</span>
                                   <span>•</span>
@@ -966,7 +799,7 @@ export default function UserDashboard() {
                                 </p>
                                 <p className="flex items-center space-x-2">
                                   <Droplets className="w-4 h-4 text-red-500" />
-                                  <span>Khối lượng: <strong className="text-red-600">{donation.volume}</strong> đơn vị</span>
+                                  <span>Lượng máu hiến: <strong className="text-red-600">{donation.volume}</strong> ml</span>
                                 </p>
                                 <p>💬 Ghi chú: <span className="italic">{donation.notes || "Không có"}</span></p>
                                 <p className="text-xs text-gray-500">🕒 Ngày tạo: {formatDate(donation.createdAt)}</p>
@@ -1012,7 +845,7 @@ export default function UserDashboard() {
                                     Thành phần: <span className="font-medium">{translateComponent(donation.inventory_item?.component || "")}</span>
                                   </p>
                                   <p className="text-sm text-gray-600">
-                                    Lượng tồn: <span className="font-medium text-blue-600">{donation.inventory_item?.quantity} đơn vị</span>
+                                    Lượng tồn: <span className="font-medium text-blue-600">{donation.inventory_item?.quantity} ml</span>
                                   </p>
                                 </div>
                               </div>
@@ -1041,7 +874,7 @@ export default function UserDashboard() {
                                 </p>
                                 <p className="flex items-center space-x-2">
                                   <Droplets className="w-4 h-4 text-blue-500" />
-                                  <span>Khối lượng rút: <strong className="text-blue-600">{donation.volume}</strong> đơn vị</span>
+                                  <span>Lượng máu rút: <strong className="text-blue-600">{donation.volume}</strong> ml</span>
                                 </p>
                                 <p>💬 Ghi chú: <span className="italic">{donation.notes || "Không có"}</span></p>
                                 <p className="text-xs text-gray-500">🕒 Ngày tạo: {formatDate(donation.createdAt)}</p>

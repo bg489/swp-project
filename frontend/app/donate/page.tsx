@@ -53,7 +53,7 @@ export default function DonatePage() {
   });
 
   const bloodTypes = ["O-", "O+", "A-", "A+", "B-", "B+", "AB-", "AB+"]
-  const timeSlots = ["6:00 - 8:00", "8:00 - 10:00", "10:00 - 12:00", "14:00 - 16:00", "16:00 - 18:00", "18:00 - 20:00"]
+  const timeSlots = ["8:00 - 10:00", "10:00 - 12:00", "12:00 - 14:00", "14:00 - 16:00", "16:00 - 18:00", "18:00 - 20:00"]
 
   const requirements = [
     "Tuổi từ 18-60, cân nặng tối thiểu 45kg",
@@ -188,13 +188,14 @@ export default function DonatePage() {
         toast({
           variant: "destructive",
           title: "Lỗi",
-          description: "Vui lòng nhập lượng máu dự kiến hiến.",
+          description: "Vui lòng nhập lượng máu dự kiến hiến (ml).",
         })
         return;
       }
 
       console.log("Submitting form with user:", user)
       console.log("Form data:", formData)
+      console.log("API Base URL:", process.env.NODE_ENV === "development" ? "http://localhost:5001/api" : "/api")
 
       // Validate user
       if (!user || !user._id) {
@@ -243,7 +244,7 @@ export default function DonatePage() {
         
         toast({
           title: "🎉 Đăng ký hiến máu thành công!",
-          description: `Cảm ơn bạn đã đăng ký hiến máu vào ngày ${formData.available_date} từ ${formData.available_time_range.from} - ${formData.available_time_range.to}. Chúng tôi sẽ liên hệ với bạn sớm nhất!`,
+          description: `Cảm ơn bạn đã đăng ký hiến ${formData.amount_offered}ml máu vào ngày ${formData.available_date} từ ${formData.available_time_range.from} - ${formData.available_time_range.to}. Chúng tôi sẽ liên hệ với bạn sớm nhất!`,
           duration: 6000,
         })
         
@@ -276,11 +277,19 @@ export default function DonatePage() {
       let errorMessage = "Đã xảy ra lỗi khi gửi yêu cầu.";
       
       if (error.response?.status === 404) {
-        errorMessage = "Không tìm thấy thông tin người dùng. Vui lòng kiểm tra lại tài khoản của bạn.";
+        if (error.response?.data?.message?.includes("User not found")) {
+          errorMessage = "Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại.";
+        } else if (error.response?.data?.message?.includes("not a valid donor")) {
+          errorMessage = "Tài khoản của bạn chưa được thiết lập để hiến máu. Vui lòng liên hệ quản trị viên.";
+        } else {
+          errorMessage = "Endpoint không tồn tại. Vui lòng kiểm tra kết nối server.";
+        }
       } else if (error.response?.status === 400) {
         errorMessage = error.response?.data?.message || "Thông tin không hợp lệ. Vui lòng kiểm tra lại.";
       } else if (error.response?.status === 500) {
         errorMessage = "Lỗi hệ thống. Vui lòng thử lại sau.";
+      } else if (error.code === 'ECONNREFUSED' || error.message.includes('Network Error')) {
+        errorMessage = "Không thể kết nối đến server. Vui lòng kiểm tra server backend có đang chạy không.";
       } else if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
       }
@@ -456,8 +465,12 @@ export default function DonatePage() {
                               }
                               placeholder="Ví dụ: 350"
                               required
-                              min={50}
+                              min={200}
+                              max={500}
                             />
+                            <p className="text-xs text-gray-500 mt-1">
+                              Lượng máu tiêu chuẩn: 200-500ml (khuyến nghị: 350ml)
+                            </p>
                           </div>
 
                           {/* Thành phần máu */}
@@ -521,6 +534,23 @@ export default function DonatePage() {
                 </CardContent>
               </Card>
             </div>
+          </div>
+
+          {/* Call to Action Section */}
+          <div className="mt-12 text-center">
+            <Card className="bg-gradient-to-r from-red-500 to-pink-600 text-white border-0">
+              <CardContent className="p-8">
+                <h2 className="text-2xl font-bold mb-4">Tìm điểm hiến máu gần bạn</h2>
+                <p className="text-red-100 mb-6 max-w-2xl mx-auto">
+                  Khám phá các điểm hiến máu và bệnh viện gần khu vực của bạn. Tìm địa điểm thuận tiện nhất để thực hiện việc hiến máu.
+                </p>
+                <Link href="/check-map">
+                  <Button className="bg-white text-red-600 hover:bg-red-50 font-semibold px-8 py-3 text-lg">
+                    🗺️ Xem bản đồ điểm hiến máu
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
           </div>
 
           {/* Additional Information Section */}

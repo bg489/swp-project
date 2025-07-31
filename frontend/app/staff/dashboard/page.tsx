@@ -5,22 +5,16 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Progress } from "@/components/ui/progress"
-import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   Heart,
   Droplets,
   AlertTriangle,
-  Plus,
   Users,
-  Phone,
   LogOut,
   Home,
   ClipboardList,
-  Search,
-  Edit,
   Package,
-  UserPlus,
   Hospital,
   Clock,
   CheckCircle,
@@ -31,9 +25,38 @@ import Image from "next/image"
 import { useAuth } from "@/contexts/auth-context"
 import { Footer } from "@/components/footer"
 import api from "@/lib/axios"
-import { JSXElementConstructor, Key, ReactElement, ReactNode, ReactPortal, useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 import toast, { Toaster } from "react-hot-toast"
-import { get } from "http"
+
+// Function to translate status from English to Vietnamese
+function translateStatus(status: string) {
+  const map: Record<string, string> = {
+    pending: "Chờ duyệt",
+    approved: "Đã duyệt",
+    matched: "Đã ghép",
+    in_progress: "Đang xử lý",
+    completed: "Hoàn tất",
+    cancelled: "Đã hủy",
+    rejected: "Từ chối",
+    scheduled: "Đã lên lịch",
+    fulfilled: "Đã thực hiện",
+  }
+
+  return map[status] || status
+}
+
+// Function to translate blood components from English to Vietnamese
+function translateComponent(component: string) {
+  const map: Record<string, string> = {
+    whole: "Máu toàn phần",
+    plasma: "Huyết tương",
+    rbc: "Hồng cầu",
+    RBC: "Hồng cầu",
+    platelet: "Tiểu cầu",
+  }
+
+  return map[component?.toLowerCase()] || map[component] || component
+}
 
 
 export default function StaffDashboard() {
@@ -43,40 +66,14 @@ export default function StaffDashboard() {
   const [bloodReqList, setBloodReqList] = useState<any>([]);
   const [donationList, setDonationList] = useState<any>([]);
   const [bloodInven, setBloodInven] = useState<any>([])
-  const [selectedDonationStatus, setSelectedDonationStatus] = useState("");
+  const [selectedDonationStatus, setSelectedDonationStatus] = useState<{ [key: string]: string }>({});
   const [bloodManageFilter, setBloodManageFilter] = useState("donor");
   const [warehouseDonationsList2, setWarehouseDonationsList2] = useState<any>([]);
-  const [selectedWarehouseStatus, setSelectedWarehouseStatus] = useState("");
+  const [selectedWarehouseStatus, setSelectedWarehouseStatus] = useState<{ [key: string]: string }>({});
+  const [selectedDonorRequestStatus, setSelectedDonorRequestStatus] = useState<{ [key: string]: string }>({});
   const [mockDonorRequests, setMockDonorRequests] = useState<any>([]);
-
-  function translateStatusOrComponent(key: string): string {
-    const dictionary: Record<string, string> = {
-      // Thành phần máu
-      whole: "Máu toàn phần",
-      RBC: "Hồng cầu (RBC)",
-      plasma: "Huyết tương",
-      platelet: "Tiểu cầu",
-
-      // Trạng thái
-      pending: "Chờ xử lý",
-      approved: "Đã phê duyệt",
-      matched: "Đã ghép người hiến",
-      in_progress: "Đang xử lý",
-      completed: "Đã hoàn tất",
-      cancelled: "Đã hủy",
-      rejected: "Bị từ chối",
-      scheduled: "Đã lên lịch",
-      fulfilled: "Đã hoàn thành",
-    };
-
-    return dictionary[key] || key;
-  }
-
-
-  function getInventoryByBloodType(inventories: any[], bloodType: any) {
-    return inventories.find((item) => item.blood_type === bloodType);
-  }
-
+  const [donorDonationCounts, setDonorDonationCounts] = useState<{ [key: string]: number }>({});
+  const [bloodRequestFilter, setBloodRequestFilter] = useState("newest");
 
   const warehouseDonationsList = [
     {
@@ -169,14 +166,13 @@ export default function StaffDashboard() {
         status: newStatus,
       });
 
-
       setDonationList((prev: any) =>
         prev.map((donation: any) =>
           donation._id === donationId ? { ...donation, status: newStatus } : donation
         )
       );
 
-      toast.success(`Đã thay đổi status thành ${translateStatusOrComponent(newStatus)}`)
+      toast.success(`Đã thay đổi status thành ${newStatus}`)
 
       if (newStatus === "completed") {
         const donation = await api.get(`/staff/donations/id/${donationId}`);
@@ -198,7 +194,8 @@ export default function StaffDashboard() {
 
       }
 
-
+      // Không cần xử lý thêm gì khi status là "completed"
+      // Chỉ cập nhật trạng thái là đủ
     } catch (error) {
       toast.error("Đã xảy ra lỗi khi cập nhật trạng thái. Vui lòng thử lại!");
       console.error(error);
@@ -218,31 +215,18 @@ export default function StaffDashboard() {
           const isCancelling = newStatus === "cancelled" && donation.status !== "cancelled";
           const isRestoring = donation.status === "cancelled" && (newStatus === "in_progress" || newStatus === "fulfilled");
 
-          if (isRestoring && donation.inventory_item.quantity < donation.volume) {
+          if (isRestoring && donation.inventory_item?.quantity && donation.inventory_item.quantity < donation.volume) {
             toast.error("Không đủ máu trong kho để phục hồi lại trạng thái!");
-            return;
+            return donation; // Return the original donation instead of undefined
           }
 
-          let updatedQuantity = donation.inventory_item.quantity;
+          let updatedQuantity = donation.inventory_item?.quantity || 0;
 
           if (isCancelling) {
             updatedQuantity += donation.volume;
           } else if (isRestoring) {
             updatedQuantity -= donation.volume;
           }
-
-          // Cập nhật local bloodInventory
-          setBloodInven((prevInventories: any[]) =>
-            prevInventories.map((inventory: any) => {
-              if (inventory.blood_type === donation.inventory_item?.blood_type) {
-                return {
-                  ...inventory,
-                  quantity: updatedQuantity,
-                };
-              }
-              return inventory;
-            })
-          );
 
           return {
             ...donation,
@@ -255,11 +239,7 @@ export default function StaffDashboard() {
         })
       );
 
-
-
-
       toast.success(`Đã thay đổi status thành ${newStatus}`)
-
 
     } catch (error) {
       toast.error("Đã xảy ra lỗi khi cập nhật trạng thái. Vui lòng thử lại!");
@@ -267,70 +247,146 @@ export default function StaffDashboard() {
     }
   };
 
-  const handleDonorRequestStatusUpdate = async (
-    newStatus: string,
-    bloodRequest: any,
-    bloodInventory: any
-  ) => {
-    console.log("Updating donor request status:", newStatus, bloodRequest, bloodInventory, user?._id);
-
+  const handleDonorRequestStatusUpdate = async (newStatus: string, requestId: string) => {
     try {
-      await api.put(`/users/donor-requests/staff/${bloodRequest._id}/status`, {
+      console.log("Updating donor request:", { newStatus, requestId });
+
+      if (!user?._id) {
+        toast.error("Không tìm thấy thông tin người dùng!");
+        return;
+      }
+
+      if (!staff?.hospital?._id) {
+        toast.error("Không tìm thấy thông tin bệnh viện!");
+        return;
+      }
+
+      // Tìm request hiện tại để lấy thông tin
+      const currentRequest = mockDonorRequests.find((req: any) => req._id === requestId);
+      if (!currentRequest) {
+        toast.error("Không tìm thấy thông tin yêu cầu hiến máu!");
+        return;
+      }
+
+      const isCompleting = newStatus === "completed" && currentRequest.status !== "completed";
+      const isCancelling = newStatus === "cancelled" && currentRequest.status === "completed";
+
+      // Xử lý cập nhật kho máu TRƯỚC khi cập nhật status
+      if (isCompleting || isCancelling) {
+        const targetComponent = currentRequest.components_offered?.[0] || 'whole';
+
+        console.log("🔍 Debug inventory operation:");
+        console.log("Target blood_type:", currentRequest.blood_type_offered);
+        console.log("Target component:", targetComponent);
+        console.log("Request components_offered:", currentRequest.components_offered);
+        console.log("Amount:", currentRequest.amount_offered);
+        console.log("Operation:", isCompleting ? 'ADD' : 'SUBTRACT');
+
+        try {
+          if (isCompleting) {
+            // Khi hoàn tất: tìm inventory để cập nhật hoặc tạo mới
+            const { inventory: targetInventory, action } = findOrCreateInventory(
+              currentRequest.blood_type_offered,
+              targetComponent,
+              currentRequest.amount_offered
+            );
+
+            if (action === 'update' && targetInventory) {
+              // Cập nhật inventory có sẵn
+              const newQuantity = targetInventory.quantity + currentRequest.amount_offered;
+
+              await api.put(`/blood-in/blood-inventory/update/${targetInventory._id}`, {
+                quantity: newQuantity
+              });
+
+              console.log(`✅ Updated inventory: ${targetInventory.blood_type} (${targetInventory.component}) from ${targetInventory.quantity}ml to ${newQuantity}ml`);
+            } else if (action === 'create') {
+              // Tạo mới inventory
+              const newInventoryData = {
+                hospital: staff.hospital._id,
+                blood_type: currentRequest.blood_type_offered,
+                component: targetComponent,
+                quantity: currentRequest.amount_offered,
+                expiring_quantity: 0,
+                low_stock_alert: false
+              };
+
+              await api.post('/blood-in/blood-inventory/create', newInventoryData);
+              console.log(`✅ Created new inventory: ${currentRequest.blood_type_offered} (${targetComponent}) with ${currentRequest.amount_offered}ml`);
+            }
+          } else if (isCancelling) {
+            // Khi hủy: chỉ cập nhật inventory có sẵn
+            const { inventory: targetInventory } = findOrCreateInventory(
+              currentRequest.blood_type_offered,
+              targetComponent,
+              currentRequest.amount_offered
+            );
+
+            if (targetInventory) {
+              const newQuantity = targetInventory.quantity - currentRequest.amount_offered;
+
+              if (newQuantity < 0) {
+                toast.error("Không thể hủy: không đủ máu trong kho để trừ!");
+                return;
+              }
+
+              await api.put(`/blood-in/blood-inventory/update/${targetInventory._id}`, {
+                quantity: newQuantity
+              });
+
+              console.log(`✅ Updated inventory for cancellation: ${targetInventory.blood_type} (${targetInventory.component}) from ${targetInventory.quantity}ml to ${newQuantity}ml`);
+            } else {
+              toast.error("Không tìm thấy kho máu để trừ khi hủy!");
+              return;
+            }
+          }
+        } catch (inventoryError: any) {
+          console.error("Error handling inventory:", inventoryError);
+          toast.error(`Lỗi xử lý kho máu: ${inventoryError.response?.data?.message || inventoryError.message}`);
+          return;
+        }
+      }
+
+      // Cập nhật status của donor request
+      await api.put(`/users/donor-requests/staff/${requestId}/status`, {
         status: newStatus,
-        staff_id: user?._id
+        staff_id: user._id,
       });
 
-      const wasCancelled = bloodRequest.status === "cancelled";
-      const wasCompleted = bloodRequest.status === "completed";
-      const isNowCompleted = newStatus === "completed";
-      const isNowCancelled = newStatus === "cancelled";
+      // Refresh dữ liệu kho máu để đảm bảo đồng bộ
+      if (isCompleting || isCancelling) {
+        try {
+          await refreshBloodInventoryData();
 
-      let updatedQuantity = bloodInventory.quantity;
-      let shouldUpdateInventory = false;
-
-      // Từ trạng thái khác sang completed: cộng máu
-      if (isNowCompleted && !wasCompleted) {
-        updatedQuantity += bloodRequest.amount_offered;
-        shouldUpdateInventory = true;
+          toast.success(
+            isCompleting
+              ? `✅ Đã hoàn tất hiến máu và thêm ${currentRequest.amount_offered}ml máu ${currentRequest.blood_type_offered} (${translateComponent(currentRequest.components_offered?.[0])}) vào kho`
+              : `❌ Đã hủy và trừ ${currentRequest.amount_offered}ml máu ${currentRequest.blood_type_offered} khỏi kho`
+          );
+        } catch (refreshError) {
+          console.error("Error refreshing inventory:", refreshError);
+          toast.error("Cập nhật thành công nhưng không thể làm mới dữ liệu kho. Vui lòng tải lại trang.");
+        }
       }
 
-      // Từ completed sang cancelled: trừ máu
-      if (wasCompleted && isNowCancelled) {
-        updatedQuantity -= bloodRequest.amount_offered;
-        shouldUpdateInventory = true;
-      }
-
-      if (shouldUpdateInventory) {
-        await api.put(`/blood-in/blood-inventory/update/${bloodInventory._id}`, {
-          quantity: updatedQuantity,
-        });
-
-        setBloodInven((prevInventories: any[]) =>
-          prevInventories.map((inventory: any) =>
-            inventory.blood_type === bloodRequest.blood_type_offered
-              ? { ...inventory, quantity: updatedQuantity }
-              : inventory
-          )
-        );
-      }
-
+      // Cập nhật state donor requests (sẽ được refresh lại trong refreshBloodInventoryData nếu cần)
       setMockDonorRequests((prev: any) =>
         prev.map((request: any) =>
-          request._id === bloodRequest._id
-            ? { ...request, status: newStatus }
-            : request
+          request._id === requestId ? { ...request, status: newStatus } : request
         )
       );
 
-      toast.success(`Đã thay đổi status thành ${newStatus}`);
-    } catch (error) {
+      if (!isCompleting && !isCancelling) {
+        toast.success(`Đã thay đổi trạng thái thành ${translateStatus(newStatus)}`);
+      }
+
+    } catch (error: any) {
       toast.error("Đã xảy ra lỗi khi cập nhật trạng thái. Vui lòng thử lại!");
-      console.error(error);
+      console.error("Error updating donor request status:", error);
+      console.error("Error response:", error.response?.data);
+      console.error("Error status:", error.response?.status);
     }
   };
-
-
-
 
   const isActive = (availabilityDate: string) => {
     const now = new Date();
@@ -350,19 +406,135 @@ export default function StaffDashboard() {
     logout()
   }
 
+  // Function để refresh tất cả dữ liệu liên quan đến kho máu
+  const refreshBloodInventoryData = async () => {
+    try {
+      if (!staff?.hospital?._id) return;
+
+      // Refresh inventory data
+      const bloodInvent = await api.get(`/blood-in/blood-inventory/hospital/${staff.hospital._id}`);
+      setBloodInven(bloodInvent.data.inventories);
+
+      // Refresh donor requests
+      const mockDonor = await api.get(`/users/donor/staff/get-requests-by-hospital/${staff.hospital._id}`);
+      setMockDonorRequests(mockDonor.data.requests);
+
+      console.log("✅ Refreshed blood inventory and donor requests data");
+    } catch (error) {
+      console.error("❌ Failed to refresh blood inventory data:", error);
+    }
+  }
+
+  // Helper function để tìm hoặc tạo inventory một cách thông minh
+  const findOrCreateInventory = (bloodType: string, component: string, amount: number) => {
+    // 1. Tìm exact match
+    let targetInventory = bloodInven.find((inv: any) =>
+      inv.blood_type === bloodType &&
+      inv.component?.toLowerCase() === component?.toLowerCase()
+    );
+
+    if (targetInventory) {
+      console.log("✅ Found exact match:", targetInventory);
+      return { inventory: targetInventory, action: 'update' };
+    }
+
+    // 2. Tìm với component 'whole' làm fallback
+    if (component !== 'whole') {
+      targetInventory = bloodInven.find((inv: any) =>
+        inv.blood_type === bloodType &&
+        inv.component?.toLowerCase() === 'whole'
+      );
+
+      if (targetInventory) {
+        console.log("✅ Found fallback with 'whole' component:", targetInventory);
+        return { inventory: targetInventory, action: 'update' };
+      }
+    }
+
+    // 3. Tìm bất kỳ inventory nào có cùng blood type
+    targetInventory = bloodInven.find((inv: any) => inv.blood_type === bloodType);
+
+    if (targetInventory) {
+      console.log("✅ Found inventory with same blood type but different component:", targetInventory);
+      return { inventory: targetInventory, action: 'update' };
+    }
+
+    // 4. Tạo mới nếu không tìm thấy gì
+    console.log("❗ No existing inventory found, will create new");
+    return { inventory: null, action: 'create' };
+  }
+
+  // Function to sort blood requests based on filter
+  const getSortedBloodRequests = (requests: any[]) => {
+    if (!Array.isArray(requests)) return [];
+
+    const sortedRequests = [...requests];
+
+    switch (bloodRequestFilter) {
+      case "newest":
+        return sortedRequests.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      case "oldest":
+        return sortedRequests.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+      case "emergency":
+        return sortedRequests.sort((a, b) => {
+          // Khẩn cấp lên đầu, sau đó sắp xếp theo thời gian mới nhất
+          if (a.is_emergency && !b.is_emergency) return -1;
+          if (!a.is_emergency && b.is_emergency) return 1;
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        });
+      default:
+        return sortedRequests;
+    }
+  };
+
   useEffect(() => {
     async function fetchProfile() {
       try {
         if (!user?._id) return;
-        
+
         const profileRes = await api.get(`/users/staff-profiles/active/${user._id}`);
         const staffData = profileRes.data.staffProfile;
         setStaff(staffData);
 
         // Chỉ fetch donor list sau khi staffData có hospital
         if (staffData?.hospital?._id) {
+          console.log("🏥 Hospital ID:", staffData.hospital._id);
+          console.log("🔗 API URL:", `/users/donor-profiles-by-hospital/${staffData.hospital._id}`);
+
           const profileDonList = await api.get(`/users/donor-profiles-by-hospital/${staffData.hospital._id}`);
+          console.log("📊 Raw donor list response:", profileDonList.data);
+          console.log("📊 Donor count:", profileDonList.data?.count);
+          console.log("📊 Donors array:", profileDonList.data?.donors);
+          console.log("📊 Donors array length:", profileDonList.data?.donors?.length);
           setDonorList(profileDonList.data);
+
+          // Fetch donation counts for each donor
+          const donationCounts: { [key: string]: number } = {};
+          if (profileDonList.data?.donors) {
+            console.log("🔄 Starting to fetch donation counts for", profileDonList.data.donors.length, "donors");
+            await Promise.all(
+              profileDonList.data.donors.map(async (donor: any) => {
+                try {
+                  if (!donor.user_id?._id) {
+                    console.warn("⚠️ Donor missing user_id or _id:", donor);
+                    return;
+                  }
+
+                  const donationsRes = await api.get(`/donations/donor/${donor.user_id._id}`);
+                  const completedDonations = donationsRes.data.data?.filter((d: any) => d.status === "completed") || [];
+                  donationCounts[donor.user_id._id] = completedDonations.length;
+                  console.log(`💉 Donor ${donor.user_id?.full_name || "Không rõ tên"}: ${completedDonations.length} completed donations`);
+                } catch (error) {
+                  console.error(`❌ Failed to fetch donations for donor ${donor.user_id?._id}:`, error);
+                  if (donor.user_id?._id) {
+                    donationCounts[donor.user_id._id] = 0;
+                  }
+                }
+              })
+            );
+          }
+          console.log("📊 Final donation counts:", donationCounts);
+          setDonorDonationCounts(donationCounts);
 
           const profileBRList = await api.get(`/staff/blood-requests/get-list/${staffData.hospital._id}`);
           setBloodReqList(profileBRList.data);
@@ -372,8 +544,6 @@ export default function StaffDashboard() {
 
           const bloodInvent = await api.get(`/blood-in/blood-inventory/hospital/${staffData.hospital._id}`);
           setBloodInven(bloodInvent.data.inventories);
-
-        console.log("Blood Inventory:", getInventoryByBloodType(bloodInvent.data.inventories, "O-"));
 
           const wareHouseDonations = await api.get(`/staff/donations-warehouse/by-staff/${user._id}`);
           setWarehouseDonationsList2(wareHouseDonations.data.data);
@@ -393,63 +563,25 @@ export default function StaffDashboard() {
   }, [user]);
 
 
-  // Mock staff data
+  // Calculate real stats from API data
   const staffStats = {
-    totalDonors: 1247,
-    activeDonors: 892,
-    totalBloodUnits: 612,
-    lowStockTypes: 3,
-    pendingRequests: 7,
-    completedToday: 12,
+    totalDonors: donorList?.count || 0,
+    activeDonors: donorList?.donors?.filter((donor: any) => isActive(donor.availability_date)).length || 0,
+    totalBloodUnits: bloodInven?.reduce((total: number, blood: any) => total + blood.quantity, 0) || 0,
+    lowStockTypes: bloodInven?.filter((blood: any) => blood.quantity < 50).length || 0,
+    pendingRequests: bloodReqList?.count || 0,
+    completedToday: donationList?.filter((donation: any) => {
+      const today = new Date().toDateString();
+      const donationDate = new Date(donation.donation_date).toDateString();
+      return donationDate === today && donation.status === "completed";
+    }).length || 0,
+    totalDonationsStat: Object.values(donorDonationCounts).reduce((total: number, count: number) => total + count, 0),
+    // Thống kê hiến máu vào kho
+    pendingDonorRequests: mockDonorRequests?.filter((req: any) => req.status === "in_progress").length || 0,
+    completedDonorRequests: mockDonorRequests?.filter((req: any) => req.status === "completed").length || 0,
+    totalVolumeFromDonorRequests: mockDonorRequests?.filter((req: any) => req.status === "completed")
+      .reduce((total: number, req: any) => total + (req.amount_offered || 0), 0) || 0,
   }
-
-  // Mock donors data
-  const donors = [
-    {
-      id: "D001",
-      name: "Nguyễn Văn A",
-      bloodType: "O+",
-      phone: "0901234567",
-      email: "nguyenvana@email.com",
-      lastDonation: "2024-09-15",
-      totalDonations: 5,
-      status: "active",
-      nextEligible: "2024-12-15",
-    },
-    {
-      id: "D002",
-      name: "Trần Thị B",
-      bloodType: "A-",
-      phone: "0907654321",
-      email: "tranthib@email.com",
-      lastDonation: "2024-08-20",
-      totalDonations: 3,
-      status: "active",
-      nextEligible: "2024-11-20",
-    },
-    {
-      id: "D003",
-      name: "Lê Văn C",
-      bloodType: "B+",
-      phone: "0912345678",
-      email: "levanc@email.com",
-      lastDonation: "2024-10-01",
-      totalDonations: 8,
-      status: "inactive",
-      nextEligible: "2025-01-01",
-    },
-    {
-      id: "D004",
-      name: "Phạm Thị D",
-      bloodType: "AB+",
-      phone: "0909876543",
-      email: "phamthid@email.com",
-      lastDonation: "2024-11-10",
-      totalDonations: 2,
-      status: "active",
-      nextEligible: "2025-02-10",
-    },
-  ]
 
   // Mock blood inventory
   const bloodInventory = [
@@ -598,27 +730,18 @@ export default function StaffDashboard() {
         </header>
 
         <div className="container mx-auto px-4 py-8 flex-grow">
-          {/* Staff Stats Overview */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          {/* Staff Stats Overview - Expanded with Blood Donation to Inventory Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Người hiến máu</CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-blue-600">{staffStats.totalDonors}</div>
-                <p className="text-xs text-muted-foreground">{donorList?.count || "__"} đang hoạt động</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Kho máu</CardTitle>
+                <CardTitle className="text-sm font-medium">Kho máu tổng</CardTitle>
                 <Droplets className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-red-600">{staffStats.totalBloodUnits}</div>
-                <p className="text-xs text-muted-foreground">{staffStats.lowStockTypes} loại sắp hết</p>
+                <div className="text-2xl font-bold text-red-600">{staffStats.totalBloodUnits} ml</div>
+                <p className="text-xs text-muted-foreground">
+                  {staffStats.lowStockTypes > 0 ? `${staffStats.lowStockTypes} loại thiếu` : "Tình trạng tốt"}
+                </p>
               </CardContent>
             </Card>
 
@@ -628,8 +751,32 @@ export default function StaffDashboard() {
                 <Hospital className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-orange-600">{bloodReqList?.count || "0"}</div>
+                <div className="text-2xl font-bold text-orange-600">{staffStats.pendingRequests}</div>
                 <p className="text-xs text-muted-foreground">đang chờ xử lý</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Hiến máu vào kho</CardTitle>
+                <Heart className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-green-600">{staffStats.completedDonorRequests}</div>
+                <p className="text-xs text-muted-foreground">
+                  đã hoàn tất | {staffStats.pendingDonorRequests} đang xử lý
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Máu nhận được</CardTitle>
+                <Droplet className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-blue-600">{staffStats.totalVolumeFromDonorRequests} ml</div>
+                <p className="text-xs text-muted-foreground">từ hiến máu vào kho</p>
               </CardContent>
             </Card>
 
@@ -645,109 +792,12 @@ export default function StaffDashboard() {
             </Card>
           </div>
 
-          <Tabs defaultValue="donors" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="donors">Người hiến máu</TabsTrigger>
+          <Tabs defaultValue="inventory" className="space-y-6">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="inventory">Kho máu</TabsTrigger>
               <TabsTrigger value="requests">Yêu cầu máu</TabsTrigger>
               <TabsTrigger value="reports">Quản lý lịch trình hiến máu</TabsTrigger>
             </TabsList>
-
-            <TabsContent value="donors" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span>Quản lý người hiến máu</span>
-                    <Button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
-                      <UserPlus className="w-4 h-4 mr-2" />
-                      Thêm người hiến
-                    </Button>
-                  </CardTitle>
-                  <CardDescription>Quản lý thông tin và lịch sử hiến máu của người hiến</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center space-x-4 mb-6">
-                    <div className="relative flex-1">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                      <Input placeholder="Tìm kiếm theo tên, email, số điện thoại..." className="pl-10" />
-                    </div>
-                    <Select>
-                      <SelectTrigger className="w-40">
-                        <SelectValue placeholder="Nhóm máu" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Tất cả</SelectItem>
-                        <SelectItem value="O+">O+</SelectItem>
-                        <SelectItem value="O-">O-</SelectItem>
-                        <SelectItem value="A+">A+</SelectItem>
-                        <SelectItem value="A-">A-</SelectItem>
-                        <SelectItem value="B+">B+</SelectItem>
-                        <SelectItem value="B-">B-</SelectItem>
-                        <SelectItem value="AB+">AB+</SelectItem>
-                        <SelectItem value="AB-">AB-</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Select>
-                      <SelectTrigger className="w-40">
-                        <SelectValue placeholder="Trạng thái" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Tất cả</SelectItem>
-                        <SelectItem value="active">Hoạt động</SelectItem>
-                        <SelectItem value="inactive">Không hoạt động</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-4">
-                    {Array.isArray(donorList?.donors) && donorList.donors.map((donor: any) => (
-                      <div key={donor._id || donor.user_id._id} className="flex items-center justify-between p-4 border rounded-lg">
-                        <div className="flex items-center space-x-4">
-                          <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                            <Heart className="w-6 h-6 text-blue-600" />
-                          </div>
-                          <div>
-                            <p className="font-medium">{donor.user_id.full_name}</p>
-                            <p className="text-sm text-gray-600">{donor.user_id.email}</p>
-                            <div className="flex items-center space-x-2 mt-1">
-                              <Badge variant="outline" className="text-red-600">
-                                {donor.blood_type}
-                              </Badge>
-                              <Badge className={isActive(donor.availability_date) ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}>
-                                {isActive(donor.availability_date) ? "Hoạt động" : "Không hoạt động"}
-                              </Badge>
-                              <span className="text-xs text-gray-500">{donor.totalDonations || "0"} lần hiến</span>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <div className="text-right text-sm">
-                            <p className="text-gray-600">Lần cuối: {donor.lastDonation || "0"}</p>
-                            <p className="text-gray-500">Có thể hiến: {formatDate(donor.availability_date)}</p>
-                          </div>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-                          >
-                            <Phone className="w-4 h-4 mr-1" />
-                            Gọi
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-                          >
-                            <Edit className="w-4 h-4" />
-                            Sửa
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
 
             <TabsContent value="inventory" className="space-y-6">
               <Card>
@@ -757,10 +807,6 @@ export default function StaffDashboard() {
                       <Package className="w-5 h-5 mr-2" />
                       Quản lý kho máu
                     </span>
-                    <Button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
-                      <Plus className="w-4 h-4 mr-2" />
-                      Nhập máu mới
-                    </Button>
                   </CardTitle>
                   <CardDescription>Theo dõi tồn kho và tình trạng máu theo từng nhóm</CardDescription>
                 </CardHeader>
@@ -784,89 +830,24 @@ export default function StaffDashboard() {
                           <div className="space-y-2">
                             <div className="flex justify-between text-sm">
                               <span>Có sẵn:</span>
-                              <span className="font-semibold">{blood.quantity} đơn vị</span>
+                              <span className="font-semibold">{blood.quantity} ml</span>
                             </div>
                             <div className="flex justify-between text-sm">
                               <span>Đã đặt:</span>
-                              <span className="font-semibold">0 đơn vị</span>
+                              <span className="font-semibold">0 ml</span>
                             </div>
                             <div className="flex justify-between text-sm">
                               <span>Sắp hết hạn:</span>
-                              <span className="font-semibold text-orange-600">{blood.expiring_quantity} đơn vị</span>
+                              <span className="font-semibold text-orange-600">{blood.expiring_quantity} ml</span>
                             </div>
                             <Progress
-                              value={Math.min((blood.quantity / 500) * 100, 100)}
+                              value={Math.min((blood.quantity / 50000) * 100, 100)}
                               className="h-2 mt-2"
                             />
                           </div>
                         </CardContent>
                       </Card>
                     ))}
-                  </div>
-
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="text-lg">Cảnh báo tồn kho</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-3">
-                          {bloodInventory
-                            .filter((blood) => blood.status === "critical" || blood.status === "low")
-                            .map((blood) => (
-                              <div key={blood.type} className="flex items-center justify-between p-3 border rounded">
-                                <div className="flex items-center space-x-3">
-                                  <AlertTriangle
-                                    className={`w-5 h-5 ${blood.status === "critical" ? "text-red-600" : "text-yellow-600"
-                                      }`}
-                                  />
-                                  <div>
-                                    <p className="font-medium">Nhóm máu {blood.type}</p>
-                                    <p className="text-sm text-gray-600">Còn {blood.available} đơn vị</p>
-                                  </div>
-                                </div>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-                                >
-                                  Liên hệ người hiến
-                                </Button>
-                              </div>
-                            ))}
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="text-lg">Máu sắp hết hạn</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-3">
-                          {bloodInventory
-                            .filter((blood) => blood.expiringSoon > 0)
-                            .map((blood) => (
-                              <div key={blood.type} className="flex items-center justify-between p-3 border rounded">
-                                <div className="flex items-center space-x-3">
-                                  <Clock className="w-5 h-5 text-orange-600" />
-                                  <div>
-                                    <p className="font-medium">Nhóm máu {blood.type}</p>
-                                    <p className="text-sm text-gray-600">{blood.expiringSoon} đơn vị sắp hết hạn</p>
-                                  </div>
-                                </div>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-                                >
-                                  Ưu tiên sử dụng
-                                </Button>
-                              </div>
-                            ))}
-                        </div>
-                      </CardContent>
-                    </Card>
                   </div>
                 </CardContent>
               </Card>
@@ -877,24 +858,22 @@ export default function StaffDashboard() {
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                     <span>Quản lý yêu cầu máu</span>
-                    <Button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
-                      <UserPlus className="w-4 h-4 mr-2" />
-                      Thêm người hiến
-                    </Button>
+                    <Select onValueChange={setBloodRequestFilter} defaultValue="newest">
+                      <SelectTrigger className="w-48">
+                        <SelectValue placeholder="Sắp xếp theo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="newest">Mới nhất</SelectItem>
+                        <SelectItem value="oldest">Cũ nhất</SelectItem>
+                        <SelectItem value="emergency">Khẩn cấp</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </CardTitle>
                   <CardDescription>Quản lý thông tin về yêu cầu máu</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex items-center space-x-4 mb-6">
-                    <div className="relative flex-1">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                      <Input placeholder="Tìm kiếm theo tên, email, số điện thoại..." className="pl-10" />
-                    </div>
-
-                  </div>
-
                   <div className="space-y-4">
-                    {Array.isArray(bloodReqList.data) && bloodReqList.data.map((recipient: any) => (
+                    {getSortedBloodRequests(bloodReqList.data || []).map((recipient: any) => (
                       <Link
                         key={recipient._id}
                         href={`/staff/edit/request?requestId=${recipient._id}`}
@@ -910,23 +889,23 @@ export default function StaffDashboard() {
                                 <Heart className="w-6 h-6 text-orange-600" />
                               </div>
                               <div>
-                                <p className="font-medium">{recipient.recipient_id.full_name}</p>
-                                <p className="text-sm text-gray-600">{recipient.recipient_id.email}</p>
-                                <p className="text-sm text-gray-600">SĐT: {recipient.recipient_id.phone}</p>
+                                <p className="font-medium">{recipient.recipient_id?.full_name || "Không rõ tên"}</p>
+                                <p className="text-sm text-gray-600">{recipient.recipient_id?.email || "Không rõ email"}</p>
+                                <p className="text-sm text-gray-600">SĐT: {recipient.recipient_id?.phone || "Không rõ SĐT"}</p>
                               </div>
                             </div>
 
                             <div className="flex flex-wrap items-center gap-2 mt-2">
                               <Badge variant="outline" className="text-red-600">{recipient.blood_type_needed}</Badge>
-                              <Badge className="bg-blue-100 text-blue-800">{recipient.components_needed.join(", ")}</Badge>
+                              <Badge className="bg-blue-100 text-blue-800">{recipient.components_needed?.map((comp: string) => translateComponent(comp)).join(", ") || "Không rõ"}</Badge>
                               <Badge className={recipient.is_emergency ? "bg-red-100 text-red-800" : "bg-yellow-100 text-yellow-800"}>
                                 {recipient.is_emergency ? "Khẩn cấp" : "Không khẩn cấp"}
                               </Badge>
-                              <Badge className={getStatusColor(recipient.status)}>{recipient.status}</Badge>
+                              <Badge className={getStatusColor(recipient.status)}>{translateStatus(recipient.status)}</Badge>
                             </div>
 
                             <div className="text-sm text-gray-600">
-                              <p>Số lượng cần: <strong>{recipient.amount_needed}</strong> đơn vị</p>
+                              <p>Số lượng cần: <strong>{recipient.amount_needed}</strong> ml</p>
                               <p>Khoảng cách: <strong>{recipient.distance} km</strong></p>
                               <p>Ghi chú: {recipient.comment || "Không có"}</p>
                               <p>Ngày tạo: {formatDate(recipient.createdAt)}</p>
@@ -936,34 +915,12 @@ export default function StaffDashboard() {
                           {/* BÊN PHẢI: BỆNH VIỆN & NÚT */}
                           <div className="flex flex-col justify-between items-end space-y-3 min-w-[220px]">
                             <div className="text-right text-sm">
-                              <p className="font-medium text-gray-800">{recipient.hospital.name}</p>
-                              <p className="text-gray-600">{recipient.hospital.address}</p>
-                              <p className="text-gray-600">SĐT: {recipient.hospital.phone}</p>
+                              <p className="font-medium text-gray-800">{recipient.hospital?.name || "Không rõ bệnh viện"}</p>
+                              <p className="text-gray-600">{recipient.hospital?.address || "Không rõ địa chỉ"}</p>
+                              <p className="text-gray-600">SĐT: {recipient.hospital?.phone || "Không rõ SĐT"}</p>
                             </div>
 
                             <div className="flex space-x-2">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={(e) => {
-                                  e.preventDefault(); // Ngăn Link điều hướng khi click nút
-                                  window.scrollTo({ top: 0, behavior: "smooth" });
-                                }}
-                              >
-                                <Phone className="w-4 h-4 mr-1" />
-                                Gọi
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={(e) => {
-                                  e.preventDefault(); // Ngăn Link điều hướng khi click nút
-                                  window.scrollTo({ top: 0, behavior: "smooth" });
-                                }}
-                              >
-                                <Edit className="w-4 h-4" />
-                                Sửa
-                              </Button>
                             </div>
                           </div>
                         </div>
@@ -979,31 +936,20 @@ export default function StaffDashboard() {
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                     <span>Quản lý lịch trình hiến máu</span>
-                    <Button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
-                      <UserPlus className="w-4 h-4 mr-2" />
-                      Thêm người hiến
-                    </Button>
+                    <Select onValueChange={setBloodManageFilter}>
+                      <SelectTrigger className="w-48">
+                        <SelectValue placeholder="Loại quản lý" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="donor">Truyền Máu</SelectItem>
+                        <SelectItem value="blood-inventory">Yêu Cầu Máu Trong Kho</SelectItem>
+                        <SelectItem value="donor-request">Hiến Máu Vào Kho</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </CardTitle>
                   <CardDescription>Quản lý thông tin về lịch trình hiến máu</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex items-center space-x-4 mb-6">
-                    <div className="relative flex-1">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                      <Input placeholder="Tìm kiếm theo tên, email, số điện thoại..." className="pl-10" />
-                    </div>
-                    <Select onValueChange={setBloodManageFilter}>
-                      <SelectTrigger className="w-40">
-                        <SelectValue placeholder="Nhóm máu" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="donor">Người Hiến Máu</SelectItem>
-                        <SelectItem value="blood-inventory">Kho Máu</SelectItem>
-                        <SelectItem value="donor-request">Hiến Máu Vào Kho</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
                   <CardContent className="space-y-4">
                     {bloodManageFilter === "donor" && Array.isArray(donationList) && donationList.length > 0 ? (
                       donationList.map((donation) => (
@@ -1033,15 +979,15 @@ export default function StaffDashboard() {
                             )}
 
                             <div className="flex flex-wrap items-center gap-2 mt-2">
-                              <Badge className="bg-blue-100 text-blue-800">{donation.donation_type?.join(", ")}</Badge>
+                              <Badge className="bg-blue-100 text-blue-800">{donation.donation_type?.map((type: string) => translateComponent(type)).join(", ")}</Badge>
                               <Badge className={donation.status === "scheduled" ? "bg-yellow-100 text-yellow-800" : donation.status === "completed" ? "bg-green-100 text-green-800" : donation.status === "cancelled" ? "bg-red-100 text-red-800" : "bg-gray-100 text-gray-800"}>
-                                {translateStatusOrComponent(donation.status)}
+                                {translateStatus(donation.status)}
                               </Badge>
                             </div>
 
                             <div className="text-sm text-gray-600 mt-1">
                               <p>Ngày hiến: <strong>{formatDate(donation.donation_date)}</strong></p>
-                              <p>Khối lượng: <strong>{donation.volume}</strong> đơn vị</p>
+                              <p>Khối lượng: <strong>{donation.volume}</strong> ml</p>
                               <p>Ghi chú: {donation.notes || "Không có"}</p>
                               <p>Ngày tạo: {formatDate(donation.createdAt)}</p>
                             </div>
@@ -1054,7 +1000,10 @@ export default function StaffDashboard() {
                               <p className="text-gray-600">{donation.updated_by?.full_name || "Chưa rõ"}</p>
                               <p className="text-gray-600">{donation.updated_by?.email || "-"}</p>
                               <p className="font-medium text-gray-800">🛠 Cập nhật trạng thái:</p>
-                              <Select onValueChange={setSelectedDonationStatus} value={selectedDonationStatus}>
+                              <Select
+                                onValueChange={(value) => setSelectedDonationStatus(prev => ({ ...prev, [donation._id]: value }))}
+                                value={selectedDonationStatus[donation._id] || ""}
+                              >
                                 <SelectTrigger className="w-full md:w-[300px] border-gray-300">
                                   <SelectValue placeholder="Chọn trạng thái" />
                                 </SelectTrigger>
@@ -1073,37 +1022,21 @@ export default function StaffDashboard() {
 
                               <Button
                                 className="mt-2 bg-blue-600 text-white hover:bg-blue-700"
-                                disabled={!selectedDonationStatus || selectedDonationStatus === donation?.status}
-                                onClick={() => handleStatusUpdate(selectedDonationStatus, donation._id)}
+                                disabled={!selectedDonationStatus[donation._id] || selectedDonationStatus[donation._id] === donation?.status}
+                                onClick={() => handleStatusUpdate(selectedDonationStatus[donation._id], donation._id)}
                               >
                                 Cập nhật trạng thái
                               </Button>
                             </div>
 
                             <div className="flex space-x-2">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-                              >
-                                <Phone className="w-4 h-4 mr-1" />
-                                Gọi
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-                              >
-                                <Edit className="w-4 h-4" />
-                                Sửa
-                              </Button>
                             </div>
                           </div>
                         </div>
                       ))
                     ) : bloodManageFilter === "blood-inventory" ? (
                       ""
-                    ) : bloodManageFilter === "donor-request" ? "" : <p className="text-gray-600">Không tìm thấy người hiến máu.</p>}
+                    ) : bloodManageFilter === "donor-request" ? "" : <p className="text-gray-600">Không tìm thấy dữ liệu truyền máu.</p>}
 
                     {bloodManageFilter === "blood-inventory" && Array.isArray(warehouseDonationsList2) && warehouseDonationsList2.length > 0 ? (
                       warehouseDonationsList2.map((donation) => (
@@ -1122,10 +1055,10 @@ export default function StaffDashboard() {
                                   Nhóm máu: {donation.inventory_item?.blood_type || "Không rõ"}
                                 </p>
                                 <p className="text-sm text-gray-600">
-                                  Thành phần: {donation.inventory_item?.component}
+                                  Thành phần: {translateComponent(donation.inventory_item?.component)}
                                 </p>
                                 <p className="text-sm text-gray-600">
-                                  Lượng tồn: {donation.inventory_item?.quantity} đơn vị
+                                  Lượng tồn: {donation.inventory_item?.quantity} ml
                                 </p>
                               </div>
                             </div>
@@ -1139,7 +1072,7 @@ export default function StaffDashboard() {
                             )}
 
                             <div className="flex flex-wrap items-center gap-2 mt-2">
-                              <Badge className="bg-blue-100 text-blue-800">{donation.inventory_item?.component}</Badge>
+                              <Badge className="bg-blue-100 text-blue-800">{translateComponent(donation.inventory_item?.component)}</Badge>
                               <Badge
                                 className={
                                   donation.status === "in_progress"
@@ -1149,13 +1082,13 @@ export default function StaffDashboard() {
                                       : "bg-red-100 text-red-800"
                                 }
                               >
-                                {translateStatusOrComponent(donation.status)}
+                                {translateStatus(donation.status)}
                               </Badge>
                             </div>
 
                             <div className="text-sm text-gray-600 mt-1">
                               <p>Ngày rút máu: <strong>{formatDate(donation.donation_date)}</strong></p>
-                              <p>Khối lượng rút: <strong>{donation.volume}</strong> đơn vị</p>
+                              <p>Khối lượng rút: <strong>{donation.volume}</strong> ml</p>
                               <p>Ghi chú: {donation.notes || "Không có"}</p>
                               <p>Ngày tạo: {formatDate(donation.createdAt)}</p>
                             </div>
@@ -1168,7 +1101,10 @@ export default function StaffDashboard() {
                               <p className="text-gray-600">{donation.updated_by?.full_name || "Chưa rõ"}</p>
                               <p className="text-gray-600">{donation.updated_by?.email || "-"}</p>
                               <p className="font-medium text-gray-800">🛠 Cập nhật trạng thái:</p>
-                              <Select onValueChange={setSelectedWarehouseStatus} value={selectedWarehouseStatus} >
+                              <Select
+                                onValueChange={(value) => setSelectedWarehouseStatus(prev => ({ ...prev, [donation._id]: value }))}
+                                value={selectedWarehouseStatus[donation._id] || ""}
+                              >
                                 <SelectTrigger className="w-full md:w-[300px] border-gray-300">
                                   <SelectValue placeholder="Chọn trạng thái" />
                                 </SelectTrigger>
@@ -1187,37 +1123,21 @@ export default function StaffDashboard() {
 
                               <Button
                                 className="mt-2 bg-blue-600 text-white hover:bg-blue-700"
-                                disabled={!selectedWarehouseStatus || selectedWarehouseStatus === donation.status}
-                                onClick={() => handleWarehouseStatusUpdate(selectedWarehouseStatus, donation._id)}
+                                disabled={!selectedWarehouseStatus[donation._id] || selectedWarehouseStatus[donation._id] === donation.status}
+                                onClick={() => handleWarehouseStatusUpdate(selectedWarehouseStatus[donation._id], donation._id)}
                               >
                                 Cập nhật trạng thái
                               </Button>
                             </div>
 
                             <div className="flex space-x-2">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-                              >
-                                <Phone className="w-4 h-4 mr-1" />
-                                Gọi
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-                              >
-                                <Edit className="w-4 h-4" />
-                                Sửa
-                              </Button>
                             </div>
                           </div>
                         </div>
                       ))
                     ) : bloodManageFilter === "donor" ? (
                       ""
-                    ) : bloodManageFilter === "donor-request" ? "" : <p className="text-gray-600">Không tìm thấy dữ liệu rút máu từ kho.</p>}
+                    ) : bloodManageFilter === "donor-request" ? "" : <p className="text-gray-600">Không tìm thấy dữ liệu yêu cầu máu trong kho.</p>}
 
                     {bloodManageFilter === "donor-request" &&
                       Array.isArray(mockDonorRequests) &&
@@ -1225,94 +1145,142 @@ export default function StaffDashboard() {
                       mockDonorRequests.map((request) => (
                         <div
                           key={request._id}
-                          className="flex flex-col md:flex-row justify-between p-6 border border-yellow-300 rounded-xl bg-gradient-to-br from-yellow-50 via-white to-blue-50 hover:shadow-md transition"
+                          className="flex flex-col md:flex-row justify-between p-4 border rounded-lg space-y-4 md:space-y-0 md:space-x-6 hover:bg-gray-50 transition"
                         >
-                          {/* PHẦN TRÁI - THÔNG TIN HIẾN */}
-                          <div className="flex-1 flex flex-col space-y-3">
+                          {/* BÊN TRÁI: THÔNG TIN HIẾN */}
+                          <div className="flex-1 flex flex-col space-y-2">
                             <div className="flex items-center space-x-4">
-                              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-                                <Droplet className="w-6 h-6 text-red-600" />
+                              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                                <Droplet className="w-6 h-6 text-green-600" />
                               </div>
                               <div>
-                                <p className="font-semibold text-yellow-800">Nhóm máu: {request.blood_type_offered}</p>
-                                <p className="text-sm text-gray-700">Thành phần hiến: {request.components_offered?.join(", ")}</p>
-                                <p className="text-sm text-gray-700">Lượng tồn: {getInventoryByBloodType(bloodInven, request.blood_type_offered).quantity} đơn vị</p>
-                                <p className="text-sm text-gray-700">Số lượng muốn hiến: {request.amount_offered} đơn vị</p>
+                                <p className="font-medium">Người hiến: {request.donor_id?.full_name || "Không rõ"}</p>
+                                <p className="text-sm text-gray-600">{request.donor_id?.email}</p>
+                                <p className="text-sm text-gray-600">SĐT: {request.donor_id?.phone}</p>
                               </div>
                             </div>
 
-                            {request.donor_id && (
-                              <div className="border-t border-yellow-200 pt-3 space-y-1">
-                                <p className="font-medium text-gray-800">👤 Người hiến: {request.donor_id.full_name}</p>
-                                <p className="text-sm text-gray-600">📧 {request.donor_id.email}</p>
-                                <p className="text-sm text-gray-600">📞 {request.donor_id.phone}</p>
-                              </div>
-                            )}
-
-                            <div className="flex flex-wrap gap-2 mt-2">
-                              {request.components_offered.map((c: boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | Key | null | undefined) => (
-                                <Badge key={c} className="bg-yellow-200 text-yellow-900 border border-yellow-400">
-                                  {translateStatusOrComponent(c)}
-                                </Badge>
-                              ))}
+                            <div className="flex flex-wrap items-center gap-2 mt-2">
+                              <Badge variant="outline" className="text-red-600">{request.blood_type_offered}</Badge>
+                              <Badge className="bg-blue-100 text-blue-800">{request.components_offered?.map((comp: string) => translateComponent(comp)).join(", ")}</Badge>
                               <Badge
                                 className={
                                   request.status === "in_progress"
-                                    ? "bg-yellow-300 text-yellow-900"
-                                    : request.status === "fulfilled"
-                                    ? "bg-green-100 text-green-800"
-                                    : request.status === "cancelled"
-                                    ? "bg-red-200 text-red-800"
-                                    : "bg-gray-200 text-gray-800"
+                                    ? "bg-yellow-100 text-yellow-800"
+                                    : request.status === "completed"
+                                      ? "bg-green-100 text-green-800"
+                                      : request.status === "cancelled"
+                                        ? "bg-red-100 text-red-800"
+                                        : "bg-gray-100 text-gray-800"
                                 }
                               >
-                                {translateStatusOrComponent(request.status)}
+                                {translateStatus(request.status)}
                               </Badge>
                             </div>
 
-                            <div className="text-sm text-gray-700 mt-1 space-y-1">
-                              <p>📅 Ngày hiến dự kiến: <strong>{formatDate(request.available_date)}</strong></p>
-                              <p>🕓 Khung giờ: <strong>{request.available_time_range?.from} - {request.available_time_range?.to}</strong></p>
-                              <p>📝 Ghi chú: {request.comment || "Không có"}</p>
-                              <p>⏱ Ngày tạo: {formatDate(request.createdAt)}</p>
+                            <div className="text-sm text-gray-600 mt-1">
+                              <p>Ngày hiến dự kiến: <strong>{formatDate(request.available_date)}</strong></p>
+                              <p>Khung giờ: <strong>{request.available_time_range?.from} - {request.available_time_range?.to}</strong></p>
+                              <p>Số lượng: <strong>{request.amount_offered}</strong> ml</p>
+                              <p>Ghi chú: {request.comment || "Không có"}</p>
+                              <p>Ngày tạo: {formatDate(request.createdAt)}</p>
                             </div>
                           </div>
 
-                          {/* PHẦN PHẢI - BỆNH VIỆN & HÀNH ĐỘNG */}
-                          <div className="flex flex-col justify-between items-end space-y-4 min-w-[240px] pl-4 border-l border-blue-200">
-                            <div className="text-right text-sm text-blue-900 space-y-1">
-                              <p className="font-semibold text-blue-800">🏥 Bệnh viện:</p>
-                              <p>{request.hospital?.name}</p>
-                              <p className="text-blue-700">{request.hospital?.address}</p>
+                          {/* BÊN PHẢI: BỆNH VIỆN & NÚT */}
+                          <div className="flex flex-col justify-between items-end space-y-3 min-w-[220px]">
+                            <div className="text-right text-sm">
+                              <p className="font-medium text-gray-800">{request.hospital?.name}</p>
+                              <p className="text-gray-600">{request.hospital?.address}</p>
 
-                              <div className="mt-3">
-                                <p className="font-semibold text-gray-800 mb-1">⚙️ Trạng thái:</p>
-                                <Select onValueChange={setSelectedWarehouseStatus} value={selectedWarehouseStatus}>
-                                  <SelectTrigger className="w-full md:w-[240px] border-blue-300 focus:ring-blue-400">
-                                    <SelectValue placeholder="Chọn trạng thái" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {[
-                                      { key: "pending", label: "Đang đề nghị" },
-                                      { key: "in_progress", label: "Đang tiến hành" },
-                                      { key: "completed", label: "Hoàn tất" },
-                                      { key: "cancelled", label: "Đã hủy" },
-                                    ].map((status) => (
-                                      <SelectItem key={status.key} value={status.key}>
-                                        {status.label}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </div>
+                              {/* Hiển thị trạng thái kho máu hiện tại với thông tin chi tiết */}
+                              {(() => {
+                                const targetComponent = request.components_offered?.[0] || 'whole';
+
+                                // Áp dụng cùng logic matching như trong handleDonorRequestStatusUpdate
+                                let currentInventory = bloodInven.find((inv: any) =>
+                                  inv.blood_type === request.blood_type_offered &&
+                                  inv.component?.toLowerCase() === targetComponent?.toLowerCase()
+                                );
+
+                                // Fallback: tìm với component 'whole' nếu không tìm thấy
+                                if (!currentInventory && targetComponent !== 'whole') {
+                                  currentInventory = bloodInven.find((inv: any) =>
+                                    inv.blood_type === request.blood_type_offered &&
+                                    inv.component?.toLowerCase() === 'whole'
+                                  );
+                                }
+
+                                // Fallback cuối: tìm bất kỳ inventory nào có cùng blood type
+                                if (!currentInventory) {
+                                  currentInventory = bloodInven.find((inv: any) =>
+                                    inv.blood_type === request.blood_type_offered
+                                  );
+                                }
+
+                                const isCompleting = selectedDonorRequestStatus[request._id] === "completed" && request.status !== "completed";
+                                const isCancelling = selectedDonorRequestStatus[request._id] === "cancelled" && request.status === "completed";
+
+                                return currentInventory ? (
+                                  null
+                                ) : (
+                                  <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded text-xs">
+                                    <p className="font-semibold text-yellow-800">⚠️ Chưa có trong kho</p>
+                                    <p className="text-yellow-700">
+                                      Loại: {request.blood_type_offered} ({translateComponent(targetComponent)})
+                                    </p>
+                                    <p className="text-yellow-700 text-xs mt-1">
+                                      💡 Hệ thống sẽ tìm kho có sẵn cùng nhóm máu hoặc tạo mới nếu cần
+                                    </p>
+
+                                    {isCompleting && (
+                                      <div className="mt-1 p-2 bg-green-100 border border-green-300 rounded">
+                                        <p className="text-green-800 font-semibold">
+                                          ✨ Sẽ tạo mới: {request.amount_offered}ml
+                                        </p>
+                                        <p className="text-green-700 text-xs">
+                                          Tạo inventory mới cho loại máu này
+                                        </p>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })()}
+
+                              <p className="font-medium text-gray-800 mt-2">🛠 Cập nhật trạng thái:</p>
+                              <Select
+                                onValueChange={(value) => setSelectedDonorRequestStatus(prev => ({ ...prev, [request._id]: value }))}
+                                value={selectedDonorRequestStatus[request._id] || ""}
+                              >
+                                <SelectTrigger className="w-full md:w-[300px] border-gray-300">
+                                  <SelectValue placeholder="Chọn trạng thái" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {[
+                                    { key: "in_progress", label: "Đang tiến hành" },
+                                    { key: "completed", label: "Hoàn tất" },
+                                    { key: "cancelled", label: "Đã hủy" },
+                                  ].map((status) => (
+                                    <SelectItem key={status.key} value={status.key}>
+                                      {status.label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
 
                               <Button
-                                className="mt-3 bg-blue-600 hover:bg-blue-700 text-white shadow"
-                                disabled={!selectedWarehouseStatus || selectedWarehouseStatus === request.status}
-                                onClick={() => handleDonorRequestStatusUpdate(selectedWarehouseStatus, request, getInventoryByBloodType(bloodInven, request.blood_type_offered) )}
+                                className="mt-2 bg-blue-600 text-white hover:bg-blue-700"
+                                disabled={!selectedDonorRequestStatus[request._id] || selectedDonorRequestStatus[request._id] === request.status}
+                                onClick={() => {
+                                  const newStatus = selectedDonorRequestStatus[request._id];
+                                  handleDonorRequestStatusUpdate(newStatus, request._id);
+                                }}
                               >
-                                Cập nhật
+                                Cập nhật trạng thái
                               </Button>
+                            </div>
+
+                            <div className="flex space-x-2">
                             </div>
                           </div>
                         </div>
@@ -1320,7 +1288,6 @@ export default function StaffDashboard() {
                     ) : bloodManageFilter === "donor" ? (
                       ""
                     ) : bloodManageFilter === "blood-inventory" ? "" : <p className="text-gray-600">Không tìm thấy yêu cầu hiến máu từ người hiến.</p>}
-
 
                   </CardContent>
                 </CardContent>

@@ -92,6 +92,15 @@ export default function RequestHistoryPage() {
     return componentMap[component] || component
   }
 
+  function getBloodLevelDescription(amount: number) {
+    if (amount <= 20) return "Trẻ sơ sinh (10–20 ml/kg)"
+    if (amount <= 350) return "Hạ huyết áp nhẹ (250–350 ml)"
+    if (amount <= 700) return "Thiếu máu vừa (350–700 ml)"
+    if (amount <= 1400) return "Thiếu máu nặng (700–1.400 ml)"
+    if (amount <= 2000) return "Phẫu thuật lớn (700–2.000 ml)"
+    return "Mất máu cấp tính (>1.400 ml)"
+  }
+
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -203,12 +212,12 @@ export default function RequestHistoryPage() {
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-amber-600 text-sm font-medium">Khẩn cấp</p>
+                      <p className="text-amber-600 text-sm font-medium">Chờ duyệt</p>
                       <p className="text-2xl font-bold text-amber-800">
-                        {bloodRequests.filter(req => req.is_emergency).length}
+                        {bloodRequests.filter(req => req.status === 'pending').length}
                       </p>
                     </div>
-                    <AlertTriangle className="w-8 h-8 text-amber-600" />
+                    <Clock className="w-8 h-8 text-amber-600" />
                   </div>
                 </CardContent>
               </Card>
@@ -311,7 +320,7 @@ export default function RequestHistoryPage() {
                             <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
                           </div>
                           <span className="text-sm">
-                            <strong>Số lượng:</strong> {request.amount_needed} đơn vị
+                            <strong>Mức độ:</strong> {getBloodLevelDescription(request.amount_needed)}
                           </span>
                         </div>
                         
