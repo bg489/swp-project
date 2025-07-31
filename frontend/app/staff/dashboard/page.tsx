@@ -49,6 +49,30 @@ export default function StaffDashboard() {
   const [selectedWarehouseStatus, setSelectedWarehouseStatus] = useState("");
   const [mockDonorRequests, setMockDonorRequests] = useState<any>([]);
 
+  function translateStatusOrComponent(key: string): string {
+    const dictionary: Record<string, string> = {
+      // Thành phần máu
+      whole: "Máu toàn phần",
+      RBC: "Hồng cầu (RBC)",
+      plasma: "Huyết tương",
+      platelet: "Tiểu cầu",
+
+      // Trạng thái
+      pending: "Chờ xử lý",
+      approved: "Đã phê duyệt",
+      matched: "Đã ghép người hiến",
+      in_progress: "Đang xử lý",
+      completed: "Đã hoàn tất",
+      cancelled: "Đã hủy",
+      rejected: "Bị từ chối",
+      scheduled: "Đã lên lịch",
+      fulfilled: "Đã hoàn thành",
+    };
+
+    return dictionary[key] || key;
+  }
+
+
   function getInventoryByBloodType(inventories: any[], bloodType: any) {
     return inventories.find((item) => item.blood_type === bloodType);
   }
@@ -152,7 +176,7 @@ export default function StaffDashboard() {
         )
       );
 
-      toast.success(`Đã thay đổi status thành ${newStatus}`)
+      toast.success(`Đã thay đổi status thành ${translateStatusOrComponent(newStatus)}`)
 
       if (newStatus === "completed") {
         const donation = await api.get(`/staff/donations/id/${donationId}`);
@@ -1011,7 +1035,7 @@ export default function StaffDashboard() {
                             <div className="flex flex-wrap items-center gap-2 mt-2">
                               <Badge className="bg-blue-100 text-blue-800">{donation.donation_type?.join(", ")}</Badge>
                               <Badge className={donation.status === "scheduled" ? "bg-yellow-100 text-yellow-800" : donation.status === "completed" ? "bg-green-100 text-green-800" : donation.status === "cancelled" ? "bg-red-100 text-red-800" : "bg-gray-100 text-gray-800"}>
-                                {donation.status}
+                                {translateStatusOrComponent(donation.status)}
                               </Badge>
                             </div>
 
@@ -1125,7 +1149,7 @@ export default function StaffDashboard() {
                                       : "bg-red-100 text-red-800"
                                 }
                               >
-                                {donation.status}
+                                {translateStatusOrComponent(donation.status)}
                               </Badge>
                             </div>
 
@@ -1228,7 +1252,7 @@ export default function StaffDashboard() {
                             <div className="flex flex-wrap gap-2 mt-2">
                               {request.components_offered.map((c: boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | Key | null | undefined) => (
                                 <Badge key={c} className="bg-yellow-200 text-yellow-900 border border-yellow-400">
-                                  {c}
+                                  {translateStatusOrComponent(c)}
                                 </Badge>
                               ))}
                               <Badge
@@ -1242,7 +1266,7 @@ export default function StaffDashboard() {
                                     : "bg-gray-200 text-gray-800"
                                 }
                               >
-                                {request.status}
+                                {translateStatusOrComponent(request.status)}
                               </Badge>
                             </div>
 
