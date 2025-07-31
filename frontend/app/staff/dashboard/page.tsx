@@ -247,7 +247,7 @@ export default function StaffDashboard() {
     }
   };
 
-  const handleDonorRequestStatusUpdate = async (newStatus: string, requestId: string) => {
+  const handleDonorRequestStatusUpdate = async (newStatus: string, requestId: string, donorId: string) => {
     try {
       console.log("Updating donor request:", { newStatus, requestId });
 
@@ -285,6 +285,20 @@ export default function StaffDashboard() {
         try {
           if (isCompleting) {
             // Khi hoàn tất: tìm inventory để cập nhật hoặc tạo mới
+            if (newStatus === "completed") {
+
+              // Tăng 7 ngày (7 * 24 * 60 * 60 * 1000 milliseconds)
+              const cooldownUntilDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+              // Convert về ISO string nếu cần lưu vào DB hoặc gửi API
+              const cooldownUntilStr = cooldownUntilDate.toISOString();
+
+              await api.put(`/users/donor/update-cooldown`, {
+                user_id: donorId,
+                cooldown_until: cooldownUntilStr
+              });
+
+            }
             const { inventory: targetInventory, action } = findOrCreateInventory(
               currentRequest.blood_type_offered,
               targetComponent,
@@ -1273,7 +1287,7 @@ export default function StaffDashboard() {
                                 disabled={!selectedDonorRequestStatus[request._id] || selectedDonorRequestStatus[request._id] === request.status}
                                 onClick={() => {
                                   const newStatus = selectedDonorRequestStatus[request._id];
-                                  handleDonorRequestStatusUpdate(newStatus, request._id);
+                                  handleDonorRequestStatusUpdate(newStatus, request._id, request.donor_id?._id);
                                 }}
                               >
                                 Cập nhật trạng thái
