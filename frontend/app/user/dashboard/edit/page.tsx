@@ -75,7 +75,7 @@ export default function EditProfilePage() {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [nearbyHospitals, setNearbyHospitals] = useState<{ _id: string; name: string, address: string, phone: string }[]>([]);
   const [radiusKm, setRadiusKm] = useState<number>(10); // mặc định 10km
-  const [locationAllowed, setLocationAllowed] = useState<boolean | null>(null); 
+  const [locationAllowed, setLocationAllowed] = useState<boolean | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(true);
   const [highlightIndex, setHighlightIndex] = useState(-1);
   const [searchTerm, setSearchTerm] = useState("");  // Giá trị thực người gõ -> để filter
@@ -84,59 +84,59 @@ export default function EditProfilePage() {
 
 
 
-  
-
-const handleChange = (e: { target: { value: React.SetStateAction<string> } }) => {
-  setSearchTerm(e.target.value);    // update giá trị gõ thực tế
-  setHospitalInput(e.target.value); // input hiển thị đồng bộ giá trị gõ
-  setShowSuggestions(true);
-  setHighlightIndex(-1);
-};
 
 
-const handleKeyDown = (e: { key: string; preventDefault: () => void }) => {
-  if (!showSuggestions) return;
-  if (e.key === "ArrowDown") {
-    const newIndex = (highlightIndex + 1) % filteredHospitals.length;
-    setHighlightIndex(newIndex);
-    setHospitalInput(filteredHospitals[newIndex].name); // chỉ thay đổi hiển thị, searchTerm vẫn giữ nguyên
-    e.preventDefault();
-  } else if (e.key === "ArrowUp") {
-    const newIndex =
-      (highlightIndex - 1 + filteredHospitals.length) % filteredHospitals.length;
-    setHighlightIndex(newIndex);
-    setHospitalInput(filteredHospitals[newIndex].name);
-    e.preventDefault();
-  } else if (e.key === "Enter" && highlightIndex >= 0) {
-    handleSelect(filteredHospitals[highlightIndex]);
-    e.preventDefault();
-  }
-};
+  const handleChange = (e: { target: { value: React.SetStateAction<string> } }) => {
+    setSearchTerm(e.target.value);    // update giá trị gõ thực tế
+    setHospitalInput(e.target.value); // input hiển thị đồng bộ giá trị gõ
+    setShowSuggestions(true);
+    setHighlightIndex(-1);
+  };
+
+
+  const handleKeyDown = (e: { key: string; preventDefault: () => void }) => {
+    if (!showSuggestions) return;
+    if (e.key === "ArrowDown") {
+      const newIndex = (highlightIndex + 1) % filteredHospitals.length;
+      setHighlightIndex(newIndex);
+      setHospitalInput(filteredHospitals[newIndex].name); // chỉ thay đổi hiển thị, searchTerm vẫn giữ nguyên
+      e.preventDefault();
+    } else if (e.key === "ArrowUp") {
+      const newIndex =
+        (highlightIndex - 1 + filteredHospitals.length) % filteredHospitals.length;
+      setHighlightIndex(newIndex);
+      setHospitalInput(filteredHospitals[newIndex].name);
+      e.preventDefault();
+    } else if (e.key === "Enter" && highlightIndex >= 0) {
+      handleSelect(filteredHospitals[highlightIndex]);
+      e.preventDefault();
+    }
+  };
 
 
 
 
-const handleSelect = (hospital: { _id: string; name: any; address?: string; phone?: string }) => {
-  setFormData((prev) => ({ ...prev, hospitalId: hospital._id }));
-  setHospitalInput(hospital.name);
-  setSearchTerm(hospital.name);
-  setShowSuggestions(false);
-  setHighlightIndex(-1);
-};
+  const handleSelect = (hospital: { _id: string; name: any; address?: string; phone?: string }) => {
+    setFormData((prev) => ({ ...prev, hospitalId: hospital._id }));
+    setHospitalInput(hospital.name);
+    setSearchTerm(hospital.name);
+    setShowSuggestions(false);
+    setHighlightIndex(-1);
+  };
 
-const normalizeVietnamese = (str: string) => str
+  const normalizeVietnamese = (str: string) => str
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/đ/g, "d")
     .replace(/Đ/g, "D");
 
-const filteredHospitals = nearbyHospitals.filter((h) =>
-  normalizeVietnamese(h.name.toLowerCase()).includes(normalizeVietnamese(searchTerm.toLowerCase()))
-);
+  const filteredHospitals = nearbyHospitals.filter((h) =>
+    normalizeVietnamese(h.name.toLowerCase()).includes(normalizeVietnamese(searchTerm.toLowerCase()))
+  );
 
 
 
-// null: chưa check, true: cho phép, false: từ chối
+  // null: chưa check, true: cho phép, false: từ chối
 
 
 
@@ -177,8 +177,8 @@ const filteredHospitals = nearbyHospitals.filter((h) =>
             const dLat = ((lat2 - lat1) * Math.PI) / 180;
             const dLon = ((lon2 - lon1) * Math.PI) / 180;
             const a = Math.sin(dLat / 2) ** 2 +
-                      Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) *
-                      Math.sin(dLon / 2) ** 2;
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLon / 2) ** 2;
             const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
             return R * c;
           };
@@ -229,7 +229,7 @@ const filteredHospitals = nearbyHospitals.filter((h) =>
             const dLon = ((lon2 - lon1) * Math.PI) / 180;
             const a =
               Math.sin(dLat / 2) ** 2 +
-              Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) *
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
               Math.sin(dLon / 2) ** 2;
             const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
             return R * c;
@@ -393,7 +393,7 @@ const filteredHospitals = nearbyHospitals.filter((h) =>
           date_of_birth: user?.date_of_birth ? formatDate(user.date_of_birth) : "",
           role: (user?.role as "donor" | "recipient" | "staff" | "admin") || "recipient",
         }));
-        
+
       } catch (error) {
         console.warn("Không tìm thấy recipient profile:", error);
       }
@@ -408,7 +408,7 @@ const filteredHospitals = nearbyHospitals.filter((h) =>
 
 
 
-  
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -496,7 +496,7 @@ const filteredHospitals = nearbyHospitals.filter((h) =>
       <div className="absolute inset-0 bg-grid-slate-100 opacity-30"></div>
       <div className="absolute top-0 left-0 w-72 h-72 bg-gradient-to-br from-red-200/20 to-pink-200/20 rounded-full -translate-x-32 -translate-y-32 blur-3xl"></div>
       <div className="absolute bottom-0 right-0 w-96 h-96 bg-gradient-to-br from-rose-200/20 to-red-200/20 rounded-full translate-x-32 translate-y-32 blur-3xl"></div>
-      
+
       <Header />
 
       <div className="flex-1 flex items-center justify-center p-4 py-12 relative z-10">
@@ -677,7 +677,16 @@ const filteredHospitals = nearbyHospitals.filter((h) =>
                           type="tel"
                           placeholder="0901234567"
                           value={formData.phone || ""}
-                          onChange={(e) => setFormData((prev) => ({ ...prev, phone: e.target.value }))}
+                          onChange={(e) => {
+                            const input = e.target.value;
+                            if (/^\d*$/.test(input)) {
+                              if (input.length <= 10 && (input === "" || input.startsWith("0"))) {
+                                setFormData((prev) => ({ ...prev, phone: input }));
+                              }
+                            }
+                          }}
+                          minLength={10}
+                          maxLength={10}
                           className="pl-10 h-12 border-gray-200 focus:border-green-500 focus:ring-green-500 transition-all duration-300 hover:border-gray-300"
                           required
                         />
@@ -782,11 +791,10 @@ const filteredHospitals = nearbyHospitals.filter((h) =>
                             <li
                               key={idx}
                               ref={highlightIndex === idx ? (el) => el?.scrollIntoView({ block: "nearest" }) : null}
-                              className={`px-4 py-3 hover:bg-purple-50 cursor-pointer transition-all duration-200 border-l-4 ${
-                                highlightIndex === idx 
-                                  ? "bg-purple-100 border-purple-500 shadow-md transform translate-x-1" 
-                                  : "border-transparent hover:border-purple-300"
-                              }`}
+                              className={`px-4 py-3 hover:bg-purple-50 cursor-pointer transition-all duration-200 border-l-4 ${highlightIndex === idx
+                                ? "bg-purple-100 border-purple-500 shadow-md transform translate-x-1"
+                                : "border-transparent hover:border-purple-300"
+                                }`}
                               onClick={() => handleSelect(h)}
                             >
                               <div className="flex items-start space-x-3">
@@ -936,9 +944,9 @@ const filteredHospitals = nearbyHospitals.filter((h) =>
                       </Label>
                     </div>
 
-                    <Button 
-                      type="submit" 
-                      className="w-full h-14 bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 text-white font-semibold text-lg transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none" 
+                    <Button
+                      type="submit"
+                      className="w-full h-14 bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 text-white font-semibold text-lg transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                       disabled={isLoading}
                     >
                       {isLoading ? (
@@ -969,9 +977,9 @@ const filteredHospitals = nearbyHospitals.filter((h) =>
           </Card>
         </div>
       </div>
-      
-      <Toaster 
-        position="top-center" 
+
+      <Toaster
+        position="top-center"
         containerStyle={{
           top: 80,
         }}
