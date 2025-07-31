@@ -31,8 +31,7 @@ import {
   createDonorRequest,
   getDonorRequestsByDonorId,
   getDonorRequestsByHospitalId,
-  updateDonorRequestStatus,
-  cancelDonorRequest
+  updateDonorRequestStatus
 } from "../controllers/donorRequestController.js";
 
 const router = express.Router();
@@ -65,7 +64,6 @@ router.post("/donor/request", createDonorRequest);
 router.get("/donor/get-requests-by-id/:donorId", getDonorRequestsByDonorId);
 router.get("/donor/staff/get-requests-by-hospital/:hospitalId", getDonorRequestsByHospitalId);
 router.put("/donor-requests/staff/:requestId/status", updateDonorRequestStatus);
-router.put("/donor/cancel-request/:requestId", cancelDonorRequest);
 
 
 

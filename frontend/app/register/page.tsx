@@ -249,6 +249,14 @@ const filteredHospitals = nearbyHospitals.filter((h) =>
       return
     }
 
+    // Validate phone number
+    const phoneRegex = /^0\d{9}$/;
+    if (!phoneRegex.test(formData.phone)) {
+      setError("Số điện thoại phải có đúng 10 số và bắt đầu bằng số 0")
+      setIsLoading(false)
+      return
+    }
+
     try {
       // Call API
 
@@ -428,8 +436,21 @@ const filteredHospitals = nearbyHospitals.filter((h) =>
                         type="tel"
                         placeholder="0901234567"
                         value={formData.phone}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, phone: e.target.value }))}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          // Chỉ cho phép số từ 0-9
+                          if (/^\d*$/.test(value)) {
+                            // Giới hạn tối đa 10 số và phải bắt đầu bằng 0
+                            if (value.length <= 10 && (value === '' || value.startsWith('0'))) {
+                              setFormData((prev) => ({ ...prev, phone: value }));
+                            }
+                          }
+                        }}
                         className="pl-10"
+                        pattern="^0\d{9}$"
+                        title="Số điện thoại phải có 10 số và bắt đầu bằng số 0"
+                        minLength={10}
+                        maxLength={10}
                         required
                       />
                     </div>

@@ -6,11 +6,6 @@ import RecipientProfile from '../models/RecipientProfile.js';
 import StaffProfile from "../models/StaffProfile.js";
 import Hospital from "../models/Hospital.js";
 
-// Utility function to validate ObjectId format
-function isValidObjectId(id) {
-  return id && id !== "undefined" && /^[0-9a-fA-F]{24}$/.test(id);
-}
-
 export async function createUser(req, res) {
   try {
     const {
@@ -99,7 +94,9 @@ export async function loginUser(req, res) {
     // Login success
     res.status(200).json({
       message: "Login successful",
-      user
+      user: {
+        user
+      }
     });
 
   } catch (error) {
@@ -606,12 +603,6 @@ export async function updateCooldownUntil(req, res) {
 export async function getAllUsers(req, res) {
   try {
     const adminId = req.params.adminId;
-    
-    // Check if adminId is provided and valid
-    if (!isValidObjectId(adminId)) {
-      return res.status(400).json({ message: "Valid admin ID is required" });
-    }
-
     const adminUser = await User.findById(adminId);
     if (!adminUser || adminUser.role !== "admin" || !adminUser.is_verified) {
       return res.status(403).json({ message: "Permission denied" });
@@ -633,14 +624,6 @@ export async function getAllUsers(req, res) {
 export async function deleteUserByAdmin(req, res) {
   try {
     const { adminId, userId } = req.params;
-
-    // Check if adminId and userId are provided and valid
-    if (!isValidObjectId(adminId)) {
-      return res.status(400).json({ message: "Valid admin ID is required" });
-    }
-    if (!isValidObjectId(userId)) {
-      return res.status(400).json({ message: "Valid user ID is required" });
-    }
 
     // Kiểm tra admin hợp lệ
     const admin = await User.findById(adminId);

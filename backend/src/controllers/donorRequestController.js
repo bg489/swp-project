@@ -163,7 +163,7 @@ export async function updateDonorRequestStatus(req, res) {
     }
 
     // Kiểm tra trạng thái hợp lệ
-    const validStatuses = ["in_progress", "completed", "cancelled"];
+    const validStatuses = ["in_progress", "completed", "cancelled", "pending"];
     if (!validStatuses.includes(status)) {
       return res.status(400).json({ message: "Invalid status value" });
     }
@@ -193,64 +193,6 @@ export async function updateDonorRequestStatus(req, res) {
     });
   } catch (error) {
     console.error("Error updating donor request status:", error);
-    res.status(500).json({ message: "Internal server error" });
-  }
-}
-
-// Cancel donor request (for donors to cancel their own requests)
-export async function cancelDonorRequest(req, res) {
-  try {
-    const { requestId } = req.params;
-    const { donorId } = req.body;
-
-    // Kiểm tra thông tin đầu vào
-    if (!requestId || !donorId) {
-      return res.status(400).json({ message: "Missing required fields" });
-    }
-
-    // Kiểm tra user có phải là donor
-    const donorUser = await User.findById(donorId);
-    if (!donorUser || donorUser.role !== "donor") {
-      return res.status(403).json({ message: "Unauthorized: Only donors can cancel their own requests" });
-    }
-
-    // Tìm yêu cầu hiến máu
-    const donorRequest = await DonorRequest.findById(requestId);
-    if (!donorRequest) {
-      return res.status(404).json({ message: "Donor request not found" });
-    }
-
-    // Kiểm tra donor có phải là chủ sở hữu yêu cầu này không
-    if (donorRequest.donor_id.toString() !== donorId) {
-      return res.status(403).json({ message: "Unauthorized: You can only cancel your own requests" });
-    }
-
-    // Kiểm tra trạng thái có thể hủy không (chỉ có thể hủy pending hoặc in_progress)
-    if (!["pending", "in_progress"].includes(donorRequest.status)) {
-      return res.status(400).json({ message: "Cannot cancel request with current status" });
-    }
-
-    // Cập nhật trạng thái thành cancelled
-    const updatedRequest = await DonorRequest.findByIdAndUpdate(
-      requestId,
-      { status: "cancelled" },
-      { new: true }
-    )
-      .populate({
-        path: "donor_id",
-        select: "full_name email phone gender date_of_birth address",
-      })
-      .populate({
-        path: "hospital",
-        select: "name address",
-      });
-
-    return res.status(200).json({
-      message: "Donor request cancelled successfully",
-      request: updatedRequest,
-    });
-  } catch (error) {
-    console.error("Error cancelling donor request:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 }
