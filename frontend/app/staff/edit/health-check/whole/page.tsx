@@ -79,11 +79,60 @@ export default function HealthCheckFormPage() {
       try {
         const response = await api.get(`/health-check/healthcheck/${healthCheck}`);
         const data = response.data;
-        
+
+        setForm({
+          weight: data.healthCheck?.weight || 0,
+          systolic_bp: data.healthCheck?.systolic_bp || 0,
+          diastolic_bp: data.healthCheck?.diastolic_bp || 0,
+          heart_rate: data.healthCheck?.heart_rate || 0,
+          blood_volume_allowed: data.healthCheck?.blood_volume_allowed || 0,
+          has_chronic_disease: data.healthCheck?.has_chronic_disease || false,
+          is_pregnant: data.healthCheck?.is_pregnant || false,
+          has_history_of_transplant: data.healthCheck?.has_history_of_transplant || false,
+          drug_use_violation: data.healthCheck?.drug_use_violation || false,
+          disability_severity: data.healthCheck?.disability_severity || "none",
+          infectious_disease: data.healthCheck?.infectious_disease || false,
+          sexually_transmitted_disease: data.healthCheck?.sexually_transmitted_disease || false,
+          is_clinically_alert: data.healthCheck?.is_clinically_alert || true,
+          abnormal_symptoms: data.healthCheck?.abnormal_symptoms?.join(", ") || "",  // Joining if it's an array
+          can_donate_whole_blood: data.healthCheck?.can_donate_whole_blood || false,
+          donor_feeling_healthy: data.healthCheck?.donor_feeling_healthy || false,
+          last_donation_date: data.healthCheck?.last_donation_date || false,
+          has_cardiovascular_disease: data.healthCheck?.has_cardiovascular_disease || false,
+          has_liver_disease: data.healthCheck?.has_liver_disease || false,
+          has_kidney_disease: data.healthCheck?.has_kidney_disease || false,
+          has_endocrine_disorder: data.healthCheck?.has_endocrine_disorder || false,
+          has_tuberculosis_or_respiratory_disease: data.healthCheck?.has_tuberculosis_or_respiratory_disease || false,
+          has_blood_disease: data.healthCheck?.has_blood_disease || false,
+          has_mental_or_neurological_disorder: data.healthCheck?.has_mental_or_neurological_disorder || false,
+          has_malaria: data.healthCheck?.has_malaria || false,
+          has_syphilis: data.healthCheck?.has_syphilis || false,
+          has_hiv_or_aids: data.healthCheck?.has_hiv_or_aids || false,
+          has_other_transmissible_diseases: data.healthCheck?.has_other_transmissible_diseases || false,
+          has_surgical_or_medical_history: data.healthCheck?.has_surgical_or_medical_history || false,
+          exposure_to_blood_or_body_fluids: data.healthCheck?.exposure_to_blood_or_body_fluids || false,
+          received_vaccine_or_biologics: data.healthCheck?.received_vaccine_or_biologics || false,
+          tattoo_or_organ_transplant: data.healthCheck?.tattoo_or_organ_transplant || false,
+          has_unexplained_weight_loss: data.healthCheck?.has_unexplained_weight_loss || false,
+          has_night_sweats: data.healthCheck?.has_night_sweats || false,
+          has_skin_or_mucosal_tumors: data.healthCheck?.has_skin_or_mucosal_tumors || false,
+          has_enlarged_lymph_nodes: data.healthCheck?.has_enlarged_lymph_nodes || false,
+          has_digestive_disorder: data.healthCheck?.has_digestive_disorder || false,
+          has_fever_over_37_5_long: data.healthCheck?.has_fever_over_37_5_long || false,
+          uses_illegal_drugs: data.healthCheck?.uses_illegal_drugs || false,
+          has_sexual_contact_with_risk_person: data.healthCheck?.has_sexual_contact_with_risk_person || false,
+          has_infant_under_12_months: data.healthCheck?.has_infant_under_12_months || false,
+          declaration_understood_questions: data.healthCheck?.declaration_understood_questions || false,
+          declaration_feels_healthy: data.healthCheck?.declaration_feels_healthy || false,
+          declaration_voluntary: data.healthCheck?.declaration_voluntary || false,
+          declaration_will_report_if_risk_found: data.healthCheck?.declaration_will_report_if_risk_found || false,
+          has_taken_medicine_last_week: data.healthCheck?.has_taken_medicine_last_week || false,
+        });
       } catch (error) {
         toast.error("Có lỗi khi fetch data")
       }
     }
+    fetch();
   }, []);
 
   // Tính thể tích máu được hiến dựa vào cân nặng
@@ -686,17 +735,6 @@ export default function HealthCheckFormPage() {
                     Tôi cam kết sẽ thông báo nếu phát hiện có yếu tố nguy cơ trước hoặc sau hiến máu
                   </Label>
                 </div>
-
-
-              <div>
-                <Label htmlFor="abnormal_symptoms">Triệu chứng bất thường</Label>
-                <Textarea
-                  name="abnormal_symptoms"
-                  placeholder="Nhập các triệu chứng nếu có..."
-                  value={form.abnormal_symptoms}
-                  onChange={handleChange}
-                />
-              </div>
               <div className="grid grid-cols-3 gap-4 mt-6">
                 <Button type="button" onClick={() => saveField()}>
                   Lưu
