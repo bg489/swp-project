@@ -210,17 +210,23 @@ export default function DonatePage() {
       
 
       const requestData = {
-        donor_id: user._id,
-        available_date: formData.available_date,
-        available_time_range: formData.available_time_range,
-        amount_offered: parseInt(formData.amount_offered),
-        components_offered: formData.components_offered,
-        comment: formData.notes,
+        user_id: user._id,
+        hospital: requestId,
+        donation_date: formData.available_date,
+        donation_time_range: {
+          from: formData.available_time_range.from,
+          to: formData.available_time_range.to,
+        },
+        amount_offered: formData.amount_offered,
+        donation_type: formData.donation_types,
+        separated_component: formData.components_offered,
+        notes: formData.notes,
       };
+
 
       console.log("Submitting donor request:", requestData);
 
-      const response = await api.post("/users/donor/request", requestData);
+      const response = await api.post("/donation-requests/donor-donation-request/create", requestData);
 
       if (response.status === 201) {
         // Show success state
@@ -242,6 +248,7 @@ export default function DonatePage() {
             components_offered: [],
             hospital: "",
             notes: "",
+            donation_types: "whole",
           });
           setShowSuccessMessage(false);
         }, 3000)

@@ -12,6 +12,33 @@ import { useAuth } from "@/contexts/auth-context"
 import { GuestAccessWarning } from "@/components/auth/guest-access-warning"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
+import toast, { Toaster } from "react-hot-toast"
+
+function translateDonationType(type: "whole" | "separated"): string {
+  switch (type) {
+    case "whole":
+      return "Toàn phần"
+    case "separated":
+      return "Gạn tách"
+    default:
+      return "Không xác định"
+  }
+}
+
+
+function translateStatus(status: "pending" | "approved" | "rejected"): string {
+  switch (status) {
+    case "pending":
+      return "Chờ duyệt"
+    case "approved":
+      return "Đã chấp nhận"
+    case "rejected":
+      return "Đã từ chối"
+    default:
+      return "Không xác định"
+  }
+}
+
 
 interface DonorRequest {
   _id: string
@@ -40,10 +67,37 @@ interface DonorRequest {
   updatedAt: string
 }
 
+interface DonorDonationRequest {
+  _id: string
+  user_id: string
+  hospital: {
+    _id: string
+    name: string
+    address: string
+  }
+  donation_date: string // ISO string
+  donation_type: "whole" | "separated"
+  donation_time_range: {
+    from: string
+    to: string
+  }
+  separated_component?: "RBC" | "plasma" | "platelet"
+  notes: string
+  status: "pending" | "approved" | "rejected"
+  createdAt: string
+  updatedAt: string
+}
+
+
 export default function DonorRequestHistoryPage() {
   const { user, isLoading } = useAuth()
   const [bloodRequests, setBloodRequests] = useState<DonorRequest[]>([])
+  const [donationRequests, setDonationRequests] = useState<DonorDonationRequest[]>([])
   const [loading, setLoading] = useState(true)
+  const [total, setTotal] = useState(0);
+  const [pending, setPending] = useState(0);
+  const [approved, setApproved] = useState(0);
+  const [rejected, setRejected] = useState(0);
   const [sortOrder, setSortOrder] = useState<"newest" | "oldest" | "status">("newest")
   const [cancellingId, setCancellingId] = useState<string | null>(null)
 
@@ -66,6 +120,13 @@ export default function DonorRequestHistoryPage() {
       try {
         console.log("Fetching donor requests for user ID:", user._id)
         setLoading(true)
+        const response2 = await api.get(`/donation-requests/donor-donation-request/user/${user._id}`)
+        console.log("Fetched donor requests:", response2.data)
+        setTotal(response2.data.total || 0)
+        setPending(response2.data.status_summary.pending || 0)
+        setApproved(response2.data.status_summary.approved || 0)
+        setRejected(response2.data.status_summary.rejected || 0)
+        setDonationRequests(response2.data.requests || [])
         const response = await api.get(`/users/donor/get-requests-by-id/${user._id}`)
         console.log("API Response:", response.data)
         setBloodRequests(response.data.requests || [])
@@ -137,24 +198,25 @@ export default function DonorRequestHistoryPage() {
 
     try {
       setCancellingId(requestId)
-      await api.put(`/users/donor/cancel-request/${requestId}`, {
-        donorId: user?._id
-      })
+      await api.put(`/donation-requests/donor-donation-request/reject/${requestId}`)
       
       // Cập nhật state local
-      setBloodRequests(prev => 
+      setDonationRequests(prev => 
         prev.map(req => 
           req._id === requestId 
             ? { ...req, status: "cancelled" }
             : req
         )
       )
+
+      setRejected(prev => prev + 1)
+      setPending(prev => prev - 1)
       
-      alert("Đã hủy yêu cầu hiến máu thành công!")
+      toast.success("Đã hủy yêu cầu hiến máu thành công!")
     } catch (error: any) {
       console.error("Error cancelling request:", error)
       const errorMessage = error.response?.data?.message || "Đã xảy ra lỗi khi hủy yêu cầu."
-      alert(errorMessage)
+      toast.error(errorMessage)
     } finally {
       setCancellingId(null)
     }
@@ -247,7 +309,7 @@ export default function DonorRequestHistoryPage() {
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
       
       if (diffDays === 1) {
-        return "Hôm qua"
+        return "Hôm qua hoặc hôm nay"
       } else if (diffDays <= 7) {
         return `${diffDays} ngày trước`
       } else {
@@ -263,7 +325,7 @@ export default function DonorRequestHistoryPage() {
   }
 
   return (
-    <ProtectedRoute requiredRole="donor">
+    <ProtectedRoute requiredRole="user">
       <div className="min-h-screen bg-gradient-to-b from-red-50 to-white">
       <Header />
 
@@ -307,7 +369,7 @@ export default function DonorRequestHistoryPage() {
             <Card>
               <CardContent className="p-6 text-center">
                 <div className="text-2xl font-bold text-blue-600">
-                  {sortedRequests.length}
+                  {total}
                 </div>
                 <p className="text-sm text-gray-600">Tổng yêu cầu</p>
               </CardContent>
@@ -315,7 +377,7 @@ export default function DonorRequestHistoryPage() {
             <Card>
               <CardContent className="p-6 text-center">
                 <div className="text-2xl font-bold text-green-600">
-                  {sortedRequests.filter(req => req.status === "completed").length}
+                  {approved}
                 </div>
                 <p className="text-sm text-gray-600">Hoàn tất</p>
               </CardContent>
@@ -323,7 +385,7 @@ export default function DonorRequestHistoryPage() {
             <Card>
               <CardContent className="p-6 text-center">
                 <div className="text-2xl font-bold text-yellow-600">
-                  {sortedRequests.filter(req => req.status === "in_progress" || req.status === "pending").length}
+                  {pending}
                 </div>
                 <p className="text-sm text-gray-600">Đang xử lý</p>
               </CardContent>
@@ -331,15 +393,20 @@ export default function DonorRequestHistoryPage() {
             <Card>
               <CardContent className="p-6 text-center">
                 <div className="text-2xl font-bold text-red-600">
-                  {sortedRequests.filter(req => req.status === "cancelled" || req.status === "rejected").length}
+                  {rejected}
                 </div>
                 <p className="text-sm text-gray-600">Đã hủy/Từ chối</p>
               </CardContent>
             </Card>
           </div>
 
+          
+
+
+
+
           {/* Request List */}
-          {sortedRequests.length === 0 ? (
+          {total === 0 ? (
             <Card>
               <CardContent className="p-12 text-center">
                 <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
@@ -353,7 +420,7 @@ export default function DonorRequestHistoryPage() {
             </Card>
           ) : (
             <div className="space-y-6">
-              {sortedRequests.map((request, index) => (
+              {donationRequests.map((request, index) => (
                 <Card key={request._id} className="overflow-hidden">
                   <CardHeader className="pb-4">
                     <div className="flex justify-between items-start">
@@ -371,7 +438,7 @@ export default function DonorRequestHistoryPage() {
                           {translateStatus(request.status)}
                         </Badge>
                         {/* Nút hủy yêu cầu */}
-                        {(request.status === "pending" || request.status === "in_progress") && (
+                        {(request.status === "pending") && (
                           <Button
                             variant="outline"
                             size="sm"
@@ -405,23 +472,9 @@ export default function DonorRequestHistoryPage() {
                         </h4>
                         <div className="space-y-2 text-sm">
                           <div>
-                            <span className="text-gray-600">Nhóm máu:</span>
-                            <Badge variant="outline" className="ml-2">
-                              {request.blood_type_offered}
-                            </Badge>
-                          </div>
-                          <div>
-                            <span className="text-gray-600">Số lượng:</span>
-                            <span className="ml-2 font-medium">{request.amount_offered}ml</span>
-                          </div>
-                          <div>
-                            <span className="text-gray-600">Thành phần:</span>
+                            <span className="text-gray-600">Loại hiến máu:</span>
                             <div className="flex flex-wrap gap-1 mt-1">
-                              {request.components_offered.map((comp, idx) => (
-                                <Badge key={idx} variant="secondary" className="text-xs">
-                                  {translateBloodComponent(comp)}
-                                </Badge>
-                              ))}
+                              {translateDonationType(request.donation_type)}
                             </div>
                           </div>
                         </div>
@@ -436,12 +489,12 @@ export default function DonorRequestHistoryPage() {
                         <div className="space-y-2 text-sm">
                           <div>
                             <span className="text-gray-600">Ngày hiến:</span>
-                            <span className="ml-2 font-medium">{formatDate(request.available_date)}</span>
+                            <span className="ml-2 font-medium">{formatDate(request.donation_date)}</span>
                           </div>
                           <div>
                             <span className="text-gray-600">Giờ:</span>
                             <span className="ml-2 font-medium">
-                              {formatTime(request.available_time_range.from)} - {formatTime(request.available_time_range.to)}
+                              {formatTime(request.donation_time_range.from)} - {formatTime(request.donation_time_range.to)}
                             </span>
                           </div>
                         </div>
@@ -467,10 +520,10 @@ export default function DonorRequestHistoryPage() {
                     </div>
 
                     {/* Ghi chú */}
-                    {request.comment && (
+                    {request.notes && (
                       <div className="mt-4 p-3 bg-gray-50 rounded-lg">
                         <h4 className="font-medium text-gray-900 mb-2">Ghi chú:</h4>
-                        <p className="text-sm text-gray-700">{request.comment}</p>
+                        <p className="text-sm text-gray-700">{request.notes}</p>
                       </div>
                     )}
                   </CardContent>
@@ -481,6 +534,34 @@ export default function DonorRequestHistoryPage() {
         </div>
       </div>
       )}
+
+      <Toaster
+        position="top-center"
+        containerStyle={{
+          top: 80,
+        }}
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: 'rgba(255, 255, 255, 0.95)',
+            backdropFilter: 'blur(10px)',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+          },
+          success: {
+            iconTheme: {
+              primary: '#10B981',
+              secondary: 'white',
+            },
+          },
+          error: {
+            iconTheme: {
+              primary: '#EF4444',
+              secondary: 'white',
+            },
+          },
+        }}
+      />
 
       <Footer />
       </div>
