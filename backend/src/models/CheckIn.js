@@ -17,6 +17,11 @@ const checkInSchema = new mongoose.Schema(
       ref: "Hospital",
       required: true,
     },
+    donorDonationRequest_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "DonorDonationRequest",
+      required: true,
+    },
     status: {
       type: String,
       enum: ["in_progress", "verified", "unverified"],

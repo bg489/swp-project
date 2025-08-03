@@ -100,6 +100,7 @@ export default function StaffDashboard() {
   const [approved, setApproved] = useState(0);
   const [rejected, setRejected] = useState(0);
   const [donationRequests, setDonationRequests] = useState<DonorDonationRequest[]>([])
+  const [checkIns, setCheckIns] = useState<any>([])
   
 
   
@@ -107,59 +108,80 @@ export default function StaffDashboard() {
 
 
   const checkInsMock = [
-    {
-      _id: "688f7749267544a714d81664",
-      user_id: {
-        _id: "688ef4f5eadc867beb1aa04e",
-        full_name: "Nguyễn Văn A",
-        email: "giabao123963@gmail.com",
-        phone: "0352573142",
-        gender: "male",
-        date_of_birth: "2004-07-20T00:00:00.000Z",
-      },
-      userprofile_id: {
-        _id: "688ef4f5eadc867beb1aa053",
-        cccd: "111111111111",
-      },
-      hospital_id: {
-        _id: "685e2769156fe3d352db3552",
-        name: "Bệnh viện Quân Dân Y Miền Đông",
-        address: "50 Lê Văn Việt, Hiệp Phú, TP. Thủ Đức, TP.HCM",
-        phone: "028 3897 0321",
-      },
-      status: "in_progress",
-      comment: "Đang chờ kiểm tra sức khoẻ",
-      createdAt: "2025-08-03T14:50:49.579Z",
-      updatedAt: "2025-08-03T14:52:00.000Z",
+  {
+    _id: "688f99816269d09759193953",
+    user_id: {
+      _id: "688ef4f5eadc867beb1aa04e",
+      full_name: "Nguyễn Văn A",
+      email: "giabao123963@gmail.com",
+      phone: "0352573142",
+      gender: "male",
+      date_of_birth: "2004-07-20T00:00:00.000Z",
     },
+    userprofile_id: {
+      _id: "688ef4f5eadc867beb1aa053",
+      cccd: "111111111111",
+    },
+    hospital_id: {
+      _id: "685e2769156fe3d352db3552",
+      name: "Bệnh viện Quân Dân Y Miền Đông",
+      address: "50 Lê Văn Việt, Hiệp Phú, TP. Thủ Đức, TP.HCM",
+      phone: "028 3897 0321",
+    },
+    donorDonationRequest_id: {
+      _id: "688f6dae5f82851d117eca19",
+      donation_time_range: {
+        from: "12:00",
+        to: "14:00",
+      },
+      donation_date: "2025-08-03T00:00:00.000Z",
+      donation_type: "whole",
+      notes: "dfff",
+      status: "approved",
+    },
+    status: "in_progress",
+    comment: "",
+    createdAt: "2025-08-03T17:16:49.712Z",
+    updatedAt: "2025-08-03T17:16:49.712Z",
+  },
+  {
+    _id: "688f7749267544a714d81664",
+    user_id: {
+      _id: "688ef4f5eadc867beb1aa04e",
+      full_name: "Nguyễn Văn A",
+      email: "giabao123963@gmail.com",
+      phone: "0352573142",
+      gender: "male",
+      date_of_birth: "2004-07-20T00:00:00.000Z",
+    },
+    userprofile_id: {
+      _id: "688ef4f5eadc867beb1aa053",
+      cccd: "111111111111",
+    },
+    hospital_id: {
+      _id: "685e2769156fe3d352db3552",
+      name: "Bệnh viện Quân Dân Y Miền Đông",
+      address: "50 Lê Văn Việt, Hiệp Phú, TP. Thủ Đức, TP.HCM",
+      phone: "028 3897 0321",
+    },
+    donorDonationRequest_id: {
+      _id: "688f6dae5f82851d117eca19",
+      donation_time_range: {
+        from: "12:00",
+        to: "14:00",
+      },
+      donation_date: "2025-08-03T00:00:00.000Z",
+      donation_type: "whole",
+      notes: "dfff",
+      status: "approved",
+    },
+    status: "in_progress",
+    comment: "",
+    createdAt: "2025-08-03T14:50:49.579Z",
+    updatedAt: "2025-08-03T14:50:49.579Z",
+  },
+]
 
-    // ❗️Bạn có thể nhân bản đối tượng trên và thay đổi giá trị để có nhiều dòng dữ liệu:
-    {
-      _id: "688f7749267544a714d81665",
-      user_id: {
-        _id: "688ef4f5eadc867beb1aa04f",
-        full_name: "Trần Thị B",
-        email: "tranb@gmail.com",
-        phone: "0366666666",
-        gender: "female",
-        date_of_birth: "1995-03-10T00:00:00.000Z",
-      },
-      userprofile_id: {
-        _id: "688ef4f5eadc867beb1aa054",
-        cccd: "222222222222",
-      },
-      hospital_id: {
-        _id: "685e2769156fe3d352db3552",
-        name: "Bệnh viện Quân Dân Y Miền Đông",
-        address: "50 Lê Văn Việt, Hiệp Phú, TP. Thủ Đức, TP.HCM",
-        phone: "028 3897 0321",
-      },
-      status: "verified",
-      comment: "Hiến máu thành công",
-      createdAt: "2025-08-02T10:30:00.000Z",
-      updatedAt: "2025-08-02T12:00:00.000Z",
-    },
-  ];
 
 
 
@@ -777,6 +799,9 @@ export default function StaffDashboard() {
           const mockDonor = await api.get(`/users/donor/staff/get-requests-by-hospital/${staffData.hospital._id}`);
           setMockDonorRequests(mockDonor.data.requests);
 
+          const checkInns = await api.get(`/checkin/hospital/${staffData.hospital._id}`);
+          setCheckIns(checkInns.data.checkIns);
+
         }
       } catch (error) {
         console.error("Failed to fetch staff profile or hospital:", error);
@@ -918,7 +943,7 @@ export default function StaffDashboard() {
     }
 
     try {
-      await api.put(`/donation-requests/donor-donation-request/approve/${_id}`)
+      const response = await api.put(`/donation-requests/donor-donation-request/approve/${_id}`)
 
       // Cập nhật state local
       setDonationRequests(prev => 
@@ -933,6 +958,15 @@ export default function StaffDashboard() {
 
       setApproved(prev => prev + 1)
       setPending(prev => prev - 1)
+
+      const response2 = await api.get(`/users/user-profile/${response.data.request.user_id._id}`)
+
+      await api.post(`/checkin`, {
+        user_id: response.data.request.user_id._id,
+        userprofile_id: response2.data.profile._id,
+        hospital_id: response.data.request.hospital._id,
+        donorDonationRequest_id: response.data.request._id
+      })
 
       toast.success("Đã chấp nhận yêu cầu hiến máu thành công!")
     } catch (error: any) {
@@ -972,12 +1006,54 @@ export default function StaffDashboard() {
     }
   }
 
-  function handleUnverifiedStatus(_id: any, arg1: string): void {
-    throw new Error("Function not implemented.")
+  async function handleUnverifiedStatus(_id: any, arg1: string): Promise<void> {
+    if (!window.confirm("Bạn có chắc chắn muốn hủy xác minh thông tin này?")) {
+      return
+    }
+
+    try {
+      await api.put(`/checkin/unverify/${_id}`)
+
+      // Cập nhật state local
+      setCheckIns((prev: any[]) => 
+        prev.map(req => 
+          req._id === _id 
+            ? { ...req, status: "unverified" }
+            : req
+        )
+      )
+      
+      toast.success("Đã hủy xác minh thành công!")
+    } catch (error: any) {
+      console.error("Error cancelling request:", error)
+      const errorMessage = error.response?.data?.message || "Đã xảy ra lỗi khi hủy yêu cầu."
+      toast.error(errorMessage)
+    }
   }
 
-  function handleVerifiedStatus(_id: any, arg1: string): void {
-    throw new Error("Function not implemented.")
+  async function handleVerifiedStatus(_id: any, arg1: string): Promise<void> {
+    if (!window.confirm("Xác nhận xác minh thông tin này?")) {
+      return
+    }
+
+    try {
+      await api.put(`/checkin/checkins/${_id}/verify`)
+
+      // Cập nhật state local
+      setCheckIns((prev: any[]) => 
+        prev.map(req => 
+          req._id === _id 
+            ? { ...req, status: "verified" }
+            : req
+        )
+      )
+      
+      toast.success("Đã xác minh thành công!")
+    } catch (error: any) {
+      console.error("Error cancelling request:", error)
+      const errorMessage = error.response?.data?.message || "Đã xảy ra lỗi khi hủy yêu cầu."
+      toast.error(errorMessage)
+    }
   }
 
   function setCheckinFilter(value: string): void {
@@ -1187,12 +1263,14 @@ export default function StaffDashboard() {
                       </SelectContent>
                     </Select>
                   </CardTitle>
-                  <CardDescription>Danh sách người dùng đã đến bệnh viện để hiến máu</CardDescription>
+                  <CardDescription>
+                    Danh sách người dùng đã đến bệnh viện để hiến máu
+                  </CardDescription>
                 </CardHeader>
 
                 <CardContent>
                   <div className="space-y-4">
-                    {checkInsMock.map((checkIn: any) => (
+                    {checkIns.map((checkIn: any) => (
                       <div
                         key={checkIn._id}
                         className="p-4 border rounded-lg hover:bg-gray-50 transition space-y-2"
@@ -1207,6 +1285,21 @@ export default function StaffDashboard() {
                             <p><strong>Ngày sinh:</strong> {formatDate(checkIn.user_id.date_of_birth)}</p>
                             <p><strong>Bệnh viện:</strong> {checkIn.hospital_id.name}</p>
                             <p><strong>Địa chỉ:</strong> {checkIn.hospital_id.address}</p>
+
+                            {/* Nếu có donorDonationRequest_id thì hiển thị */}
+                            {checkIn.donorDonationRequest_id && (
+                              <>
+                                <hr />
+                                <p><strong>Ngày đăng ký hiến:</strong> {formatDate(checkIn.donorDonationRequest_id.donation_date)}</p>
+                                <p><strong>Thời gian:</strong> {checkIn.donorDonationRequest_id.donation_time_range.from} - {checkIn.donorDonationRequest_id.donation_time_range.to}</p>
+                                <p><strong>Loại hiến máu:</strong> {checkIn.donorDonationRequest_id.donation_type === "whole" ? "Toàn phần" : "Tách thành phần"}</p>
+                                {checkIn.donorDonationRequest_id.separated_component && (
+                                  <p><strong>Thành phần:</strong> {checkIn.donorDonationRequest_id.separated_component}</p>
+                                )}
+                                <p><strong>Ghi chú:</strong> {checkIn.donorDonationRequest_id.notes || "Không có"}</p>
+                                <p><strong>Trạng thái yêu cầu:</strong> {translateStatus(checkIn.donorDonationRequest_id.status)}</p>
+                              </>
+                            )}
                           </div>
 
                           <div className="flex flex-col items-end gap-1">
@@ -1244,6 +1337,7 @@ export default function StaffDashboard() {
                 </CardContent>
               </Card>
             </TabsContent>
+
 
 
 

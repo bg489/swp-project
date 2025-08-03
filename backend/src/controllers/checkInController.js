@@ -2,6 +2,7 @@ import CheckIn from "../models/CheckIn.js";
 import User from "../models/User.js";
 import UserProfile from "../models/UserProfile.js";
 import Hospital from "../models/Hospital.js";
+import DonorDonationRequest from "../models/DonorDonationRequest.js";
 
 export async function getCheckInById(req, res) {
   try {
@@ -25,7 +26,12 @@ export async function getCheckInById(req, res) {
       .populate({
         path: "hospital_id",
         model: "Hospital",
-        select: "name address phone", // lấy thông tin cần thiết của bệnh viện
+        select: "name address phone",
+      })
+      .populate({
+        path: "donorDonationRequest_id",
+        model: "DonorDonationRequest",
+        select: "donation_date donation_time_range donation_type separated_component notes status",
       });
 
     if (!checkIn) {
@@ -41,22 +47,37 @@ export async function getCheckInById(req, res) {
 
 
 
+
 export async function createCheckInByUserId(req, res) {
   try {
-    const { user_id, userprofile_id, hospital_id, status, comment } = req.body;
+    const {
+      user_id,
+      userprofile_id,
+      hospital_id,
+      donorDonationRequest_id,
+      status,
+      comment,
+    } = req.body;
 
     // Kiểm tra dữ liệu đầu vào bắt buộc
-    if (!user_id || !userprofile_id || !hospital_id) {
-      return res.status(400).json({ message: "user_id, userprofile_id và hospital_id là bắt buộc." });
+    if (!user_id || !userprofile_id || !hospital_id || !donorDonationRequest_id) {
+      return res.status(400).json({
+        message: "user_id, userprofile_id, hospital_id và donorDonationRequest_id là bắt buộc.",
+      });
     }
 
-    // Kiểm tra user, user profile và bệnh viện có tồn tại
-    const user = await User.findById(user_id);
-    const profile = await UserProfile.findById(userprofile_id);
-    const hospital = await Hospital.findById(hospital_id);
+    // Kiểm tra các đối tượng có tồn tại
+    const [user, profile, hospital, donationRequest] = await Promise.all([
+      User.findById(user_id),
+      UserProfile.findById(userprofile_id),
+      Hospital.findById(hospital_id),
+      DonorDonationRequest.findById(donorDonationRequest_id),
+    ]);
 
-    if (!user || !profile || !hospital) {
-      return res.status(404).json({ message: "Không tìm thấy user, user profile hoặc hospital." });
+    if (!user || !profile || !hospital || !donationRequest) {
+      return res.status(404).json({
+        message: "Không tìm thấy user, user profile, hospital hoặc donor donation request.",
+      });
     }
 
     // Tạo bản ghi CheckIn mới
@@ -64,11 +85,15 @@ export async function createCheckInByUserId(req, res) {
       user_id,
       userprofile_id,
       hospital_id,
+      donorDonationRequest_id,
       status: status || "in_progress",
       comment: comment || "",
     });
 
-    res.status(201).json({ message: "Tạo CheckIn thành công", checkIn: newCheckIn });
+    res.status(201).json({
+      message: "Tạo CheckIn thành công",
+      checkIn: newCheckIn,
+    });
   } catch (error) {
     console.error("Lỗi khi tạo CheckIn:", error);
     res.status(500).json({ message: "Lỗi server" });
@@ -153,7 +178,12 @@ export async function getCheckInsByHospitalId(req, res) {
         model: "Hospital",
         select: "name address phone",
       })
-      .sort({ createdAt: -1 }); // mới nhất lên trước
+      .populate({
+        path: "donorDonationRequest_id",
+        model: "DonorDonationRequest",
+        select: "donation_date donation_time_range donation_type separated_component notes status",
+      })
+      .sort({ createdAt: -1 }); // Mới nhất lên trước
 
     res.status(200).json({ checkIns });
   } catch (error) {
