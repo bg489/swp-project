@@ -236,8 +236,24 @@ export default function HealthCheckFormPage() {
     }
   }
 
-  function rejectForm(): void {
-    throw new Error("Function not implemented.");
+  async function rejectForm(): Promise<void> {
+    try {
+      await api.put(`/health-check/health-check/${healthCheck}/fail`);
+      toast.success("Từ chối thành công!")
+      router.push("/staff/dashboard");
+    } catch (error) {
+      toast.error("Có lỗi xảy ra khi từ chối đơn khám!")
+    }
+  }
+
+  async function acceptForm(): Promise<void> {
+    try {
+      await api.put(`/health-check/health-check/${healthCheck}/pass`);
+      toast.success("Chấp nhận thành công!")
+      router.push("/staff/dashboard");
+    } catch (error) {
+      toast.error("Có lỗi xảy ra khi chấp nhận đơn khám!")
+    }
   }
 
   return (
@@ -742,7 +758,7 @@ export default function HealthCheckFormPage() {
                 <Button type="button" variant="destructive" onClick={() => rejectForm()}>
                   Từ chối
                 </Button>
-                <Button type="submit" className="bg-green-600 hover:bg-green-700 text-white">
+                <Button type="submit" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => acceptForm()}>
                   Chấp nhận
                 </Button>
               </div>

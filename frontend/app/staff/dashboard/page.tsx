@@ -349,6 +349,8 @@ export default function StaffDashboard() {
       case "verified": return "Đã xác minh";
       case "unverified": return "Chưa xác minh";
       case "in_progress": return "Đang xử lý";
+      case "passed": return "Đã thông qua";
+      case "failed": return "Bị từ chối";
       default: return "Không rõ";
     }
   }
@@ -990,10 +992,13 @@ export default function StaffDashboard() {
       case "approved":
         return "bg-blue-100 text-blue-800"
       case "completed":
+      case "passed":
         return "bg-green-100 text-green-800"
       case "verified":
         return "bg-green-500 text-white";
       case "unverified":
+      case "failed":
+      case "rejected":
         return "bg-red-500 text-white";
       case "in_progress":
       default:
