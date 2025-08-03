@@ -15,10 +15,16 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
+import { useSearchParams } from "next/navigation"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import toast, { Toaster } from "react-hot-toast";
+import api from "@/lib/axios";
 
 export default function HealthCheckFormPage() {
   const router = useRouter();
+  const searchParams = useSearchParams()
+  const healthCheck = searchParams.get("healthCheck") || ""
+  const name = searchParams.get("name") || ""
   const [form, setForm] = useState({
     weight: 0,
     systolic_bp: 0,
@@ -35,7 +41,6 @@ export default function HealthCheckFormPage() {
     is_clinically_alert: true,
     abnormal_symptoms: "",
     can_donate_whole_blood: false,
-    overall_result: "",
     donor_feeling_healthy: false,
     last_donation_date: false,
     has_cardiovascular_disease: false,
@@ -66,7 +71,20 @@ export default function HealthCheckFormPage() {
     declaration_feels_healthy: false,
     declaration_voluntary: false,
     declaration_will_report_if_risk_found: false,
+    has_taken_medicine_last_week: false
   });
+
+  useEffect(() => {
+    async function fetch() {
+      try {
+        const response = await api.get(`/health-check/healthcheck/${healthCheck}`);
+        const data = response.data;
+        
+      } catch (error) {
+        toast.error("Có lỗi khi fetch data")
+      }
+    }
+  }, []);
 
   // Tính thể tích máu được hiến dựa vào cân nặng
   useEffect(() => {
@@ -113,38 +131,135 @@ export default function HealthCheckFormPage() {
     // You can redirect or send to backend here
   };
 
+  async function saveField(): Promise<void> {
+    try {
+      await api.put(`/health-check/health-check/${healthCheck}`, {
+        weight: form.weight,
+        blood_volume_allowed: form.blood_volume_allowed,
+        can_donate_whole_blood: form.can_donate_whole_blood,
+        has_chronic_disease: form.has_chronic_disease,
+        is_pregnant: form.is_pregnant,
+        has_history_of_transplant: form.has_history_of_transplant,
+        drug_use_violation: form.drug_use_violation,
+        disability_severity: form.disability_severity,
+        infectious_disease: form.infectious_disease,
+        sexually_transmitted_disease: form.sexually_transmitted_disease,
+        is_clinically_alert: form.is_clinically_alert,
+        systolic_bp: form.systolic_bp,
+        diastolic_bp: form.diastolic_bp,
+        heart_rate: form.heart_rate,
+        abnormal_symptoms: form.abnormal_symptoms,
+        donor_feeling_healthy: form.donor_feeling_healthy,
+        last_donation_date: form.last_donation_date,
+        has_cardiovascular_disease: form.has_cardiovascular_disease,
+        has_liver_disease: form.has_liver_disease,
+        has_kidney_disease: form.has_kidney_disease,
+        has_endocrine_disorder: form.has_endocrine_disorder,
+        has_tuberculosis_or_respiratory_disease: form.has_tuberculosis_or_respiratory_disease,
+        has_blood_disease: form.has_blood_disease,
+        has_mental_or_neurological_disorder: form.has_mental_or_neurological_disorder,
+        has_malaria: form.has_malaria,
+        has_syphilis: form.has_syphilis,
+        has_hiv_or_aids: form.has_hiv_or_aids,
+        has_other_transmissible_diseases: form.has_other_transmissible_diseases,
+        has_surgical_or_medical_history: form.has_surgical_or_medical_history,
+        exposure_to_blood_or_body_fluids: form.exposure_to_blood_or_body_fluids,
+        received_vaccine_or_biologics: form.received_vaccine_or_biologics,
+        tattoo_or_organ_transplant: form.tattoo_or_organ_transplant,
+        has_unexplained_weight_loss: form.has_unexplained_weight_loss,
+        has_night_sweats: form.has_night_sweats,
+        has_skin_or_mucosal_tumors: form.has_skin_or_mucosal_tumors,
+        has_enlarged_lymph_nodes: form.has_enlarged_lymph_nodes,
+        has_digestive_disorder: form.has_digestive_disorder,
+        has_fever_over_37_5_long: form.has_fever_over_37_5_long,
+        uses_illegal_drugs: form.uses_illegal_drugs,
+        has_sexual_contact_with_risk_person: form.has_sexual_contact_with_risk_person,
+        has_infant_under_12_months: form.has_infant_under_12_months,
+        has_taken_medicine_last_week: form.has_taken_medicine_last_week,
+        declaration_understood_questions: form.declaration_understood_questions,
+        declaration_feels_healthy: form.declaration_feels_healthy,
+        declaration_voluntary: form.declaration_voluntary,
+        declaration_will_report_if_risk_found: form.declaration_will_report_if_risk_found,
+      })
+      toast.success("Đã lưu thành công!")
+    } catch (error) {
+      toast.error("Có lỗi xảy ra khi lưu!")
+    }
+  }
+
+  function rejectForm(): void {
+    throw new Error("Function not implemented.");
+  }
+
   return (
     <div>
       <Header />
       <div className="max-w-2xl mx-auto p-6">
         <Card>
           <CardHeader>
-            <CardTitle>Form kiểm tra sức khỏe hiến máu toàn phần</CardTitle>
+            <CardTitle>Form kiểm tra sức khỏe hiến máu toàn phần của {name}</CardTitle>
           </CardHeader>
           <CardContent>
             <h1>Thông tin cơ bản</h1>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <Label htmlFor="weight">Cân nặng (kg). Lớn hơn 42 kg đối với phụ nữ, 45 kg đối với nam giới</Label>
-                <Input name="weight" type="number" value={form.weight} onChange={handleChange} />
+                <div className="flex items-end gap-2">
+                  <div className="flex-1">
+                    <Label htmlFor="weight">Cân nặng (kg). Lớn hơn 42 kg đối với phụ nữ, 45 kg đối với nam giới</Label>
+                    <Input name="weight" type="number" value={form.weight} onChange={handleChange} />
+                  </div>
+                  <Button type="button" onClick={() => saveField()} className="mt-6">
+                    Lưu
+                  </Button>
+                </div>
               </div>
               <div>
-                <Label htmlFor="systolic_bp">Huyết áp tâm thu (Từ 100 mmHg đến dưới 160 mmHg)</Label>
-                <Input name="systolic_bp" type="number" value={form.systolic_bp} onChange={handleChange} />
+                <div className="flex items-end gap-2">
+                  <div className="flex-1">
+                    <Label htmlFor="systolic_bp">Huyết áp tâm thu (Từ 100 mmHg đến dưới 160 mmHg)</Label>
+                    <Input name="systolic_bp" type="number" value={form.systolic_bp} onChange={handleChange} />
+                  </div>
+                  <Button type="button" onClick={() => saveField()} className="mt-6">
+                    Lưu
+                  </Button>
+                </div>
               </div>
               <div>
-                <Label htmlFor="diastolic_bp">Huyết áp tâm trương (Từ 60 mmHg đến dưới 100 mmHg)</Label>
-                <Input name="diastolic_bp" type="number" value={form.diastolic_bp} onChange={handleChange} />
+                <div className="flex items-end gap-2">
+                  <div className="flex-1">
+                    <Label htmlFor="diastolic_bp">Huyết áp tâm trương (Từ 60 mmHg đến dưới 100 mmHg)</Label>
+                    <Input name="diastolic_bp" type="number" value={form.diastolic_bp} onChange={handleChange} />
+                  </div>
+                  <Button type="button" onClick={() => saveField()} className="mt-6">
+                    Lưu
+                  </Button>
+                </div>
               </div>
               <div>
+                <div className="flex items-end gap-2">
+                  <div className="flex-1">
                 <Label htmlFor="heart_rate">Nhịp tim (Tần số trong khoảng từ 60 lần đến 90 lần/phút)</Label>
                 <Input name="heart_rate" type="number" value={form.heart_rate} onChange={handleChange} />
               </div>
+                  <Button type="button" onClick={() => saveField()} className="mt-6">
+                    Lưu
+                  </Button>
+                </div>
+              </div>
               <div>
+                <div className="flex items-end gap-2">
+                  <div className="flex-1">
                 <Label htmlFor="blood_volume_allowed">Thể tích máu cho phép (ml)</Label>
                 <Input name="blood_volume_allowed" type="number" value={form.blood_volume_allowed} onChange={handleChange} />
               </div>
+                  <Button type="button" onClick={() => saveField()} className="mt-6">
+                    Lưu
+                  </Button>
+                </div>
+              </div>
               <div>
+                <div className="flex items-end gap-2">
+                  <div className="flex-1">
                 <Label htmlFor="timeSlot">Triệu chứng bất thường</Label>
                 <Select
                   value={form.abnormal_symptoms}
@@ -166,6 +281,11 @@ export default function HealthCheckFormPage() {
                       ))}
                   </SelectContent>
                 </Select>
+                </div>
+                  <Button type="button" onClick={() => saveField()} className="mt-6">
+                    Lưu
+                  </Button>
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <Label>
@@ -577,11 +697,24 @@ export default function HealthCheckFormPage() {
                   onChange={handleChange}
                 />
               </div>
-              <Button type="submit" className="w-full">Gửi kết quả</Button>
+              <div className="grid grid-cols-3 gap-4 mt-6">
+                <Button type="button" onClick={() => saveField()}>
+                  Lưu
+                </Button>
+                <Button type="button" variant="destructive" onClick={() => rejectForm()}>
+                  Từ chối
+                </Button>
+                <Button type="submit" className="bg-green-600 hover:bg-green-700 text-white">
+                  Chấp nhận
+                </Button>
+              </div>
             </form>
           </CardContent>
         </Card>
       </div>
+      <Toaster position="top-center" containerStyle={{
+          top: 80,
+        }} />
       <Footer />
     </div>
   );

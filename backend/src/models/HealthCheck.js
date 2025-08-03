@@ -7,6 +7,11 @@ const healthCheckSchema = new mongoose.Schema(
       ref: "CheckIn",
       required: true,
     },
+    hospital_id: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Hospital",
+        required: true,
+    },
     weight: Number,
     blood_volume_allowed: Number,
     can_donate_whole_blood: Boolean,

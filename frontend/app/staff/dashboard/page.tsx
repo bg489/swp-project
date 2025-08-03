@@ -27,6 +27,7 @@ import { Footer } from "@/components/footer"
 import api from "@/lib/axios"
 import { useEffect, useState } from "react"
 import toast, { Toaster } from "react-hot-toast"
+import { useRouter } from "next/navigation";
 
 interface DonorDonationRequest {
   _id: string
@@ -82,6 +83,7 @@ function translateComponent(component: string) {
 
 export default function StaffDashboard() {
   const { user, logout } = useAuth()
+  const router = useRouter();
   const [staff, setStaff] = useState<any>({});
   const [donorList, setDonorList] = useState<any>([]);
   const [bloodReqList, setBloodReqList] = useState<any>([]);
@@ -101,9 +103,91 @@ export default function StaffDashboard() {
   const [rejected, setRejected] = useState(0);
   const [donationRequests, setDonationRequests] = useState<DonorDonationRequest[]>([])
   const [checkIns, setCheckIns] = useState<any>([])
+  const [healthChecks, setHealthChecks] = useState<any>([])
   
 
-  
+  const test = [
+    {
+        "checkIn": {
+            "_id": "688fde414f0215256112040b",
+            "user_id": {
+                "_id": "688ef4f5eadc867beb1aa04e",
+                "full_name": "Nguyễn Văn A",
+                "email": "giabao123963@gmail.com",
+                "phone": "0352573142",
+                "gender": "male",
+                "date_of_birth": "2004-07-20T00:00:00.000Z"
+            },
+            "userprofile_id": {
+                "_id": "688ef4f5eadc867beb1aa053",
+                "cccd": "111111111111"
+            },
+            "hospital_id": {
+                "_id": "685e2769156fe3d352db3552",
+                "name": "Bệnh viện Quân Dân Y Miền Đông",
+                "address": "50 Lê Văn Việt, Hiệp Phú, TP. Thủ Đức, TP.HCM",
+                "phone": "028 3897 0321"
+            },
+            "donorDonationRequest_id": {
+                "donation_time_range": {
+                    "from": "12:00",
+                    "to": "14:00"
+                },
+                "_id": "688fb1ffe10cfe4a9a1d786a",
+                "donation_date": "2025-08-04T00:00:00.000Z",
+                "donation_type": "whole",
+                "notes": "",
+                "status": "approved"
+            },
+            "status": "verified"
+        },
+        "healthCheck": {
+            "_id": "688fdf8eb94820b2e2f921ac",
+            "checkin_id": "688fde414f0215256112040b"
+        },
+        "status": "pending"
+    },
+    {
+        "checkIn": {
+            "_id": "688fda3bceafdc6bbe71249e",
+            "user_id": {
+                "_id": "688ef4f5eadc867beb1aa04e",
+                "full_name": "Nguyễn Văn A",
+                "email": "giabao123963@gmail.com",
+                "phone": "0352573142",
+                "gender": "male",
+                "date_of_birth": "2004-07-20T00:00:00.000Z"
+            },
+            "userprofile_id": {
+                "_id": "688ef4f5eadc867beb1aa053",
+                "cccd": "111111111111"
+            },
+            "hospital_id": {
+                "_id": "685e2769156fe3d352db3552",
+                "name": "Bệnh viện Quân Dân Y Miền Đông",
+                "address": "50 Lê Văn Việt, Hiệp Phú, TP. Thủ Đức, TP.HCM",
+                "phone": "028 3897 0321"
+            },
+            "donorDonationRequest_id": {
+                "donation_time_range": {
+                    "from": "8:00",
+                    "to": "10:00"
+                },
+                "_id": "688fda01ceafdc6bbe712438",
+                "donation_date": "2025-08-04T00:00:00.000Z",
+                "donation_type": "whole",
+                "notes": "",
+                "status": "approved"
+            },
+            "status": "verified"
+        },
+        "healthCheck": {
+            "_id": "688fdfefb94820b2e2f921da",
+            "checkin_id": "688fda3bceafdc6bbe71249e"
+        },
+        "status": "pending"
+    }
+]
 
 
 
@@ -802,6 +886,9 @@ export default function StaffDashboard() {
           const checkInns = await api.get(`/checkin/hospital/${staffData.hospital._id}`);
           setCheckIns(checkInns.data.checkIns);
 
+          const hChecks = await api.get(`/health-check/hospital/${staffData.hospital._id}/checkin-statuses`);
+          setHealthChecks(hChecks.data);
+
         }
       } catch (error) {
         console.error("Failed to fetch staff profile or hospital:", error);
@@ -1049,7 +1136,8 @@ export default function StaffDashboard() {
       )
 
       await api.post("/health-check/create", {
-        checkin_id: response.data.checkIn._id
+        checkin_id: response.data.checkIn._id,
+        hospital_id: staff.hospital._id
       })
       
       toast.success("Đã xác minh thành công!")
@@ -1062,6 +1150,10 @@ export default function StaffDashboard() {
 
   function setCheckinFilter(value: string): void {
     throw new Error("Function not implemented.")
+  }
+
+  function handleCardClick(_id: any, name: string): void {
+    router.push(`/staff/edit/health-check/whole?healthCheck=${_id}&name=${name}`);
   }
 
   return (
@@ -1176,9 +1268,10 @@ export default function StaffDashboard() {
           </div>
 
           <Tabs defaultValue="inventory" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-5">
+            <TabsList className="grid w-full grid-cols-6">
               <TabsTrigger value="donation-requests">Yêu cầu hiến máu</TabsTrigger>
               <TabsTrigger value="check-in">Check In</TabsTrigger>
+              <TabsTrigger value="health-check">Khám</TabsTrigger>
               <TabsTrigger value="inventory">Kho máu</TabsTrigger>
               <TabsTrigger value="requests">Yêu cầu máu</TabsTrigger>
               <TabsTrigger value="reports">Quản lý lịch trình hiến máu</TabsTrigger>
@@ -1341,6 +1434,113 @@ export default function StaffDashboard() {
                 </CardContent>
               </Card>
             </TabsContent>
+
+            <TabsContent value="health-check" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <span className="text-xl font-semibold text-gray-900">Quản lý khám hiến máu</span>
+                    <Select onValueChange={setCheckinFilter} defaultValue="newest">
+                      <SelectTrigger className="w-48 border rounded-md bg-gray-100 focus:ring-2 focus:ring-blue-500">
+                        <SelectValue placeholder="Sắp xếp theo" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white shadow-md rounded-md">
+                        <SelectItem value="newest">Mới nhất</SelectItem>
+                        <SelectItem value="oldest">Cũ nhất</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </CardTitle>
+                  <CardDescription className="text-sm text-gray-500">
+                    Danh sách người dùng khám để hiến máu
+                  </CardDescription>
+                </CardHeader>
+
+                <CardContent className="space-y-4">
+                  {healthChecks.map((checkInData: any) => (
+                    <div
+                      key={checkInData.checkIn._id}
+                      className="p-4 border rounded-lg bg-white shadow-md hover:shadow-xl transition-all duration-200 space-y-4 cursor-pointer"
+                      onClick={() => handleCardClick(checkInData.healthCheck._id, checkInData.checkIn.user_id.full_name)}
+                    >
+                      {/* Thông tin Người Dùng và Bệnh Viện */}
+                      <div className="flex justify-between items-start space-x-6">
+                        <div className="space-y-2 flex-1">
+                          <p className="text-lg font-semibold text-gray-900">{checkInData.checkIn.user_id.full_name}</p>
+                          <p className="text-sm text-gray-600"><strong>Email:</strong> {checkInData.checkIn.user_id.email}</p>
+                          <p className="text-sm text-gray-600"><strong>CCCD:</strong> {checkInData.checkIn.userprofile_id?.cccd || "Không có"}</p>
+                          <p className="text-sm text-gray-600"><strong>Giới tính:</strong> {checkInData.checkIn.user_id.gender}</p>
+                          <p className="text-sm text-gray-600"><strong>SĐT:</strong> {checkInData.checkIn.user_id.phone}</p>
+                          <p className="text-sm text-gray-600"><strong>Ngày sinh:</strong> {formatDate(checkInData.checkIn.user_id.date_of_birth)}</p>
+                          <p className="text-sm text-gray-600"><strong>Bệnh viện:</strong> {checkInData.checkIn.hospital_id.name}</p>
+                          <p className="text-sm text-gray-600"><strong>Địa chỉ:</strong> {checkInData.checkIn.hospital_id.address}</p>
+
+                          {/* Hiển thị thông tin đăng ký hiến máu */}
+                          {checkInData.checkIn.donorDonationRequest_id && (
+                            <div className="mt-4 space-y-2">
+                              <hr />
+                              <p className="text-sm"><strong>Ngày đăng ký hiến:</strong> {formatDate(checkInData.checkIn.donorDonationRequest_id.donation_date)}</p>
+                              <p className="text-sm"><strong>Thời gian:</strong> {checkInData.checkIn.donorDonationRequest_id.donation_time_range.from} - {checkInData.checkIn.donorDonationRequest_id.donation_time_range.to}</p>
+                              <p className="text-sm"><strong>Loại hiến máu:</strong> {checkInData.checkIn.donorDonationRequest_id.donation_type === "whole" ? "Toàn phần" : "Tách thành phần"}</p>
+                              {checkInData.checkIn.donorDonationRequest_id.separated_component && (
+                                <p className="text-sm"><strong>Thành phần:</strong> {checkInData.checkIn.donorDonationRequest_id.separated_component}</p>
+                              )}
+                              <p className="text-sm"><strong>Ghi chú:</strong> {checkInData.checkIn.donorDonationRequest_id.notes || "Không có"}</p>
+                              <p className="text-sm"><strong>Trạng thái yêu cầu:</strong> {translateStatus(checkInData.checkIn.donorDonationRequest_id.status)}</p>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Thông tin trạng thái và các hành động */}
+                        <div className="flex flex-col items-end gap-1">
+                          <Badge className={getStatusColor(checkInData.status)}>{translateStatus(checkInData.status)}</Badge>
+                          {/* Nút xử lý trạng thái */}
+                          {checkInData.status === "in_progress" && (
+                            <div className="flex gap-2 mt-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleVerifiedStatus(checkInData.checkIn._id, "verified")}
+                                className="bg-green-500 text-white hover:bg-green-600"
+                              >
+                                Xác minh
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => handleUnverifiedStatus(checkInData.checkIn._id, "unverified")}
+                                className="bg-red-500 text-white hover:bg-red-600"
+                              >
+                                Huỷ xác minh
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Thông tin HealthCheck */}
+                      <div className="mt-4 space-y-2">
+                        <div className="text-sm">
+                          <strong>Trạng thái sức khỏe:</strong> {translateStatus(checkInData.healthCheck.status)}
+                        </div>
+                        <div className="text-sm">
+                          <strong>Health Check ID:</strong> {checkInData.healthCheck._id}
+                        </div>
+                      </div>
+
+                      {/* Trạng thái tổng của check-in */}
+                      <div className="mt-4 space-y-2">
+                        <div className="text-sm">
+                          <strong>Trạng thái tổng:</strong> {translateStatus(checkInData.status)}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+
+
 
 
 
