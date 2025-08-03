@@ -5,6 +5,8 @@ import DonorProfile from "../models/DonorProfile.js";
 import RecipientProfile from '../models/RecipientProfile.js';
 import StaffProfile from "../models/StaffProfile.js";
 import Hospital from "../models/Hospital.js";
+import UserProfile from "../models/UserProfile.js";
+
 
 export async function createUser(req, res) {
   try {
@@ -750,3 +752,85 @@ export async function getCompatibleDonorsByHospitalAndRecipientBloodType(req, re
   }
 }
 
+
+
+export async function createUserProfile(req, res) {
+  try {
+    const { user_id, blood_type, cooldown_until, cccd } = req.body;
+
+    if (!user_id) {
+      return res.status(400).json({ message: "Missing user_id" });
+    }
+
+    const user = await User.findById(user_id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Kiểm tra nếu CCCD đã tồn tại ở hồ sơ khác
+    if (cccd) {
+      const duplicateCCCD = await UserProfile.findOne({ cccd, user_id: { $ne: user_id } });
+      if (duplicateCCCD) {
+        return res.status(409).json({ message: "CCCD already exists for another user" });
+      }
+    }
+
+    const existingProfile = await UserProfile.findOne({ user_id });
+
+    if (existingProfile) {
+      if (blood_type !== undefined) existingProfile.blood_type = blood_type;
+      if (cooldown_until !== undefined) existingProfile.cooldown_until = cooldown_until;
+      if (cccd !== undefined) existingProfile.cccd = cccd;
+      await existingProfile.save();
+
+      return res.status(200).json({
+        message: "User profile updated",
+        profile: existingProfile,
+      });
+    }
+
+    const newProfile = new UserProfile({
+      user_id,
+      blood_type,
+      cooldown_until,
+      cccd,
+    });
+
+    await newProfile.save();
+
+    return res.status(201).json({
+      message: "User profile created successfully",
+      profile: newProfile,
+    });
+  } catch (error) {
+    console.error("Error creating user profile:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+}
+
+export async function checkCCCDExists(req, res) {
+  try {
+    const { cccd } = req.query;
+
+    if (!cccd) {
+      return res.status(400).json({ message: "Thiếu mã số CCCD" });
+    }
+
+    const existingProfile = await UserProfile.findOne({ cccd });
+
+    if (existingProfile) {
+      const user = await User.findById(existingProfile.user_id).select("email");
+
+      return res.status(200).json({
+        exists: true,
+        user_id: existingProfile.user_id,
+        email: user?.email || null,
+      });
+    }
+
+    return res.status(200).json({ exists: false });
+  } catch (err) {
+    console.error("Error checking CCCD:", err);
+    return res.status(500).json({ message: "Lỗi server" });
+  }
+}

@@ -19,6 +19,7 @@ import api from "../../lib/axios";
 // import ReCAPTCHA from "react-google-recaptcha"
 import UploadCertificate from "@/components/ui/UploadCertificate"
 import toast, { Toaster } from "react-hot-toast"
+import { Html5QrcodeScanner } from 'html5-qrcode'
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -36,8 +37,10 @@ export default function RegisterPage() {
     certificate: "",
     hospital_name: "",
     hospitalId: "",
+    cccd: "",
     agreeTerms: false,
   })
+  const [scanResult, setScanResult] = useState("");
   const [capVal, setCapVal] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
@@ -51,7 +54,67 @@ export default function RegisterPage() {
   const [locationAllowed, setLocationAllowed] = useState<boolean | null>(null);
   const [radiusKm, setRadiusKm] = useState<number>(10); // mặc định 10km
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [scannerInstance, setScannerInstance] = useState<any>(null);
+
   const router = useRouter()
+
+  const checkDuplicateCCCD = async (cccd: string) => {
+    try {
+      const response = await api.get(`/users/check-cccd?cccd=${encodeURIComponent(cccd)}`);
+      return response.data;
+    } catch (err) {
+      console.error("Error checking CCCD:", err);
+      return false;
+    }
+  };
+
+
+  useEffect(() => {
+    try {
+      const informations = scanResult.split('|');
+      setFormData((prev) => ({ ...prev, name: informations[2] }))
+      if(informations[4] === "Nam"){
+        setFormData((prev) => ({ ...prev, gender: "male" }))
+      } else if(informations[4] === "Nữ"){
+        setFormData((prev) => ({ ...prev, gender: "female" }))
+      }
+      if(informations[3]){
+        const raw = informations[3];
+        const formattedDateBirth = `${raw.slice(4)}-${raw.slice(2, 4)}-${raw.slice(0, 2)}`;
+        setFormData((prev) => ({ ...prev, date_of_birth: formattedDateBirth }));
+        toast.success("Render thông tin thành công");
+      }
+      setFormData((prev) => ({ ...prev, cccd: informations[0] }))
+      setFormData((prev) => ({ ...prev, address: informations[5] }))
+    } catch (error) {
+      toast.error("Có lỗi khi render thông tin, vui lòng thử lại!");
+    }
+    
+    
+  }, [scanResult])
+
+  useEffect(() => {
+    const scanner = new Html5QrcodeScanner('reader', {
+      qrbox: { width: 250, height: 250 },
+      fps: 5,
+    }, false); // set verbose false
+
+    scanner.render(onScanSuccess, onScanFailure);
+    setScannerInstance(scanner);
+
+    function onScanSuccess(result: string) {
+      setScanResult(result);
+      scanner.clear(); // chỉ dừng nếu muốn dừng sau 1 lần
+    }
+
+    function onScanFailure(error: any) {
+      console.warn(error);
+    }
+
+    return () => {
+      scanner.clear().catch(console.error);
+    };
+  }, []);
 
 
 
@@ -75,53 +138,7 @@ export default function RegisterPage() {
     );
   };
 
-  useEffect(() => {
-    // Lấy vị trí người dùng
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const { latitude, longitude } = position.coords;
-        setUserLocation({ lat: latitude, lng: longitude });
 
-        try {
-          const response = await api.get("/hospital/");
-          const hospitals = response.data.hospitals;
-
-          const getDistanceKm = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-            const R = 6371;
-            const dLat = ((lat2 - lat1) * Math.PI) / 180;
-            const dLon = ((lon2 - lon1) * Math.PI) / 180;
-            const a = Math.sin(dLat / 2) ** 2 +
-              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-              Math.sin(dLon / 2) ** 2;
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-            return R * c;
-          };
-
-          const filtered = hospitals.filter((h: any) => {
-            const dist = getDistanceKm(latitude, longitude, h.latitude, h.longitude);
-            return dist <= 30; // chỉ bệnh viện trong bán kính 30km
-          }).map((h: any) => ({
-            _id: h._id,
-            name: h.name,
-            address: h.address,
-            phone: h.phone,
-          }));
-
-          setNearbyHospitals(filtered);
-        } catch (error) {
-          console.error("Lỗi khi lấy danh sách bệnh viện:", error);
-        }
-      },
-      (error) => {
-        console.error("Lỗi lấy vị trí:", error);
-        alert("Không thể lấy vị trí của bạn. Vui lòng bật định vị.");
-      }
-    );
-  }, []);
-
-  useEffect(() => {
-    checkLocationPermissionAndUpdateState();
-  }, []);
 
   const handleFindHospitalsNearby = () => {
     if (!navigator.geolocation) {
@@ -249,8 +266,27 @@ export default function RegisterPage() {
       return
     }
 
+    const birthYear = new Date(formData.date_of_birth).getFullYear();
+    const currentYear = new Date().getFullYear();
+    const age = currentYear - birthYear;
+
+    if (age < 18 || age > 60) {
+      toast.error("Bạn phải từ 18 đến 60 tuổi để đăng ký hiến máu.");
+      setIsLoading(false)
+      return; // stop submission
+    }
+    
+
     try {
       // Call API
+
+      const isCCCDDuplicate = await checkDuplicateCCCD(formData.cccd);
+      if (isCCCDDuplicate.exists) {
+        toast.error("CCCD đã được sử dụng trên email " + isCCCDDuplicate.email);
+        setIsLoading(false);
+        return;
+      }
+
 
       const checkingEmail = await api.get("users/get-all-emails");
 
@@ -258,7 +294,7 @@ export default function RegisterPage() {
       const emailList = checkingEmail.data?.emails.map((e: string) => e.toLowerCase());
 
       if (emailList.includes(emailToCheck)) {
-        setError("Email đã tồn tại.");
+        toast.error("Email đã tồn tại.");
         return;
       }
 
@@ -268,7 +304,7 @@ export default function RegisterPage() {
         full_name: formData.name,
         email: formData.email,
         password: formData.password, // raw password (to be hashed)
-        role: formData.role,
+        role: "user",
         phone: formData.phone,
         gender: formData.gender,
         date_of_birth: formData.date_of_birth,
@@ -281,29 +317,22 @@ export default function RegisterPage() {
 
       if (result.message) {
         // Redirect to login page with success message
-        if (formData.role === "donor") {
-          await api.put(`/users/${result.user.id}/role`, {
-            newRole: "donor"
-          })
-          await api.post("/users/donor-profile", {
+        try {
+          await api.post("/users/user-profile", {
             user_id: result.user.id,
-            blood_type: formData.bloodType,
-            availability_date: formData.date_begin_donate,
-            health_cert_url: formData.certificate,
-            cooldown_until: "",
-            hospital: formData.hospitalId
+            cccd: formData.cccd,
           })
-        } else {
-          await api.put(`/users/${result.user.id}/role`, {
-            newRole: "recipient"
-          })
-          await api.post("/users/recipient-profile", {
-            user_id: result.user.id,
-            medical_doc_url: formData.certificate,
-            hospital: formData.hospitalId
-          })
+        } catch (err: any) {
+          if (err.response?.status === 409) {
+            toast.error("Mã số CCCD đã tồn tại.")
+            return
+          } else {
+            toast.error("Đã xảy ra lỗi khi tạo hồ sơ người dùng.")
+            return
+          }
         }
-        api.post("/otp/send", {
+
+        await api.post("/otp/send", {
           email: formData.email
         })
         router.push(`/register/otp?email=${formData.email}`)
@@ -338,20 +367,7 @@ export default function RegisterPage() {
                 )}
 
                 <div className="grid md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Họ và tên *</Label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                      <Input
-                        id="name"
-                        placeholder="Nguyễn Văn A"
-                        value={formData.name}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
-                        className="pl-10"
-                        required
-                      />
-                    </div>
-                  </div>
+                  
 
                   <div className="space-y-2">
                     <Label htmlFor="email">Email *</Label>
@@ -363,6 +379,33 @@ export default function RegisterPage() {
                         placeholder="email@example.com"
                         value={formData.email}
                         onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
+                        className="pl-10"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Số điện thoại *</Label>
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                      <Input
+                        id="phone"
+                        type="tel"
+                        placeholder="0901234567"
+                        value={formData.phone}
+                        onChange={(e) => {
+                          const input = e.target.value;
+                          // Chỉ cho phép ký tự số
+                          if (/^\d*$/.test(input)) {
+                            // Giới hạn 10 số và bắt đầu bằng 0 (nếu có ký tự nào)
+                            if (input.length <= 10 && (input === "" || input.startsWith("0"))) {
+                              setFormData((prev) => ({ ...prev, phone: input }));
+                            }
+                          }
+                        }}
+                        minLength={10}
+                        maxLength={10}
                         className="pl-10"
                         required
                       />
@@ -418,102 +461,57 @@ export default function RegisterPage() {
                   </div>
                 </div>
 
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Số điện thoại *</Label>
+                <div className="space-y-2">
+                    <Label htmlFor="dob">Vui lòng quét mã QR trên CCCD để đăng ký *</Label>
                     <div className="relative">
-                      <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                      <Input
-                        id="phone"
-                        type="tel"
-                        placeholder="0901234567"
-                        value={formData.phone}
-                        onChange={(e) => {
-                          const input = e.target.value;
-                          // Chỉ cho phép ký tự số
-                          if (/^\d*$/.test(input)) {
-                            // Giới hạn 10 số và bắt đầu bằng 0 (nếu có ký tự nào)
-                            if (input.length <= 10 && (input === "" || input.startsWith("0"))) {
-                              setFormData((prev) => ({ ...prev, phone: input }));
-                            }
-                          }
-                        }}
-                        minLength={10}
-                        maxLength={10}
-                        className="pl-10"
-                        required
-                      />
-                    </div>
-                  </div>
+                      {scanResult ? (
+                        <div className="flex flex-col gap-2">
+                          <div className="text-green-600">✅ Đã quét CCCD thành công!</div>
+                        </div>
+                      ) : (
+                        <div id="reader" className="mx-auto" />
+                      )}
 
-                  {(formData.role === "donor") && (
-                    <div className="space-y-2">
-                      <Label htmlFor="bloodType">Nhóm máu *</Label>
-                      <Select
-                        value={formData.bloodType}
-                        onValueChange={(value) => setFormData((prev) => ({ ...prev, bloodType: value }))}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Chọn nhóm máu" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem key="unknown" value="unknown">
-                            <div className="flex items-center">
-                              <Droplets className="w-4 h-4 mr-2 text-red-500" />
-                              Chưa biết
-                            </div>
-                          </SelectItem>
-                          {bloodTypes.map((type) => (
-                            <SelectItem key={type} value={type}>
-                              <div className="flex items-center">
-                                <Droplets className="w-4 h-4 mr-2 text-red-500" />
-                                {type}
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                    
                     </div>
-                  )}
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="role">Vai trò *</Label>
-                    <Select
-                      value={formData.role}
-                      onValueChange={(value) => setFormData((prev) => ({ ...prev, role: value }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Chọn vai trò" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="donor">Người hiến máu (Donor)</SelectItem>
-                        <SelectItem value="recipient">Người nhận máu (Recipient)</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <Label htmlFor="name">Họ và tên *</Label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                      <Input
+                        id="name"
+                        placeholder="Nguyễn Văn A"
+                        value={formData.name}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
+                        className="pl-10"
+                        disabled
+                      />
+                    </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="gender">Giới tính *</Label>
-                    <Select
-                      value={formData.gender}
-                      onValueChange={(value) => setFormData((prev) => ({ ...prev, gender: value }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Chọn giới tính" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {["male", "female", "other"].map((gender) => (
-                          <SelectItem key={gender} value={gender}>
-                            <div className="flex items-center capitalize">
-                              {gender === "male" ? "Nam" : gender === "female" ? "Nữ" : "Khác"}
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    {/* <ReCAPTCHA
+                      sitekey="6Le19mkrAAAAAKWFaDg-rfWGbuBAGxpt5m5yoXDd"
+                      onChange={(val: boolean | ((prevState: boolean) => boolean)) => setCapVal(val)}
+                    /> */}
+                    <Label htmlFor="gender">Số CCCD *</Label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                      <Input
+                        id="cccd"
+                        placeholder="080*********"
+                        value={formData.cccd}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, cccd: e.target.value }))}
+                        className="pl-10"
+                        disabled
+                      />
+                    </div>
                   </div>
+
+
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-4">
@@ -529,7 +527,7 @@ export default function RegisterPage() {
                         className="pl-10"
                         min={new Date(new Date().setFullYear(new Date().getFullYear() - 60)).toISOString().split('T')[0]}
                         max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]}
-                        required
+                        disabled
                       />
                     </div>
                   </div>
@@ -539,6 +537,25 @@ export default function RegisterPage() {
                       sitekey="6Le19mkrAAAAAKWFaDg-rfWGbuBAGxpt5m5yoXDd"
                       onChange={(val: boolean | ((prevState: boolean) => boolean)) => setCapVal(val)}
                     /> */}
+                    <Label htmlFor="gender">Giới tính *</Label>
+                    <Select
+                      value={formData.gender}
+                      onValueChange={(value) => setFormData((prev) => ({ ...prev, gender: value }))}
+                      disabled
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Chọn giới tính" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {["male", "female", "other"].map((gender) => (
+                          <SelectItem key={gender} value={gender}>
+                            <div className="flex items-center capitalize">
+                              {gender === "male" ? "Nam" : gender === "female" ? "Nữ" : "Khác"}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
 
 
@@ -554,103 +571,10 @@ export default function RegisterPage() {
                       value={formData.address}
                       onChange={(e) => setFormData((prev) => ({ ...prev, address: e.target.value }))}
                       className="pl-10"
-                      required
+                      disabled
                     />
                   </div>
                 </div>
-
-
-                {((formData.role === "donor") || (formData.role === "recipient")) && (
-                  <>
-                    <div className="grid md:grid-cols-2 gap-4">
-                      {(formData.role === "donor") && (
-                        <div className="space-y-2">
-                          <Label htmlFor="dbd">Ngày bắt đầu hiến máu *</Label>
-                          <div className="relative">
-                            <Calendar className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                            <Input
-                              id="dbd"
-                              type="date"
-                              value={formData.date_begin_donate}
-                              onChange={(e) => setFormData((prev) => ({ ...prev, date_begin_donate: e.target.value }))}
-                              className="pl-10"
-                              min={new Date().toISOString().split('T')[0]}
-                              required
-                            />
-                          </div>
-                        </div>
-                      )}
-                      <div className="space-y-2">
-                        <Label htmlFor="hospital_name">Tên bệnh viện *</Label>
-                        <div className="relative">
-                          <MapPin className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                          <Input
-                            id="hospital_name"
-                            placeholder="ex: Bệnh viện Hùng Vương"
-                            value={hospitalInput}
-                            onChange={handleChange}
-                            onKeyDown={handleKeyDown}
-                            className="pl-10"
-                            required
-                            disabled={locationAllowed === false}
-                          />
-                          {showSuggestions && filteredHospitals.length > 0 && (
-                            <ul className="absolute z-10 bg-white border border-gray-300 w-full max-h-60 overflow-y-auto shadow-lg rounded">
-                              {filteredHospitals.map((h, idx) => (
-                                <li
-                                  key={idx}
-                                  ref={highlightIndex === idx ? (el) => el?.scrollIntoView({ block: "nearest" }) : null}
-                                  className={`px-4 py-2 hover:bg-gray-100 cursor-pointer ${highlightIndex === idx ? "bg-gray-200" : ""}`}
-                                  onClick={() => handleSelect(h)}
-                                >
-                                  <strong>{h.name}</strong>
-                                  {h.address && <div className="text-sm text-gray-500">{h.address}</div>}
-                                </li>
-                              ))}
-                            </ul>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="certificateDonor">Ảnh giấy chứng nhận sức khỏe *</Label>
-                        <UploadCertificate
-                          id="certificateDonor"
-                          value={formData.certificate}
-                          onChange={(url) => setFormData((prev) => ({ ...prev, certificate: url }))}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="radiusKm">Khoảng cách tìm bệnh viện (km) *</Label>
-                        <Input
-                          id="radiusKm"
-                          type="number"
-                          placeholder="VD: 30"
-                          value={radiusKm}
-                          onChange={(e) => setRadiusKm(Number(e.target.value))}
-                          required
-                          disabled={locationAllowed === false}
-                        />
-                        <Button
-                          type="button"
-                          onClick={handleFindHospitalsNearby}
-                          className="w-full"
-                          disabled={locationAllowed === false}
-                        >
-                          Tìm bệnh viện gần bạn
-                        </Button>
-                      </div>
-                    </div>
-                  </>
-
-                )}
 
                 <div className="flex items-start space-x-2">
                   <Checkbox

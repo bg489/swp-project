@@ -20,7 +20,9 @@ import {
   getAllUsers,
   deleteUserByAdmin,
   getDonorsByHospitals,
-  getCompatibleDonorsByHospitalAndRecipientBloodType
+  getCompatibleDonorsByHospitalAndRecipientBloodType,
+  createUserProfile,
+  checkCCCDExists
 } from "../controllers/usersController.js";
 import {
   getDonationsByDonorId,
@@ -46,6 +48,8 @@ router.put("/verify/:userId", toggleUserVerification);
 router.post("/donor-profile", createDonorProfile);
 router.post("/recipient-profile", createRecipientProfile);
 router.get("/donor-profile/active/:user_id", getActiveDonorProfile);
+router.post("/user-profile", createUserProfile);
+router.get("/check-cccd", checkCCCDExists);
 router.get("/recipient-profile/active/:user_id", getActiveRecipientProfile);
 router.put("/:userId/role", updateUserRole);
 router.put('/edit/:userId', updateUserById);
