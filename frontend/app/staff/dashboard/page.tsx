@@ -28,6 +28,27 @@ import api from "@/lib/axios"
 import { useEffect, useState } from "react"
 import toast, { Toaster } from "react-hot-toast"
 
+interface DonorDonationRequest {
+  _id: string
+  user_id: string
+  hospital: {
+    _id: string
+    name: string
+    address: string
+  }
+  donation_date: string // ISO string
+  donation_type: "whole" | "separated"
+  donation_time_range: {
+    from: string
+    to: string
+  }
+  separated_component?: "RBC" | "plasma" | "platelet"
+  notes: string
+  status: "pending" | "approved" | "rejected"
+  createdAt: string
+  updatedAt: string
+}
+
 // Function to translate status from English to Vietnamese
 function translateStatus(status: string) {
   const map: Record<string, string> = {
@@ -74,6 +95,134 @@ export default function StaffDashboard() {
   const [mockDonorRequests, setMockDonorRequests] = useState<any>([]);
   const [donorDonationCounts, setDonorDonationCounts] = useState<{ [key: string]: number }>({});
   const [bloodRequestFilter, setBloodRequestFilter] = useState("newest");
+  const [total, setTotal] = useState(0);
+  const [pending, setPending] = useState(0);
+  const [approved, setApproved] = useState(0);
+  const [rejected, setRejected] = useState(0);
+  const [donationRequests, setDonationRequests] = useState<DonorDonationRequest[]>([])
+  
+
+
+  const mockDonationRequests = [
+    {
+      _id: "req1",
+      user_id: { _id: "user1", email: "nguyenvana@example.com" },
+      hospital: {
+        name: "Bệnh viện Trung ương",
+        address: "123 Đường A, Quận 1, TP.HCM",
+        phone: "0123456789",
+      },
+      donation_date: "2025-08-06T00:00:00.000Z",
+      donation_time_range: {
+        from: "10:00",
+        to: "12:00",
+      },
+      donation_type: "whole",
+      notes: "Sẵn sàng bất cứ lúc nào",
+      status: "pending",
+      createdAt: "2025-08-03T13:05:25.150Z",
+    },
+    {
+      _id: "req2",
+      user_id: { _id: "user2", email: "tranthib@example.com" },
+      hospital: {
+        name: "Bệnh viện Chợ Rẫy",
+        address: "456 Đường B, Quận 5, TP.HCM",
+        phone: "0987654321",
+      },
+      donation_date: "2025-08-03T00:00:00.000Z",
+      donation_time_range: {
+        from: "8:00",
+        to: "10:00",
+      },
+      donation_type: "whole",
+      notes: "",
+      status: "approved",
+      createdAt: "2025-08-03T13:05:11.717Z",
+    },
+    {
+      _id: "req3",
+      user_id: { _id: "user3", email: "lethilan@example.com" },
+      hospital: {
+        name: "Bệnh viện Nhân Dân 115",
+        address: "789 Đường C, Quận 10, TP.HCM",
+        phone: "0912345678",
+      },
+      donation_date: "2025-08-03T00:00:00.000Z",
+      donation_time_range: {
+        from: "12:00",
+        to: "14:00",
+      },
+      donation_type: "separated",
+      notes: "Ưu tiên buổi chiều",
+      status: "rejected",
+      createdAt: "2025-08-03T12:56:57.998Z",
+    },
+  ]
+
+  const [requestFilter, setRequestFilter] = useState("newest");
+
+
+
+
+  function StatusSummary({ summary }: { summary: { pending: number, approved: number, rejected: number } }) {
+    return (
+      <div className="flex gap-4 text-sm text-gray-700">
+        <Badge className="bg-yellow-100 text-yellow-800">Đang chờ: {summary.pending}</Badge>
+        <Badge className="bg-green-100 text-green-800">Đã duyệt: {summary.approved}</Badge>
+        <Badge className="bg-red-100 text-red-800">Từ chối: {summary.rejected}</Badge>
+      </div>
+    )
+  }
+
+  function translateStatus(status: string): string {
+    switch (status) {
+      case "pending": return "Đang chờ duyệt";
+      case "approved": return "Đã duyệt";
+      case "rejected": return "Đã từ chối";
+      default: return "Không rõ";
+    }
+  }
+
+  function translateDonationType(type: string): string {
+    switch (type) {
+      case "whole": return "Máu toàn phần";
+      case "separated": return "Thành phần máu";
+      default: return "Không rõ";
+    }
+  }
+
+  useEffect(() => {
+    async function fetchBloodRequests() {
+      
+      try {
+        const response2 = await api.get(`/donation-requests/donor-donation-request/hospital/${staff?.hospital?._id}`)
+        console.log("Fetched donor requests:", response2.data)
+        setTotal(response2.data.total || 0)
+        setPending(response2.data.status_summary.pending || 0)
+        setApproved(response2.data.status_summary.approved || 0)
+        setRejected(response2.data.status_summary.rejected || 0)
+        setDonationRequests(response2.data.requests || [])
+      } catch (error: any) {
+        console.error("Error fetching donor requests:", error)
+        console.error("Error details:", error.response?.data)
+        
+        // Show user-friendly error message
+        if (error.response?.status === 404) {
+          console.error("User not found or not a valid donor")
+        } else if (error.response?.status === 500) {
+          console.error("Server error occurred")
+        }
+        
+        setBloodRequests([])
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchBloodRequests()
+  }, [staff])
+
 
   const warehouseDonationsList = [
     {
@@ -695,6 +844,66 @@ export default function StaffDashboard() {
     }
   }
 
+  async function handleUpdateStatus(_id: any, arg1: string): Promise<void> {
+    if (!window.confirm("Bạn có chắc chắn muốn chấp nhận yêu cầu hiến máu này?")) {
+      return
+    }
+
+    try {
+      await api.put(`/donation-requests/donor-donation-request/approve/${_id}`)
+
+      // Cập nhật state local
+      setDonationRequests(prev => 
+        prev.map(req => 
+          req._id === _id 
+            ? { ...req, status: "approved" }
+            : req
+        )
+      )
+
+      console.log(donationRequests)
+
+      setApproved(prev => prev + 1)
+      setPending(prev => prev - 1)
+
+      toast.success("Đã chấp nhận yêu cầu hiến máu thành công!")
+    } catch (error: any) {
+      console.error("Error cancelling request:", error)
+      const errorMessage = error.response?.data?.message || "Đã xảy ra lỗi khi hủy yêu cầu."
+      toast.error(errorMessage)
+    }
+  }
+
+  async function handleCancelStatus(_id: any, arg1: string): Promise<void> {
+    if (!window.confirm("Bạn có chắc chắn muốn hủy yêu cầu hiến máu này?")) {
+      return
+    }
+
+    try {
+      await api.put(`/donation-requests/donor-donation-request/reject/${_id}`)
+
+      // Cập nhật state local
+      setDonationRequests(prev => 
+        prev.map(req => 
+          req._id === _id 
+            ? { ...req, status: "rejected" }
+            : req
+        )
+      )
+
+      console.log(donationRequests)
+
+      setRejected(prev => prev + 1)
+      setPending(prev => prev - 1)
+      
+      toast.success("Đã hủy yêu cầu hiến máu thành công!")
+    } catch (error: any) {
+      console.error("Error cancelling request:", error)
+      const errorMessage = error.response?.data?.message || "Đã xảy ra lỗi khi hủy yêu cầu."
+      toast.error(errorMessage)
+    }
+  }
+
   return (
     <ProtectedRoute requiredRole="staff">
       <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -761,11 +970,11 @@ export default function StaffDashboard() {
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Yêu cầu máu</CardTitle>
+                <CardTitle className="text-sm font-medium">Yêu cầu hiến máu</CardTitle>
                 <Hospital className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-orange-600">{staffStats.pendingRequests}</div>
+                <div className="text-2xl font-bold text-orange-600">{pending}</div>
                 <p className="text-xs text-muted-foreground">đang chờ xử lý</p>
               </CardContent>
             </Card>
@@ -807,11 +1016,81 @@ export default function StaffDashboard() {
           </div>
 
           <Tabs defaultValue="inventory" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="donation-requests">Yêu cầu hiến máu</TabsTrigger>
               <TabsTrigger value="inventory">Kho máu</TabsTrigger>
               <TabsTrigger value="requests">Yêu cầu máu</TabsTrigger>
               <TabsTrigger value="reports">Quản lý lịch trình hiến máu</TabsTrigger>
             </TabsList>
+
+            <TabsContent value="donation-requests" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <span>Quản lý yêu cầu hiến máu</span>
+                    <Select onValueChange={setRequestFilter} defaultValue="newest">
+                      <SelectTrigger className="w-48">
+                        <SelectValue placeholder="Sắp xếp theo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="newest">Mới nhất</SelectItem>
+                        <SelectItem value="oldest">Cũ nhất</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </CardTitle>
+                  <CardDescription>Quản lý các yêu cầu hiến máu đã gửi bởi người dùng</CardDescription>
+                  <StatusSummary summary={{ pending: pending, approved: approved, rejected: rejected }} />
+                </CardHeader>
+
+                <CardContent>
+                  <div className="space-y-4">
+                    {donationRequests.map((request: any) => (
+                      <div
+                        key={request._id}
+                        className="p-4 border rounded-lg hover:bg-gray-50 transition space-y-2"
+                      >
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <p><strong>Email:</strong> {request.user_id.email}</p>
+                            <p><strong>Ngày hiến:</strong> {formatDate(request.donation_date)}</p>
+                            <p><strong>Khung giờ:</strong> {request.donation_time_range.from} - {request.donation_time_range.to}</p>
+                            <p><strong>Loại hiến:</strong> {translateDonationType(request.donation_type)}</p>
+                            <p><strong>Ghi chú:</strong> {request.notes || "Không có"}</p>
+                          </div>
+                          <div className="flex flex-col items-end gap-1">
+                            <Badge className={getStatusColor(request.status)}>
+                              {translateStatus(request.status)}
+                            </Badge>
+                            <p className="text-sm text-gray-600">Ngày tạo: {formatDate(request.createdAt)}</p>
+
+                            {/* Nút xử lý nếu còn trạng thái pending */}
+                            {request.status === "pending" && (
+                              <div className="flex gap-2 mt-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleUpdateStatus(request._id, "approved")}
+                                >
+                                  Chấp nhận
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => handleCancelStatus(request._id, "rejected")}
+                                >
+                                  Từ chối
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
 
             <TabsContent value="inventory" className="space-y-6">
               <Card>

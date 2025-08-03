@@ -127,9 +127,6 @@ export default function DonorRequestHistoryPage() {
         setApproved(response2.data.status_summary.approved || 0)
         setRejected(response2.data.status_summary.rejected || 0)
         setDonationRequests(response2.data.requests || [])
-        const response = await api.get(`/users/donor/get-requests-by-id/${user._id}`)
-        console.log("API Response:", response.data)
-        setBloodRequests(response.data.requests || [])
       } catch (error: any) {
         console.error("Error fetching donor requests:", error)
         console.error("Error details:", error.response?.data)

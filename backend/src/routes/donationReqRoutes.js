@@ -2,7 +2,9 @@ import express from "express";
 import {
     createDonorDonationRequest,
     getDonorDonationRequestsByUserId,
-    rejectDonationRequestById
+    rejectDonationRequestById,
+    getDonorDonationRequestsByHospitalId,
+    approveDonationRequestById
 } from "../controllers/donorDonationRequestController.js";
 
 const router = express.Router();
@@ -10,5 +12,7 @@ const router = express.Router();
 router.post("/donor-donation-request/create", createDonorDonationRequest);
 router.get("/donor-donation-request/user/:user_id", getDonorDonationRequestsByUserId);
 router.put("/donor-donation-request/reject/:request_id", rejectDonationRequestById);
+router.get("/donor-donation-request/hospital/:hospital_id", getDonorDonationRequestsByHospitalId);
+router.put("/donor-donation-request/approve/:request_id", approveDonationRequestById);
 
 export default router;
