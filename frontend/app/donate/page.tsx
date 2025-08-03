@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -22,11 +22,17 @@ import { Footer } from "@/components/footer"
 import { useAuth } from "@/contexts/auth-context"
 import { GuestAccessWarning } from "@/components/auth/guest-access-warning"
 import { ProtectedRoute } from "@/components/auth/protected-route"
-import { toast } from "@/hooks/use-toast"
+import toast, { Toaster } from "react-hot-toast"
 import api from "@/lib/axios"
+import { useSearchParams } from "next/navigation"
 
 export default function DonatePage() {
   const { user, isLoading } = useAuth()
+  const searchParams = useSearchParams()
+  const requestId = searchParams.get("hospital")
+
+  const [hospital, setHospital] = useState({name: "", address: ""});
+
   
   // Sử dụng ngày địa phương thay vì UTC để tránh bị lùi ngày
   const today = new Date();
@@ -43,14 +49,33 @@ export default function DonatePage() {
   const [formData, setFormData] = useState({
     available_date: todayString,
     available_time_range: {
-      from: "",
-      to: "",
+      from: "8:00",
+      to: "10:00",
     },
     amount_offered: "",
+    donation_types: "whole",
     components_offered: [] as string[],
     hospital: "",
     notes: "",
   });
+
+  useEffect(() => {
+    async function setHospitals() {
+      try {
+        const response = await api.get("/hospital/");
+        const hospitals = response.data.hospitals;
+
+        const matchedHospital = hospitals.find((hospital: { _id: string }) => hospital._id === requestId)
+        setHospital(matchedHospital);
+      } catch (error) {
+        toast.error("Có lỗi xảy ra khi lấy thông tin bệnh viện")
+      }
+    }
+    if(requestId){
+      setHospitals();
+    }
+    
+  }, [])
 
   const bloodTypes = ["O-", "O+", "A-", "A+", "B-", "B+", "AB-", "AB+"]
   const timeSlots = ["8:00 - 10:00", "10:00 - 12:00", "12:00 - 14:00", "14:00 - 16:00", "16:00 - 18:00", "18:00 - 20:00"]
@@ -114,7 +139,7 @@ export default function DonatePage() {
     )
   }
 
-  if (user.role !== "donor") {
+  if (user.role !== "user") {
     return (
       <div className="min-h-screen bg-gradient-to-br from-red-50 via-pink-50 to-rose-100 flex flex-col">
         <Header />
@@ -144,11 +169,7 @@ export default function DonatePage() {
     try {
       // Validate required fields
       if (!formData.available_date) {
-        toast({
-          variant: "destructive",
-          title: "Lỗi",
-          description: "Vui lòng chọn ngày hiến máu.",
-        })
+        toast.error("Vui lòng chọn ngày hiến máu.")
         return;
       }
 
@@ -158,52 +179,23 @@ export default function DonatePage() {
       const maxDateObj = new Date(maxDateString);
       
       if (selectedDate < todayDate) {
-        toast({
-          variant: "destructive",
-          title: "Lỗi",
-          description: "Ngày hiến máu không thể là ngày trong quá khứ.",
-        })
+        toast.error("Ngày hiến máu không thể là ngày trong quá khứ.")
         return;
       }
       
       if (selectedDate > maxDateObj) {
-        toast({
-          variant: "destructive",
-          title: "Lỗi",
-          description: "Ngày hiến máu không thể quá 3 tháng từ hôm nay.",
-        })
+        toast.error("Ngày hiến máu không thể quá 3 tháng từ hôm nay.")
         return;
       }
 
       if (!formData.available_time_range.from || !formData.available_time_range.to) {
-        toast({
-          variant: "destructive",
-          title: "Lỗi",
-          description: "Vui lòng chọn khung giờ hiến máu.",
-        })
+        toast.error("Vui lòng chọn khung giờ hiến máu.")
         return;
       }
-
-      if (!formData.amount_offered) {
-        toast({
-          variant: "destructive",
-          title: "Lỗi",
-          description: "Vui lòng nhập lượng máu dự kiến hiến (ml).",
-        })
-        return;
-      }
-
-      console.log("Submitting form with user:", user)
-      console.log("Form data:", formData)
-      console.log("API Base URL:", process.env.NODE_ENV === "development" ? "http://localhost:5001/api" : "/api")
 
       // Validate user
       if (!user || !user._id) {
-        toast({
-          variant: "destructive",
-          title: "Lỗi",
-          description: "Vui lòng đăng nhập trước khi đăng ký hiến máu!",
-        })
+        toast.error("Vui lòng đăng nhập trước khi đăng ký hiến máu!")
         return;
       }
 
@@ -215,15 +207,7 @@ export default function DonatePage() {
         full_name: user.full_name
       });
 
-      // Validate form data before submitting
-      if (formData.components_offered.length === 0) {
-        toast({
-          variant: "destructive",
-          title: "Lỗi",
-          description: "Vui lòng chọn ít nhất một thành phần máu để hiến.",
-        })
-        return;
-      }
+      
 
       const requestData = {
         donor_id: user._id,
@@ -242,19 +226,11 @@ export default function DonatePage() {
         // Show success state
         setShowSuccessMessage(true);
         
-        toast({
-          title: "🎉 Đăng ký hiến máu thành công!",
-          description: `Cảm ơn bạn đã đăng ký hiến ${formData.amount_offered}ml máu vào ngày ${formData.available_date} từ ${formData.available_time_range.from} - ${formData.available_time_range.to}. Chúng tôi sẽ liên hệ với bạn sớm nhất!`,
-          duration: 6000,
-        })
+        toast.success(`Cảm ơn bạn đã đăng ký hiến ${formData.amount_offered}ml máu vào ngày ${formData.available_date} từ ${formData.available_time_range.from} - ${formData.available_time_range.to}. Chúng tôi sẽ liên hệ với bạn sớm nhất!`,)
         
         // Show additional success message
         setTimeout(() => {
-          toast({
-            title: "🩸 Bạn là người hùng!",
-            description: "Hành động của bạn có thể cứu sống 3 người. Hãy theo dõi email để nhận thông báo từ chúng tôi.",
-            duration: 5000,
-          })
+          toast.success("Hành động của bạn có thể cứu sống 3 người. Hãy theo dõi email để nhận thông báo từ chúng tôi.")
         }, 2000)
         
         // Reset form after 3 seconds
@@ -294,11 +270,7 @@ export default function DonatePage() {
         errorMessage = error.response.data.message;
       }
       
-      toast({
-        variant: "destructive",
-        title: "Lỗi",
-        description: errorMessage,
-      })
+      toast.error(errorMessage)
     } finally {
       setLoading(false);
     }
@@ -313,7 +285,7 @@ export default function DonatePage() {
   }
 
   return (
-    <ProtectedRoute requiredRole="donor">
+    <ProtectedRoute requiredRole="user">
       <div className="min-h-screen bg-gradient-to-b from-red-50 to-white">
       <Header />
 
@@ -399,6 +371,20 @@ export default function DonatePage() {
                     <div className="space-y-4">
                       <div className="max-w-xl mx-auto p-6">
                         <div className="space-y-4">
+
+                          <div>
+                            <Label htmlFor="available_date">Tên Bệnh Viện</Label>
+                            <Input
+                              type="text"
+                              id="hospital"
+                              value={hospital.name}
+                              disabled
+                            />
+                            <p className="text-xs text-gray-500 mt-1">
+                              {hospital.address}
+                            </p>
+                          </div>
+
                           {/* Ngày hiến */}
                           <div>
                             <Label htmlFor="available_date">Ngày hiến máu</Label>
@@ -450,45 +436,49 @@ export default function DonatePage() {
                             </Select>
                           </div>
 
-                          {/* Lượng máu muốn hiến */}
+                          {/* Khung giờ */}
                           <div>
-                            <Label htmlFor="amount">Lượng máu (ml)</Label>
-                            <Input
-                              type="number"
-                              id="amount"
-                              value={formData.amount_offered}
-                              onChange={(e) =>
+                            <Label htmlFor="timeSlot">Loại hiến máu</Label>
+                            <Select
+                              value={formData.donation_types}
+                              onValueChange={(value) => {
                                 setFormData((prev) => ({
                                   ...prev,
-                                  amount_offered: e.target.value,
+                                  donation_types: value,
                                 }))
-                              }
-                              placeholder="Ví dụ: 350"
-                              required
-                              min={200}
-                              max={500}
-                            />
-                            <p className="text-xs text-gray-500 mt-1">
-                              Lượng máu tiêu chuẩn: 200-500ml (khuyến nghị: 350ml)
-                            </p>
+                              }}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Chọn loại hiến máu phù hợp" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                  <SelectItem key="whole" value="whole">
+                                    Hiến máu toàn phần
+                                  </SelectItem>
+                                  <SelectItem key="split" value="split">
+                                    Hiến các thành phần máu bằng gạn tách
+                                  </SelectItem>
+                              </SelectContent>
+                            </Select>
                           </div>
 
-                          {/* Thành phần máu */}
-                          <div>
-                            <Label>Thành phần muốn hiến</Label>
-                            <div className="flex gap-4 flex-wrap mt-1">
-                              {["whole", "RBC", "plasma", "platelet"].map((comp) => (
-                                <label key={comp} className="flex items-center gap-1">
-                                  <input
-                                    type="checkbox"
-                                    checked={formData.components_offered.includes(comp)}
-                                    onChange={() => handleCheckboxChange(comp)}
-                                  />
-                                  {returnNameComponentBlood(comp)}
-                                </label>
-                              ))}
+                          {(formData.donation_types === "split") &&
+                            <div>
+                              <Label>Thành phần muốn hiến</Label>
+                              <div className="flex gap-4 flex-wrap mt-1">
+                                {["RBC", "plasma", "platelet"].map((comp) => (
+                                  <label key={comp} className="flex items-center gap-1">
+                                    <input
+                                      type="checkbox"
+                                      checked={formData.components_offered.includes(comp)}
+                                      onChange={() => handleCheckboxChange(comp)}
+                                    />
+                                    {returnNameComponentBlood(comp)}
+                                  </label>
+                                ))}
+                              </div>
                             </div>
-                          </div>
+                          }
 
                           {/* Ghi chú */}
                           <div>
@@ -591,6 +581,33 @@ export default function DonatePage() {
           </div>
         </div>
       </div>
+      <Toaster
+        position="top-center"
+        containerStyle={{
+          top: 80,
+        }}
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: 'rgba(255, 255, 255, 0.95)',
+            backdropFilter: 'blur(10px)',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+          },
+          success: {
+            iconTheme: {
+              primary: '#10B981',
+              secondary: 'white',
+            },
+          },
+          error: {
+            iconTheme: {
+              primary: '#EF4444',
+              secondary: 'white',
+            },
+          },
+        }}
+      />
 
       <Footer />
       </div>

@@ -110,7 +110,7 @@ export default function DonorRequestHistoryPage() {
     return <GuestAccessWarning />
   }
 
-  if (user.role !== "donor") {
+  if (user.role !== "user") {
     return (
       <div className="min-h-screen bg-gradient-to-br from-red-50 via-pink-50 to-rose-100 flex flex-col">
         <Header />
