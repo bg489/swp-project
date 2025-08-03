@@ -13,6 +13,7 @@ import bloodInventoryRoutes from "./routes/bloodInventoryRoutes.js";
 import blogRoutes from "./routes/blogRoutes.js";
 import donationReqRoutes from "./routes/donationReqRoutes.js";
 import checkInRoutes from "./routes/checkInRoutes.js";
+import healthCheckRoutes from "./routes/healthCheckRoutes.js";
 import { connectDB } from "./config/db.js";
 
 
@@ -48,6 +49,7 @@ app.use("/api/blood-in", bloodInventoryRoutes);
 app.use("/api/blog", blogRoutes);
 app.use("/api/donation-requests", donationReqRoutes);
 app.use("/api/checkin", checkInRoutes);
+app.use("/api/health-check", healthCheckRoutes);
 
 // if (process.env.NODE_ENV === "production") {
 //   app.use(express.static(path.join(__dirname, "../frontend/dist")));

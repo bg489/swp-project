@@ -1037,7 +1037,7 @@ export default function StaffDashboard() {
     }
 
     try {
-      await api.put(`/checkin/checkins/${_id}/verify`)
+      const response = await api.put(`/checkin/checkins/${_id}/verify`)
 
       // Cập nhật state local
       setCheckIns((prev: any[]) => 
@@ -1047,6 +1047,10 @@ export default function StaffDashboard() {
             : req
         )
       )
+
+      await api.post("/health-check/create", {
+        checkin_id: response.data.checkIn._id
+      })
       
       toast.success("Đã xác minh thành công!")
     } catch (error: any) {
