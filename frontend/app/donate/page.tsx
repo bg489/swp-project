@@ -236,7 +236,7 @@ export default function DonatePage() {
         
         // Show additional success message
         setTimeout(() => {
-          toast.success("Hành động của bạn có thể cứu sống 3 người. Hãy theo dõi email để nhận thông báo từ chúng tôi.")
+          toast.success("Hành động của bạn có thể cứu sống 1 người. Hãy theo dõi email để nhận thông báo từ chúng tôi.")
         }, 2000)
         
         // Reset form after 3 seconds

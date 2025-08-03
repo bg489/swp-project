@@ -834,3 +834,27 @@ export async function checkCCCDExists(req, res) {
     return res.status(500).json({ message: "Lỗi server" });
   }
 }
+
+export async function getUserProfileByUserId(req, res) {
+  try {
+    const { userId } = req.params;
+
+    if (!userId) {
+      return res.status(400).json({ message: "Thiếu userId trong URL." });
+    }
+
+    const profile = await UserProfile.findOne({ user_id: userId }).populate("user_id", "-password_hash");
+
+    if (!profile) {
+      return res.status(404).json({ message: "Không tìm thấy hồ sơ người dùng." });
+    }
+
+    return res.status(200).json({
+      message: "Lấy hồ sơ người dùng thành công.",
+      profile,
+    });
+  } catch (error) {
+    console.error("Lỗi khi lấy UserProfile:", error);
+    res.status(500).json({ message: "Lỗi server" });
+  }
+}

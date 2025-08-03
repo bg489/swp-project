@@ -102,6 +102,66 @@ export default function StaffDashboard() {
   const [donationRequests, setDonationRequests] = useState<DonorDonationRequest[]>([])
   
 
+  
+
+
+
+  const checkInsMock = [
+    {
+      _id: "688f7749267544a714d81664",
+      user_id: {
+        _id: "688ef4f5eadc867beb1aa04e",
+        full_name: "Nguyễn Văn A",
+        email: "giabao123963@gmail.com",
+        phone: "0352573142",
+        gender: "male",
+        date_of_birth: "2004-07-20T00:00:00.000Z",
+      },
+      userprofile_id: {
+        _id: "688ef4f5eadc867beb1aa053",
+        cccd: "111111111111",
+      },
+      hospital_id: {
+        _id: "685e2769156fe3d352db3552",
+        name: "Bệnh viện Quân Dân Y Miền Đông",
+        address: "50 Lê Văn Việt, Hiệp Phú, TP. Thủ Đức, TP.HCM",
+        phone: "028 3897 0321",
+      },
+      status: "in_progress",
+      comment: "Đang chờ kiểm tra sức khoẻ",
+      createdAt: "2025-08-03T14:50:49.579Z",
+      updatedAt: "2025-08-03T14:52:00.000Z",
+    },
+
+    // ❗️Bạn có thể nhân bản đối tượng trên và thay đổi giá trị để có nhiều dòng dữ liệu:
+    {
+      _id: "688f7749267544a714d81665",
+      user_id: {
+        _id: "688ef4f5eadc867beb1aa04f",
+        full_name: "Trần Thị B",
+        email: "tranb@gmail.com",
+        phone: "0366666666",
+        gender: "female",
+        date_of_birth: "1995-03-10T00:00:00.000Z",
+      },
+      userprofile_id: {
+        _id: "688ef4f5eadc867beb1aa054",
+        cccd: "222222222222",
+      },
+      hospital_id: {
+        _id: "685e2769156fe3d352db3552",
+        name: "Bệnh viện Quân Dân Y Miền Đông",
+        address: "50 Lê Văn Việt, Hiệp Phú, TP. Thủ Đức, TP.HCM",
+        phone: "028 3897 0321",
+      },
+      status: "verified",
+      comment: "Hiến máu thành công",
+      createdAt: "2025-08-02T10:30:00.000Z",
+      updatedAt: "2025-08-02T12:00:00.000Z",
+    },
+  ];
+
+
 
   const mockDonationRequests = [
     {
@@ -180,6 +240,9 @@ export default function StaffDashboard() {
       case "pending": return "Đang chờ duyệt";
       case "approved": return "Đã duyệt";
       case "rejected": return "Đã từ chối";
+      case "verified": return "Đã xác minh";
+      case "unverified": return "Chưa xác minh";
+      case "in_progress": return "Đang xử lý";
       default: return "Không rõ";
     }
   }
@@ -816,6 +879,11 @@ export default function StaffDashboard() {
         return "bg-blue-100 text-blue-800"
       case "completed":
         return "bg-green-100 text-green-800"
+      case "verified":
+        return "bg-green-500 text-white";
+      case "unverified":
+        return "bg-red-500 text-white";
+      case "in_progress":
       default:
         return "bg-gray-100 text-gray-800"
     }
@@ -902,6 +970,18 @@ export default function StaffDashboard() {
       const errorMessage = error.response?.data?.message || "Đã xảy ra lỗi khi hủy yêu cầu."
       toast.error(errorMessage)
     }
+  }
+
+  function handleUnverifiedStatus(_id: any, arg1: string): void {
+    throw new Error("Function not implemented.")
+  }
+
+  function handleVerifiedStatus(_id: any, arg1: string): void {
+    throw new Error("Function not implemented.")
+  }
+
+  function setCheckinFilter(value: string): void {
+    throw new Error("Function not implemented.")
   }
 
   return (
@@ -1016,8 +1096,9 @@ export default function StaffDashboard() {
           </div>
 
           <Tabs defaultValue="inventory" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="donation-requests">Yêu cầu hiến máu</TabsTrigger>
+              <TabsTrigger value="check-in">Check In</TabsTrigger>
               <TabsTrigger value="inventory">Kho máu</TabsTrigger>
               <TabsTrigger value="requests">Yêu cầu máu</TabsTrigger>
               <TabsTrigger value="reports">Quản lý lịch trình hiến máu</TabsTrigger>
@@ -1090,6 +1171,80 @@ export default function StaffDashboard() {
                 </CardContent>
               </Card>
             </TabsContent>
+
+            <TabsContent value="check-in" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <span>Quản lý điểm danh hiến máu</span>
+                    <Select onValueChange={setCheckinFilter} defaultValue="newest">
+                      <SelectTrigger className="w-48">
+                        <SelectValue placeholder="Sắp xếp theo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="newest">Mới nhất</SelectItem>
+                        <SelectItem value="oldest">Cũ nhất</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </CardTitle>
+                  <CardDescription>Danh sách người dùng đã đến bệnh viện để hiến máu</CardDescription>
+                </CardHeader>
+
+                <CardContent>
+                  <div className="space-y-4">
+                    {checkInsMock.map((checkIn: any) => (
+                      <div
+                        key={checkIn._id}
+                        className="p-4 border rounded-lg hover:bg-gray-50 transition space-y-2"
+                      >
+                        <div className="flex justify-between items-start">
+                          <div className="space-y-1">
+                            <p><strong>Họ tên:</strong> {checkIn.user_id.full_name}</p>
+                            <p><strong>Email:</strong> {checkIn.user_id.email}</p>
+                            <p><strong>CCCD:</strong> {checkIn.userprofile_id?.cccd || "Không có"}</p>
+                            <p><strong>Giới tính:</strong> {checkIn.user_id.gender}</p>
+                            <p><strong>SĐT:</strong> {checkIn.user_id.phone}</p>
+                            <p><strong>Ngày sinh:</strong> {formatDate(checkIn.user_id.date_of_birth)}</p>
+                            <p><strong>Bệnh viện:</strong> {checkIn.hospital_id.name}</p>
+                            <p><strong>Địa chỉ:</strong> {checkIn.hospital_id.address}</p>
+                          </div>
+
+                          <div className="flex flex-col items-end gap-1">
+                            <Badge className={getStatusColor(checkIn.status)}>
+                              {translateStatus(checkIn.status)}
+                            </Badge>
+                            <p className="text-sm text-gray-600">
+                              Ngày điểm danh: {formatDate(checkIn.createdAt)}
+                            </p>
+
+                            {/* Nút xử lý trạng thái */}
+                            {checkIn.status === "in_progress" && (
+                              <div className="flex gap-2 mt-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleVerifiedStatus(checkIn._id, "verified")}
+                                >
+                                  Xác minh
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => handleUnverifiedStatus(checkIn._id, "unverified")}
+                                >
+                                  Huỷ xác minh
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
 
 
             <TabsContent value="inventory" className="space-y-6">
