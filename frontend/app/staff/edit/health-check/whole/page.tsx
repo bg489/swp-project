@@ -248,7 +248,16 @@ export default function HealthCheckFormPage() {
 
   async function acceptForm(): Promise<void> {
     try {
-      await api.put(`/health-check/health-check/${healthCheck}/pass`);
+      const response = await api.put(`/health-check/health-check/${healthCheck}/pass`);
+      await api.post(`/blood-test/create`, {
+        user_id: response.data.checkIn.user_id._id,
+        user_profile_id: response.data.checkIn.userprofile_id._id,
+        hospital_id: response.data.checkIn.hospital_id._id,
+        healthcheck_id: healthCheck,
+        HBsAg: false,
+        hemoglobin: 0
+      })
+
       toast.success("Chấp nhận thành công!")
       router.push("/staff/dashboard");
     } catch (error) {
@@ -303,9 +312,9 @@ export default function HealthCheckFormPage() {
               <div>
                 <div className="flex items-end gap-2">
                   <div className="flex-1">
-                <Label htmlFor="heart_rate">Nhịp tim (Tần số trong khoảng từ 60 lần đến 90 lần/phút)</Label>
-                <Input name="heart_rate" type="number" value={form.heart_rate} onChange={handleChange} />
-              </div>
+                    <Label htmlFor="heart_rate">Nhịp tim (Tần số trong khoảng từ 60 lần đến 90 lần/phút)</Label>
+                    <Input name="heart_rate" type="number" value={form.heart_rate} onChange={handleChange} />
+                  </div>
                   <Button type="button" onClick={() => saveField()} className="mt-6">
                     Lưu
                   </Button>
@@ -314,9 +323,9 @@ export default function HealthCheckFormPage() {
               <div>
                 <div className="flex items-end gap-2">
                   <div className="flex-1">
-                <Label htmlFor="blood_volume_allowed">Thể tích máu cho phép (ml)</Label>
-                <Input name="blood_volume_allowed" type="number" value={form.blood_volume_allowed} onChange={handleChange} />
-              </div>
+                    <Label htmlFor="blood_volume_allowed">Thể tích máu cho phép (ml)</Label>
+                    <Input name="blood_volume_allowed" type="number" value={form.blood_volume_allowed} onChange={handleChange} />
+                  </div>
                   <Button type="button" onClick={() => saveField()} className="mt-6">
                     Lưu
                   </Button>
@@ -325,28 +334,28 @@ export default function HealthCheckFormPage() {
               <div>
                 <div className="flex items-end gap-2">
                   <div className="flex-1">
-                <Label htmlFor="timeSlot">Triệu chứng bất thường</Label>
-                <Select
-                  value={form.abnormal_symptoms}
-                  onValueChange={(value) => {
-                    setForm((prev) => ({
-                      ...prev,
-                      abnormal_symptoms: value,
-                    }))
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="VD: Sụt cân nhanh, da nhợt nhạt, v.v" />
-                  </SelectTrigger>
-                  <SelectContent>
-                      {symptoms.map((symptom) => (
-                        <SelectItem key={symptom.value} value={symptom.value}>
-                          {symptom.label}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-                </div>
+                    <Label htmlFor="timeSlot">Triệu chứng bất thường</Label>
+                    <Select
+                      value={form.abnormal_symptoms}
+                      onValueChange={(value) => {
+                        setForm((prev) => ({
+                          ...prev,
+                          abnormal_symptoms: value,
+                        }))
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="VD: Sụt cân nhanh, da nhợt nhạt, v.v" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {symptoms.map((symptom) => (
+                          <SelectItem key={symptom.value} value={symptom.value}>
+                            {symptom.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <Button type="button" onClick={() => saveField()} className="mt-6">
                     Lưu
                   </Button>
@@ -596,161 +605,161 @@ export default function HealthCheckFormPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <Label>
-                    <Checkbox name="has_unexplained_weight_loss" checked={form.has_unexplained_weight_loss} onCheckedChange={(checked) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        has_unexplained_weight_loss: Boolean(checked),
-                      }))
-                    } />
-                    Bị sụt cân không rõ nguyên nhân
-                  </Label>
+                  <Checkbox name="has_unexplained_weight_loss" checked={form.has_unexplained_weight_loss} onCheckedChange={(checked) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      has_unexplained_weight_loss: Boolean(checked),
+                    }))
+                  } />
+                  Bị sụt cân không rõ nguyên nhân
+                </Label>
 
-                  <Label>
-                    <Checkbox name="has_night_sweats" checked={form.has_night_sweats} onCheckedChange={(checked) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        has_night_sweats: Boolean(checked),
-                      }))
-                    } />
-                    Đổ mồ hôi về đêm
-                  </Label>
+                <Label>
+                  <Checkbox name="has_night_sweats" checked={form.has_night_sweats} onCheckedChange={(checked) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      has_night_sweats: Boolean(checked),
+                    }))
+                  } />
+                  Đổ mồ hôi về đêm
+                </Label>
 
-                  <Label>
-                    <Checkbox name="has_skin_or_mucosal_tumors" checked={form.has_skin_or_mucosal_tumors} onCheckedChange={(checked) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        has_skin_or_mucosal_tumors: Boolean(checked),
-                      }))
-                    } />
-                    Có u bướu ở da hoặc niêm mạc
-                  </Label>
+                <Label>
+                  <Checkbox name="has_skin_or_mucosal_tumors" checked={form.has_skin_or_mucosal_tumors} onCheckedChange={(checked) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      has_skin_or_mucosal_tumors: Boolean(checked),
+                    }))
+                  } />
+                  Có u bướu ở da hoặc niêm mạc
+                </Label>
 
-                  <Label>
-                    <Checkbox name="has_enlarged_lymph_nodes" checked={form.has_enlarged_lymph_nodes} onCheckedChange={(checked) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        has_enlarged_lymph_nodes: Boolean(checked),
-                      }))
-                    } />
-                    Có hạch to bất thường
-                  </Label>
+                <Label>
+                  <Checkbox name="has_enlarged_lymph_nodes" checked={form.has_enlarged_lymph_nodes} onCheckedChange={(checked) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      has_enlarged_lymph_nodes: Boolean(checked),
+                    }))
+                  } />
+                  Có hạch to bất thường
+                </Label>
 
-                  <Label>
-                    <Checkbox name="has_digestive_disorder" checked={form.has_digestive_disorder} onCheckedChange={(checked) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        has_digestive_disorder: Boolean(checked),
-                      }))
-                    } />
-                    Rối loạn tiêu hóa
-                  </Label>
+                <Label>
+                  <Checkbox name="has_digestive_disorder" checked={form.has_digestive_disorder} onCheckedChange={(checked) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      has_digestive_disorder: Boolean(checked),
+                    }))
+                  } />
+                  Rối loạn tiêu hóa
+                </Label>
 
-                  <Label>
-                    <Checkbox name="has_fever_over_37_5_long" checked={form.has_fever_over_37_5_long} onCheckedChange={(checked) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        has_fever_over_37_5_long: Boolean(checked),
-                      }))
-                    } />
-                    Sốt trên 37.5°C kéo dài
-                  </Label>
-                </div>
+                <Label>
+                  <Checkbox name="has_fever_over_37_5_long" checked={form.has_fever_over_37_5_long} onCheckedChange={(checked) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      has_fever_over_37_5_long: Boolean(checked),
+                    }))
+                  } />
+                  Sốt trên 37.5°C kéo dài
+                </Label>
+              </div>
 
-                <h1>Hành vi rủi ro</h1>
+              <h1>Hành vi rủi ro</h1>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <Label>
-                    <Checkbox name="uses_illegal_drugs" checked={form.uses_illegal_drugs} onCheckedChange={(checked) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        uses_illegal_drugs: Boolean(checked),
-                      }))
-                    } />
-                    Sử dụng ma túy bất hợp pháp
-                  </Label>
+              <div className="grid grid-cols-2 gap-4">
+                <Label>
+                  <Checkbox name="uses_illegal_drugs" checked={form.uses_illegal_drugs} onCheckedChange={(checked) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      uses_illegal_drugs: Boolean(checked),
+                    }))
+                  } />
+                  Sử dụng ma túy bất hợp pháp
+                </Label>
 
-                  <Label>
-                    <Checkbox name="has_sexual_contact_with_risk_person" checked={form.has_sexual_contact_with_risk_person} onCheckedChange={(checked) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        has_sexual_contact_with_risk_person: Boolean(checked),
-                      }))
-                    } />
-                    Có quan hệ tình dục với người có nguy cơ cao (như mại dâm, nghiện, HIV...)
-                  </Label>
-                </div>
+                <Label>
+                  <Checkbox name="has_sexual_contact_with_risk_person" checked={form.has_sexual_contact_with_risk_person} onCheckedChange={(checked) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      has_sexual_contact_with_risk_person: Boolean(checked),
+                    }))
+                  } />
+                  Có quan hệ tình dục với người có nguy cơ cao (như mại dâm, nghiện, HIV...)
+                </Label>
+              </div>
 
-                <h1>Sau sinh</h1>
+              <h1>Sau sinh</h1>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <Label>
-                    <Checkbox name="has_infant_under_12_months" checked={form.has_infant_under_12_months} onCheckedChange={(checked) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        has_infant_under_12_months: Boolean(checked),
-                      }))
-                    } />
-                    Đang nuôi con dưới 12 tháng tuổi
-                  </Label>
-                </div>
+              <div className="grid grid-cols-2 gap-4">
+                <Label>
+                  <Checkbox name="has_infant_under_12_months" checked={form.has_infant_under_12_months} onCheckedChange={(checked) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      has_infant_under_12_months: Boolean(checked),
+                    }))
+                  } />
+                  Đang nuôi con dưới 12 tháng tuổi
+                </Label>
+              </div>
 
-                <h1>Tiền sử dụng thuốc</h1>
+              <h1>Tiền sử dụng thuốc</h1>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <Label>
-                    <Checkbox name="has_taken_medicine_last_week" checked={form.has_taken_medicine_last_week} onCheckedChange={(checked) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        has_taken_medicine_last_week: Boolean(checked),
-                      }))
-                    } />
-                    Đã dùng thuốc trong tuần vừa qua
-                  </Label>
-                </div>
+              <div className="grid grid-cols-2 gap-4">
+                <Label>
+                  <Checkbox name="has_taken_medicine_last_week" checked={form.has_taken_medicine_last_week} onCheckedChange={(checked) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      has_taken_medicine_last_week: Boolean(checked),
+                    }))
+                  } />
+                  Đã dùng thuốc trong tuần vừa qua
+                </Label>
+              </div>
 
-                <h1>Lời cam đoan của người hiến máu</h1>
+              <h1>Lời cam đoan của người hiến máu</h1>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <Label>
-                    <Checkbox name="declaration_understood_questions" checked={form.declaration_understood_questions} onCheckedChange={(checked) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        declaration_understood_questions: Boolean(checked),
-                      }))
-                    } required />
-                    Tôi đã hiểu rõ các câu hỏi trong phiếu sàng lọc
-                  </Label>
+              <div className="grid grid-cols-2 gap-4">
+                <Label>
+                  <Checkbox name="declaration_understood_questions" checked={form.declaration_understood_questions} onCheckedChange={(checked) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      declaration_understood_questions: Boolean(checked),
+                    }))
+                  } required />
+                  Tôi đã hiểu rõ các câu hỏi trong phiếu sàng lọc
+                </Label>
 
-                  <Label>
-                    <Checkbox name="declaration_feels_healthy" checked={form.declaration_feels_healthy} onCheckedChange={(checked) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        declaration_feels_healthy: Boolean(checked),
-                      }))
-                    } required />
-                    Tôi hiện cảm thấy khỏe mạnh
-                  </Label>
+                <Label>
+                  <Checkbox name="declaration_feels_healthy" checked={form.declaration_feels_healthy} onCheckedChange={(checked) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      declaration_feels_healthy: Boolean(checked),
+                    }))
+                  } required />
+                  Tôi hiện cảm thấy khỏe mạnh
+                </Label>
 
-                  <Label>
-                    <Checkbox name="declaration_voluntary" checked={form.declaration_voluntary} onCheckedChange={(checked) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        declaration_voluntary: Boolean(checked),
-                      }))
-                    } required />
-                    Tôi tự nguyện tham gia hiến máu
-                  </Label>
+                <Label>
+                  <Checkbox name="declaration_voluntary" checked={form.declaration_voluntary} onCheckedChange={(checked) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      declaration_voluntary: Boolean(checked),
+                    }))
+                  } required />
+                  Tôi tự nguyện tham gia hiến máu
+                </Label>
 
-                  <Label>
-                    <Checkbox name="declaration_will_report_if_risk_found" checked={form.declaration_will_report_if_risk_found} onCheckedChange={(checked) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        declaration_will_report_if_risk_found: Boolean(checked),
-                      }))
-                    } required />
-                    Tôi cam kết sẽ thông báo nếu phát hiện có yếu tố nguy cơ trước hoặc sau hiến máu
-                  </Label>
-                </div>
+                <Label>
+                  <Checkbox name="declaration_will_report_if_risk_found" checked={form.declaration_will_report_if_risk_found} onCheckedChange={(checked) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      declaration_will_report_if_risk_found: Boolean(checked),
+                    }))
+                  } required />
+                  Tôi cam kết sẽ thông báo nếu phát hiện có yếu tố nguy cơ trước hoặc sau hiến máu
+                </Label>
+              </div>
               <div className="grid grid-cols-3 gap-4 mt-6">
                 <Button type="button" onClick={() => saveField()}>
                   Lưu
@@ -767,8 +776,8 @@ export default function HealthCheckFormPage() {
         </Card>
       </div>
       <Toaster position="top-center" containerStyle={{
-          top: 80,
-        }} />
+        top: 80,
+      }} />
       <Footer />
     </div>
   );

@@ -25,7 +25,7 @@ import Image from "next/image"
 import { useAuth } from "@/contexts/auth-context"
 import { Footer } from "@/components/footer"
 import api from "@/lib/axios"
-import { useEffect, useState, useMemo, useCallback, Fragment } from "react"
+import { useEffect, useState } from "react"
 import toast, { Toaster } from "react-hot-toast"
 import { useRouter } from "next/navigation";
 
@@ -84,7 +84,6 @@ function translateComponent(component: string) {
 export default function StaffDashboard() {
   const { user, logout } = useAuth()
   const router = useRouter();
-  const [isMounted, setIsMounted] = useState(true);
   const [staff, setStaff] = useState<any>({});
   const [donorList, setDonorList] = useState<any>([]);
   const [bloodReqList, setBloodReqList] = useState<any>([]);
@@ -105,14 +104,13 @@ export default function StaffDashboard() {
   const [donationRequests, setDonationRequests] = useState<DonorDonationRequest[]>([])
   const [checkIns, setCheckIns] = useState<any>([])
   const [healthChecks, setHealthChecks] = useState<any>([])
-  const [loading, setLoading] = useState(true)
-  const [checkinFilter, setCheckinFilter] = useState("newest")
-  
+  const [bloodTests, setBloodTests] = useState<any>([])
+  const [bloodUnits, setBloodUnits] = useState<any>([])
+
 
   const test = [
-    {
-        "checkIn": {
-            "_id": "688fde414f0215256112040b",
+        {
+            "_id": "6890af2575d4d1f242a0f5c3",
             "user_id": {
                 "_id": "688ef4f5eadc867beb1aa04e",
                 "full_name": "Nguyễn Văn A",
@@ -121,38 +119,20 @@ export default function StaffDashboard() {
                 "gender": "male",
                 "date_of_birth": "2004-07-20T00:00:00.000Z"
             },
-            "userprofile_id": {
+            "user_profile_id": {
                 "_id": "688ef4f5eadc867beb1aa053",
                 "cccd": "111111111111"
             },
-            "hospital_id": {
-                "_id": "685e2769156fe3d352db3552",
-                "name": "Bệnh viện Quân Dân Y Miền Đông",
-                "address": "50 Lê Văn Việt, Hiệp Phú, TP. Thủ Đức, TP.HCM",
-                "phone": "028 3897 0321"
-            },
-            "donorDonationRequest_id": {
-                "donation_time_range": {
-                    "from": "12:00",
-                    "to": "14:00"
-                },
-                "_id": "688fb1ffe10cfe4a9a1d786a",
-                "donation_date": "2025-08-04T00:00:00.000Z",
-                "donation_type": "whole",
-                "notes": "",
-                "status": "approved"
-            },
-            "status": "verified"
+            "hospital_id": "685e2769156fe3d352db3552",
+            "volumeOrWeight": 250,
+            "notes": "",
+            "status": "pending",
+            "__v": 0,
+            "createdAt": "2025-08-04T13:01:25.258Z",
+            "updatedAt": "2025-08-04T13:01:25.258Z"
         },
-        "healthCheck": {
-            "_id": "688fdf8eb94820b2e2f921ac",
-            "checkin_id": "688fde414f0215256112040b"
-        },
-        "status": "pending"
-    },
-    {
-        "checkIn": {
-            "_id": "688fda3bceafdc6bbe71249e",
+        {
+            "_id": "6890af2575d4d1f242a0f5c4",
             "user_id": {
                 "_id": "688ef4f5eadc867beb1aa04e",
                 "full_name": "Nguyễn Văn A",
@@ -161,113 +141,96 @@ export default function StaffDashboard() {
                 "gender": "male",
                 "date_of_birth": "2004-07-20T00:00:00.000Z"
             },
-            "userprofile_id": {
+            "user_profile_id": {
                 "_id": "688ef4f5eadc867beb1aa053",
                 "cccd": "111111111111"
             },
-            "hospital_id": {
-                "_id": "685e2769156fe3d352db3552",
-                "name": "Bệnh viện Quân Dân Y Miền Đông",
-                "address": "50 Lê Văn Việt, Hiệp Phú, TP. Thủ Đức, TP.HCM",
-                "phone": "028 3897 0321"
-            },
-            "donorDonationRequest_id": {
-                "donation_time_range": {
-                    "from": "8:00",
-                    "to": "10:00"
-                },
-                "_id": "688fda01ceafdc6bbe712438",
-                "donation_date": "2025-08-04T00:00:00.000Z",
-                "donation_type": "whole",
-                "notes": "",
-                "status": "approved"
-            },
-            "status": "verified"
-        },
-        "healthCheck": {
-            "_id": "688fdfefb94820b2e2f921da",
-            "checkin_id": "688fda3bceafdc6bbe71249e"
-        },
-        "status": "pending"
-    }
-]
+            "hospital_id": "685e2769156fe3d352db3552",
+            "volumeOrWeight": 250,
+            "notes": "",
+            "status": "pending",
+            "__v": 0,
+            "createdAt": "2025-08-04T13:01:25.258Z",
+            "updatedAt": "2025-08-04T13:01:25.258Z"
+        }
+    ]
 
 
 
   const checkInsMock = [
-  {
-    _id: "688f99816269d09759193953",
-    user_id: {
-      _id: "688ef4f5eadc867beb1aa04e",
-      full_name: "Nguyễn Văn A",
-      email: "giabao123963@gmail.com",
-      phone: "0352573142",
-      gender: "male",
-      date_of_birth: "2004-07-20T00:00:00.000Z",
-    },
-    userprofile_id: {
-      _id: "688ef4f5eadc867beb1aa053",
-      cccd: "111111111111",
-    },
-    hospital_id: {
-      _id: "685e2769156fe3d352db3552",
-      name: "Bệnh viện Quân Dân Y Miền Đông",
-      address: "50 Lê Văn Việt, Hiệp Phú, TP. Thủ Đức, TP.HCM",
-      phone: "028 3897 0321",
-    },
-    donorDonationRequest_id: {
-      _id: "688f6dae5f82851d117eca19",
-      donation_time_range: {
-        from: "12:00",
-        to: "14:00",
+    {
+      _id: "688f99816269d09759193953",
+      user_id: {
+        _id: "688ef4f5eadc867beb1aa04e",
+        full_name: "Nguyễn Văn A",
+        email: "giabao123963@gmail.com",
+        phone: "0352573142",
+        gender: "male",
+        date_of_birth: "2004-07-20T00:00:00.000Z",
       },
-      donation_date: "2025-08-03T00:00:00.000Z",
-      donation_type: "whole",
-      notes: "dfff",
-      status: "approved",
-    },
-    status: "in_progress",
-    comment: "",
-    createdAt: "2025-08-03T17:16:49.712Z",
-    updatedAt: "2025-08-03T17:16:49.712Z",
-  },
-  {
-    _id: "688f7749267544a714d81664",
-    user_id: {
-      _id: "688ef4f5eadc867beb1aa04e",
-      full_name: "Nguyễn Văn A",
-      email: "giabao123963@gmail.com",
-      phone: "0352573142",
-      gender: "male",
-      date_of_birth: "2004-07-20T00:00:00.000Z",
-    },
-    userprofile_id: {
-      _id: "688ef4f5eadc867beb1aa053",
-      cccd: "111111111111",
-    },
-    hospital_id: {
-      _id: "685e2769156fe3d352db3552",
-      name: "Bệnh viện Quân Dân Y Miền Đông",
-      address: "50 Lê Văn Việt, Hiệp Phú, TP. Thủ Đức, TP.HCM",
-      phone: "028 3897 0321",
-    },
-    donorDonationRequest_id: {
-      _id: "688f6dae5f82851d117eca19",
-      donation_time_range: {
-        from: "12:00",
-        to: "14:00",
+      userprofile_id: {
+        _id: "688ef4f5eadc867beb1aa053",
+        cccd: "111111111111",
       },
-      donation_date: "2025-08-03T00:00:00.000Z",
-      donation_type: "whole",
-      notes: "dfff",
-      status: "approved",
+      hospital_id: {
+        _id: "685e2769156fe3d352db3552",
+        name: "Bệnh viện Quân Dân Y Miền Đông",
+        address: "50 Lê Văn Việt, Hiệp Phú, TP. Thủ Đức, TP.HCM",
+        phone: "028 3897 0321",
+      },
+      donorDonationRequest_id: {
+        _id: "688f6dae5f82851d117eca19",
+        donation_time_range: {
+          from: "12:00",
+          to: "14:00",
+        },
+        donation_date: "2025-08-03T00:00:00.000Z",
+        donation_type: "whole",
+        notes: "dfff",
+        status: "approved",
+      },
+      status: "in_progress",
+      comment: "",
+      createdAt: "2025-08-03T17:16:49.712Z",
+      updatedAt: "2025-08-03T17:16:49.712Z",
     },
-    status: "in_progress",
-    comment: "",
-    createdAt: "2025-08-03T14:50:49.579Z",
-    updatedAt: "2025-08-03T14:50:49.579Z",
-  },
-]
+    {
+      _id: "688f7749267544a714d81664",
+      user_id: {
+        _id: "688ef4f5eadc867beb1aa04e",
+        full_name: "Nguyễn Văn A",
+        email: "giabao123963@gmail.com",
+        phone: "0352573142",
+        gender: "male",
+        date_of_birth: "2004-07-20T00:00:00.000Z",
+      },
+      userprofile_id: {
+        _id: "688ef4f5eadc867beb1aa053",
+        cccd: "111111111111",
+      },
+      hospital_id: {
+        _id: "685e2769156fe3d352db3552",
+        name: "Bệnh viện Quân Dân Y Miền Đông",
+        address: "50 Lê Văn Việt, Hiệp Phú, TP. Thủ Đức, TP.HCM",
+        phone: "028 3897 0321",
+      },
+      donorDonationRequest_id: {
+        _id: "688f6dae5f82851d117eca19",
+        donation_time_range: {
+          from: "12:00",
+          to: "14:00",
+        },
+        donation_date: "2025-08-03T00:00:00.000Z",
+        donation_type: "whole",
+        notes: "dfff",
+        status: "approved",
+      },
+      status: "in_progress",
+      comment: "",
+      createdAt: "2025-08-03T14:50:49.579Z",
+      updatedAt: "2025-08-03T14:50:49.579Z",
+    },
+  ]
 
 
 
@@ -352,6 +315,8 @@ export default function StaffDashboard() {
       case "verified": return "Đã xác minh";
       case "unverified": return "Chưa xác minh";
       case "in_progress": return "Đang xử lý";
+      case "donated": return "Đã hiến";
+      case "expired": return "Đã hết hạn";
       case "passed": return "Đã thông qua";
       case "failed": return "Bị từ chối";
       default: return "Không rõ";
@@ -368,14 +333,9 @@ export default function StaffDashboard() {
 
   useEffect(() => {
     async function fetchBloodRequests() {
-      // Only proceed if staff and hospital data are available
-      if (!staff?.hospital?._id) {
-        console.log("Staff hospital ID not yet available, skipping blood requests fetch")
-        return
-      }
-      
+
       try {
-        const response2 = await api.get(`/donation-requests/donor-donation-request/hospital/${staff.hospital._id}`)
+        const response2 = await api.get(`/donation-requests/donor-donation-request/hospital/${staff?.hospital?._id}`)
         console.log("Fetched donor requests:", response2.data)
         setTotal(response2.data.total || 0)
         setPending(response2.data.status_summary.pending || 0)
@@ -385,37 +345,22 @@ export default function StaffDashboard() {
       } catch (error: any) {
         console.error("Error fetching donor requests:", error)
         console.error("Error details:", error.response?.data)
-        
+
         // Show user-friendly error message
         if (error.response?.status === 404) {
-          console.error("No donation requests found for this hospital")
+          console.error("User not found or not a valid donor")
         } else if (error.response?.status === 500) {
           console.error("Server error occurred")
         }
-        
-        setDonationRequests([])
+
+        setBloodRequests([])
+      } finally {
+        setLoading(false)
       }
     }
 
     fetchBloodRequests()
   }, [staff])
-
-  // Cleanup function to prevent memory leaks and DOM corruption
-  useEffect(() => {
-    setIsMounted(true);
-    return () => {
-      // Cleanup any pending state updates on unmount
-      setIsMounted(false);
-      setLoading(false);
-    };
-  }, []);
-
-  // Safe state update helper
-  const safeSetState = useCallback((setter: Function, value: any) => {
-    if (isMounted) {
-      setter(value);
-    }
-  }, [isMounted]);
 
 
   const warehouseDonationsList = [
@@ -505,19 +450,14 @@ export default function StaffDashboard() {
 
   const handleStatusUpdate = async (newStatus: string, donationId: string) => {
     try {
-      if (!newStatus || !donationId) {
-        toast.error("Tham số không hợp lệ");
-        return;
-      }
-
       await api.put(`/staff/donations/${donationId}/update-status`, {
         status: newStatus,
       });
 
       setDonationList((prev: any) =>
-        prev?.map((donation: any) =>
+        prev.map((donation: any) =>
           donation._id === donationId ? { ...donation, status: newStatus } : donation
-        ) || []
+        )
       );
 
       toast.success(`Đã thay đổi status thành ${newStatus}`)
@@ -552,18 +492,12 @@ export default function StaffDashboard() {
 
   const handleWarehouseStatusUpdate = async (newStatus: string, donationId: string) => {
     try {
-      if (!newStatus || !donationId) {
-        toast.error("Tham số không hợp lệ");
-        return;
-      }
-
       await api.put(`/staff/donations-blood-inventory/${donationId}/update-status`, {
         status: newStatus,
       });
 
-      setWarehouseDonationsList2((prev: any) => {
-        if (!prev) return [];
-        return prev.map((donation: any) => {
+      setWarehouseDonationsList2((prev: any) =>
+        prev.map((donation: any) => {
           if (donation._id !== donationId) return donation;
 
           const isCancelling = newStatus === "cancelled" && donation.status !== "cancelled";
@@ -590,8 +524,8 @@ export default function StaffDashboard() {
               quantity: updatedQuantity,
             },
           };
-        });
-      });
+        })
+      );
 
       toast.success(`Đã thay đổi status thành ${newStatus}`)
 
@@ -833,7 +767,7 @@ export default function StaffDashboard() {
   }
 
   // Function to sort blood requests based on filter
-  const getSortedBloodRequests = useCallback((requests: any[]) => {
+  const getSortedBloodRequests = (requests: any[]) => {
     if (!Array.isArray(requests)) return [];
 
     const sortedRequests = [...requests];
@@ -853,70 +787,12 @@ export default function StaffDashboard() {
       default:
         return sortedRequests;
     }
-  }, [bloodRequestFilter]);
-
-  // Function to sort check-ins based on filter
-  const getSortedCheckIns = useCallback((checkIns: any[]) => {
-    if (!Array.isArray(checkIns)) return [];
-
-    const sortedCheckIns = [...checkIns];
-
-    switch (checkinFilter) {
-      case "newest":
-        return sortedCheckIns.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      case "oldest":
-        return sortedCheckIns.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-      default:
-        return sortedCheckIns;
-    }
-  }, [checkinFilter]);
-
-  // Function to sort health checks based on filter
-  const getSortedHealthChecks = useCallback((healthChecks: any[]) => {
-    if (!Array.isArray(healthChecks)) return [];
-
-    const sortedHealthChecks = [...healthChecks];
-
-    switch (checkinFilter) {
-      case "newest":
-        return sortedHealthChecks.sort((a, b) => new Date(b.checkIn?.createdAt || 0).getTime() - new Date(a.checkIn?.createdAt || 0).getTime());
-      case "oldest":
-        return sortedHealthChecks.sort((a, b) => new Date(a.checkIn?.createdAt || 0).getTime() - new Date(b.checkIn?.createdAt || 0).getTime());
-      default:
-        return sortedHealthChecks;
-    }
-  }, [checkinFilter]);
-
-  // Memoized computed values to prevent unnecessary re-renders
-  const sortedDonationRequests = useMemo(() => {
-    if (!Array.isArray(donationRequests)) return [];
-    const sorted = [...donationRequests];
-    switch (requestFilter) {
-      case "newest":
-        return sorted.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      case "oldest":
-        return sorted.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-      default:
-        return sorted;
-    }
-  }, [donationRequests, requestFilter]);
-
-  const sortedCheckIns = useMemo(() => getSortedCheckIns(checkIns), [checkIns, getSortedCheckIns]);
-  const sortedHealthChecks = useMemo(() => getSortedHealthChecks(healthChecks), [healthChecks, getSortedHealthChecks]);
-  const sortedBloodRequests = useMemo(() => getSortedBloodRequests(bloodReqList.data || []), [bloodReqList.data, getSortedBloodRequests]);
-
-  // Helper function to safely get select values
-  const getSelectValue = (stateObject: { [key: string]: string }, key: string): string => {
-    return stateObject[key] ?? "";
   };
 
   useEffect(() => {
     async function fetchProfile() {
       try {
-        if (!user?._id) {
-          setLoading(false)
-          return
-        }
+        if (!user?._id) return;
 
         const profileRes = await api.get(`/users/staff-profiles/active/${user._id}`);
         const staffData = profileRes.data.staffProfile;
@@ -983,22 +859,20 @@ export default function StaffDashboard() {
           const hChecks = await api.get(`/health-check/hospital/${staffData.hospital._id}/checkin-statuses`);
           setHealthChecks(hChecks.data);
 
-          // Set loading to false after all data is loaded
-          setLoading(false)
-        } else {
-          // If no hospital data, still set loading to false
-          setLoading(false)
+          const bTests = await api.get(`/blood-test/hospital/${staffData.hospital._id}/blood-tests`);
+          setBloodTests(bTests.data);
+
+          const bUnits = await api.get(`/whole-blood/hospital/${staffData.hospital._id}/whole-blood-units`);
+          setBloodUnits(bUnits.data.units);
+
         }
       } catch (error) {
         console.error("Failed to fetch staff profile or hospital:", error);
-        setLoading(false)
       }
     }
 
     if (user?._id) {
       fetchProfile();
-    } else {
-      setLoading(false)
     }
   }, [user]);
 
@@ -1095,10 +969,12 @@ export default function StaffDashboard() {
       case "passed":
         return "bg-green-100 text-green-800"
       case "verified":
+      case "donated":
         return "bg-green-500 text-white";
       case "unverified":
       case "failed":
       case "rejected":
+      case "expired":
         return "bg-red-500 text-white";
       case "in_progress":
       default:
@@ -1138,9 +1014,9 @@ export default function StaffDashboard() {
       const response = await api.put(`/donation-requests/donor-donation-request/approve/${_id}`)
 
       // Cập nhật state local
-      setDonationRequests(prev => 
-        prev.map(req => 
-          req._id === _id 
+      setDonationRequests(prev =>
+        prev.map(req =>
+          req._id === _id
             ? { ...req, status: "approved" }
             : req
         )
@@ -1177,9 +1053,9 @@ export default function StaffDashboard() {
       await api.put(`/donation-requests/donor-donation-request/reject/${_id}`)
 
       // Cập nhật state local
-      setDonationRequests(prev => 
-        prev.map(req => 
-          req._id === _id 
+      setDonationRequests(prev =>
+        prev.map(req =>
+          req._id === _id
             ? { ...req, status: "rejected" }
             : req
         )
@@ -1189,7 +1065,7 @@ export default function StaffDashboard() {
 
       setRejected(prev => prev + 1)
       setPending(prev => prev - 1)
-      
+
       toast.success("Đã hủy yêu cầu hiến máu thành công!")
     } catch (error: any) {
       console.error("Error cancelling request:", error)
@@ -1207,14 +1083,14 @@ export default function StaffDashboard() {
       await api.put(`/checkin/unverify/${_id}`)
 
       // Cập nhật state local
-      setCheckIns((prev: any[]) => 
-        prev.map(req => 
-          req._id === _id 
+      setCheckIns((prev: any[]) =>
+        prev.map(req =>
+          req._id === _id
             ? { ...req, status: "unverified" }
             : req
         )
       )
-      
+
       toast.success("Đã hủy xác minh thành công!")
     } catch (error: any) {
       console.error("Error cancelling request:", error)
@@ -1232,9 +1108,9 @@ export default function StaffDashboard() {
       const response = await api.put(`/checkin/checkins/${_id}/verify`)
 
       // Cập nhật state local
-      setCheckIns((prev: any[]) => 
-        prev.map(req => 
-          req._id === _id 
+      setCheckIns((prev: any[]) =>
+        prev.map(req =>
+          req._id === _id
             ? { ...req, status: "verified" }
             : req
         )
@@ -1244,7 +1120,7 @@ export default function StaffDashboard() {
         checkin_id: response.data.checkIn._id,
         hospital_id: staff.hospital._id
       })
-      
+
       toast.success("Đã xác minh thành công!")
     } catch (error: any) {
       console.error("Error cancelling request:", error)
@@ -1253,21 +1129,20 @@ export default function StaffDashboard() {
     }
   }
 
+  function setCheckinFilter(value: string): void {
+    throw new Error("Function not implemented.")
+  }
+
   function handleCardClick(_id: any, name: string): void {
     router.push(`/staff/edit/health-check/whole?healthCheck=${_id}&name=${name}`);
   }
 
+  function handleBloodTestClick(_id: any, name: string): void {
+    router.push(`/staff/edit/blood-test/whole?bloodTestId=${_id}&name=${name}`);
+  }
+
   return (
     <ProtectedRoute requiredRole="staff">
-      {loading ? (
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-red-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Đang tải dữ liệu...</p>
-          </div>
-        </div>
-      ) : (
-      <Fragment>
       <div className="min-h-screen bg-gray-50 flex flex-col">
         {/* Staff Header */}
         <header className="bg-white border-b sticky top-0 z-50">
@@ -1378,10 +1253,12 @@ export default function StaffDashboard() {
           </div>
 
           <Tabs defaultValue="inventory" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-6">
+            <TabsList className="grid w-full grid-cols-8">
               <TabsTrigger value="donation-requests">Yêu cầu hiến máu</TabsTrigger>
               <TabsTrigger value="check-in">Check In</TabsTrigger>
               <TabsTrigger value="health-check">Khám</TabsTrigger>
+              <TabsTrigger value="blood-test">Xét nghiệm máu</TabsTrigger>
+              <TabsTrigger value="blood-unit">Đơn vị máu</TabsTrigger>
               <TabsTrigger value="inventory">Kho máu</TabsTrigger>
               <TabsTrigger value="requests">Yêu cầu máu</TabsTrigger>
               <TabsTrigger value="reports">Quản lý lịch trình hiến máu</TabsTrigger>
@@ -1392,7 +1269,7 @@ export default function StaffDashboard() {
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                     <span>Quản lý yêu cầu hiến máu</span>
-                    <Select onValueChange={setRequestFilter} value={requestFilter}>
+                    <Select onValueChange={setRequestFilter} defaultValue="newest">
                       <SelectTrigger className="w-48">
                         <SelectValue placeholder="Sắp xếp theo" />
                       </SelectTrigger>
@@ -1408,9 +1285,9 @@ export default function StaffDashboard() {
 
                 <CardContent>
                   <div className="space-y-4">
-                    {Array.isArray(sortedDonationRequests) && sortedDonationRequests.length > 0 ? sortedDonationRequests.map((request: any) => (
+                    {donationRequests.map((request: any) => (
                       <div
-                        key={request._id || `req-${Math.random()}`}
+                        key={request._id}
                         className="p-4 border rounded-lg hover:bg-gray-50 transition space-y-2"
                       >
                         <div className="flex justify-between items-start">
@@ -1449,9 +1326,7 @@ export default function StaffDashboard() {
                           </div>
                         </div>
                       </div>
-                    )) : (
-                      <p className="text-gray-600">Không có yêu cầu hiến máu nào.</p>
-                    )}
+                    ))}
                   </div>
                 </CardContent>
               </Card>
@@ -1461,8 +1336,8 @@ export default function StaffDashboard() {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
-                    <span>Quản lý điểm danh hiến máu</span>
-                    <Select onValueChange={setCheckinFilter} value={checkinFilter}>
+                    <span>Check in hiến máu</span>
+                    <Select onValueChange={setCheckinFilter} defaultValue="newest">
                       <SelectTrigger className="w-48">
                         <SelectValue placeholder="Sắp xếp theo" />
                       </SelectTrigger>
@@ -1473,15 +1348,15 @@ export default function StaffDashboard() {
                     </Select>
                   </CardTitle>
                   <CardDescription>
-                    Danh sách người dùng đã đến bệnh viện để hiến máu
+                    Danh sách người dùng đến bệnh viện để check in
                   </CardDescription>
                 </CardHeader>
 
                 <CardContent>
                   <div className="space-y-4">
-                    {Array.isArray(sortedCheckIns) && sortedCheckIns.length > 0 ? sortedCheckIns.map((checkIn: any) => (
+                    {checkIns.map((checkIn: any) => (
                       <div
-                        key={checkIn._id || `checkin-${Math.random()}`}
+                        key={checkIn._id}
                         className="p-4 border rounded-lg hover:bg-gray-50 transition space-y-2"
                       >
                         <div className="flex justify-between items-start">
@@ -1541,9 +1416,7 @@ export default function StaffDashboard() {
                           </div>
                         </div>
                       </div>
-                    )) : (
-                      <p className="text-gray-600">Không có check-in nào.</p>
-                    )}
+                    ))}
                   </div>
                 </CardContent>
               </Card>
@@ -1554,7 +1427,7 @@ export default function StaffDashboard() {
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                     <span className="text-xl font-semibold text-gray-900">Quản lý khám hiến máu</span>
-                    <Select onValueChange={setCheckinFilter} value={checkinFilter}>
+                    <Select onValueChange={setCheckinFilter} defaultValue="newest">
                       <SelectTrigger className="w-48 border rounded-md bg-gray-100 focus:ring-2 focus:ring-blue-500">
                         <SelectValue placeholder="Sắp xếp theo" />
                       </SelectTrigger>
@@ -1570,9 +1443,9 @@ export default function StaffDashboard() {
                 </CardHeader>
 
                 <CardContent className="space-y-4">
-                  {Array.isArray(sortedHealthChecks) && sortedHealthChecks.length > 0 ? sortedHealthChecks.map((checkInData: any) => (
+                  {healthChecks.map((checkInData: any) => (
                     <div
-                      key={checkInData?.checkIn?._id || `health-${Math.random()}`}
+                      key={checkInData.checkIn._id}
                       className="p-4 border rounded-lg bg-white shadow-md hover:shadow-xl transition-all duration-200 space-y-4 cursor-pointer"
                       onClick={() => handleCardClick(checkInData.healthCheck._id, checkInData.checkIn.user_id.full_name)}
                     >
@@ -1648,15 +1521,130 @@ export default function StaffDashboard() {
                         </div>
                       </div>
                     </div>
-                  )) : (
-                    <p className="text-gray-600">Không có khám sức khỏe nào.</p>
-                  )}
+                  ))}
                 </CardContent>
               </Card>
             </TabsContent>
 
 
+            <TabsContent value="blood-test" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <span className="text-xl font-semibold text-gray-900">Xét nghiệm máu</span>
+                    <Select onValueChange={setCheckinFilter} defaultValue="newest">
+                      <SelectTrigger className="w-48 border rounded-md bg-gray-100 focus:ring-2 focus:ring-blue-500">
+                        <SelectValue placeholder="Sắp xếp theo" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white shadow-md rounded-md">
+                        <SelectItem value="newest">Mới nhất</SelectItem>
+                        <SelectItem value="oldest">Cũ nhất</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </CardTitle>
+                  <CardDescription className="text-sm text-gray-500">
+                    Danh sách người dùng xét nghiệm máu
+                  </CardDescription>
+                </CardHeader>
 
+                <CardContent className="space-y-4">
+                  {bloodTests.map((bloodTestData: any) => (
+                    <div
+                      key={bloodTestData._id}
+                      className="p-4 border rounded-lg bg-white shadow-md hover:shadow-xl transition-all duration-200 space-y-4 cursor-pointer"
+                      onClick={() => handleBloodTestClick(bloodTestData._id, bloodTestData.user_id.full_name)}
+                    >
+                      {/* Thông tin Người Dùng và Bệnh Viện */}
+                      <div className="flex justify-between items-start space-x-6">
+                        <div className="space-y-2 flex-1">
+                          <p className="text-lg font-semibold text-gray-900">{bloodTestData.user_id.full_name}</p>
+                          <p className="text-sm text-gray-600"><strong>Email:</strong> {bloodTestData.user_id.email}</p>
+                          <p className="text-sm text-gray-600"><strong>CCCD:</strong> {bloodTestData.userprofile_id?.cccd || "Không có"}</p>
+                          <p className="text-sm text-gray-600"><strong>Giới tính:</strong> {bloodTestData.user_id.gender}</p>
+                          <p className="text-sm text-gray-600"><strong>SĐT:</strong> {bloodTestData.user_id.phone}</p>
+                          <p className="text-sm text-gray-600"><strong>Ngày sinh:</strong> {formatDate(bloodTestData.user_id.date_of_birth)}</p>
+                          <p className="text-sm text-gray-600"><strong>Bệnh viện:</strong> {bloodTestData.hospital_id.name}</p>
+                          <p className="text-sm text-gray-600"><strong>Địa chỉ:</strong> {bloodTestData.hospital_id.address}</p>
+                        </div>
+                      </div>
+
+                      {/* Thông tin trạng thái và các hành động */}
+                      <div className="flex flex-col items-end gap-1">
+                        <Badge className={getStatusColor(bloodTestData.status)}>{translateStatus(bloodTestData.status)}</Badge>
+                      </div>
+
+                      {/* Thông tin HealthCheck */}
+                      <div className="mt-4 space-y-2">
+                        <div className="text-sm">
+                          <strong>Trạng thái sức khỏe:</strong> {translateStatus(bloodTestData.status)}
+                        </div>
+                        <div className="text-sm">
+                          <strong>Test HBsAg:</strong> {bloodTestData.HBsAg ? "Dương tính" : "Âm tính"}
+                        </div>
+                        <div className="text-sm">
+                          <strong>Huyết sắc tố (g/l):</strong> {bloodTestData.hemoglobin}
+                        </div>
+                      </div>
+
+                      {/* Trạng thái tổng của check-in */}
+                      <div className="mt-4 space-y-2">
+                        <div className="text-sm">
+                          <strong>Trạng thái tổng:</strong> {translateStatus(bloodTestData.status)}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+
+            <TabsContent value="blood-unit" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <span className="flex items-center">
+                      <Package className="w-5 h-5 mr-2" />
+                      Đơn vị máu
+                    </span>
+                  </CardTitle>
+                  <CardDescription>Theo dõi đơn vị máu của người hiến</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    {bloodUnits.map((blood: any) => (
+                      <Card key={blood._id} className="relative">
+                        <CardHeader className="pb-2">
+                          <div className="flex items-center justify-between">
+                            <CardTitle className="text-lg font-bold text-black-600">{"#" + blood._id}</CardTitle>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <CardTitle className="text-lg font-bold text-red-600">{(blood.bloodGroupABO) ? (blood.bloodGroupABO + blood.bloodGroupRh) : "Chưa biết nhóm máu"}</CardTitle>
+                            <Badge className={getStatusColor(blood.status)}>{translateStatus(blood.status)}</Badge>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-2">
+                            <div className="flex justify-between text-sm">
+                              <span>Tên người hiến máu:</span>
+                              <span className="font-semibold">{blood.user_id.full_name}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span>Ngày hiến:</span>
+                              <span className="font-semibold">{blood.collectionDate ? blood.collectionDate : "Chưa có"}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span>Tổng khổi lượng:</span>
+                              <span className="font-semibold text-orange-600">{blood.volumeOrWeight} ml</span>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
 
 
 
@@ -1720,7 +1708,7 @@ export default function StaffDashboard() {
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                     <span>Quản lý yêu cầu máu</span>
-                    <Select onValueChange={setBloodRequestFilter} value={bloodRequestFilter}>
+                    <Select onValueChange={setBloodRequestFilter} defaultValue="newest">
                       <SelectTrigger className="w-48">
                         <SelectValue placeholder="Sắp xếp theo" />
                       </SelectTrigger>
@@ -1735,7 +1723,7 @@ export default function StaffDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {Array.isArray(sortedBloodRequests) && sortedBloodRequests.length > 0 ? sortedBloodRequests.map((recipient: any) => (
+                    {getSortedBloodRequests(bloodReqList.data || []).map((recipient: any) => (
                       <Link
                         key={recipient._id}
                         href={`/staff/edit/request?requestId=${recipient._id}`}
@@ -1787,9 +1775,7 @@ export default function StaffDashboard() {
                           </div>
                         </div>
                       </Link>
-                    )) : (
-                      <p className="text-gray-600">Không có yêu cầu máu nào.</p>
-                    )}
+                    ))}
                   </div>
                 </CardContent>
               </Card>
@@ -1800,7 +1786,7 @@ export default function StaffDashboard() {
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                     <span>Quản lý lịch trình hiến máu</span>
-                    <Select onValueChange={setBloodManageFilter} value={bloodManageFilter}>
+                    <Select onValueChange={setBloodManageFilter}>
                       <SelectTrigger className="w-48">
                         <SelectValue placeholder="Loại quản lý" />
                       </SelectTrigger>
@@ -1866,7 +1852,7 @@ export default function StaffDashboard() {
                               <p className="font-medium text-gray-800">🛠 Cập nhật trạng thái:</p>
                               <Select
                                 onValueChange={(value) => setSelectedDonationStatus(prev => ({ ...prev, [donation._id]: value }))}
-                                value={getSelectValue(selectedDonationStatus, donation._id)}
+                                value={selectedDonationStatus[donation._id] || ""}
                               >
                                 <SelectTrigger className="w-full md:w-[300px] border-gray-300">
                                   <SelectValue placeholder="Chọn trạng thái" />
@@ -1886,8 +1872,8 @@ export default function StaffDashboard() {
 
                               <Button
                                 className="mt-2 bg-blue-600 text-white hover:bg-blue-700"
-                                disabled={!getSelectValue(selectedDonationStatus, donation._id) || getSelectValue(selectedDonationStatus, donation._id) === donation?.status}
-                                onClick={() => handleStatusUpdate(getSelectValue(selectedDonationStatus, donation._id), donation._id)}
+                                disabled={!selectedDonationStatus[donation._id] || selectedDonationStatus[donation._id] === donation?.status}
+                                onClick={() => handleStatusUpdate(selectedDonationStatus[donation._id], donation._id)}
                               >
                                 Cập nhật trạng thái
                               </Button>
@@ -1967,7 +1953,7 @@ export default function StaffDashboard() {
                               <p className="font-medium text-gray-800">🛠 Cập nhật trạng thái:</p>
                               <Select
                                 onValueChange={(value) => setSelectedWarehouseStatus(prev => ({ ...prev, [donation._id]: value }))}
-                                value={getSelectValue(selectedWarehouseStatus, donation._id)}
+                                value={selectedWarehouseStatus[donation._id] || ""}
                               >
                                 <SelectTrigger className="w-full md:w-[300px] border-gray-300">
                                   <SelectValue placeholder="Chọn trạng thái" />
@@ -1987,8 +1973,8 @@ export default function StaffDashboard() {
 
                               <Button
                                 className="mt-2 bg-blue-600 text-white hover:bg-blue-700"
-                                disabled={!getSelectValue(selectedWarehouseStatus, donation._id) || getSelectValue(selectedWarehouseStatus, donation._id) === donation.status}
-                                onClick={() => handleWarehouseStatusUpdate(getSelectValue(selectedWarehouseStatus, donation._id), donation._id)}
+                                disabled={!selectedWarehouseStatus[donation._id] || selectedWarehouseStatus[donation._id] === donation.status}
+                                onClick={() => handleWarehouseStatusUpdate(selectedWarehouseStatus[donation._id], donation._id)}
                               >
                                 Cập nhật trạng thái
                               </Button>
@@ -1999,7 +1985,9 @@ export default function StaffDashboard() {
                           </div>
                         </div>
                       ))
-                    ) : <p className="text-gray-600">Không tìm thấy dữ liệu yêu cầu máu trong kho.</p>}
+                    ) : bloodManageFilter === "donor" ? (
+                      ""
+                    ) : bloodManageFilter === "donor-request" ? "" : <p className="text-gray-600">Không tìm thấy dữ liệu yêu cầu máu trong kho.</p>}
 
                     {bloodManageFilter === "donor-request" &&
                       Array.isArray(mockDonorRequests) &&
@@ -2080,8 +2068,8 @@ export default function StaffDashboard() {
                                   );
                                 }
 
-                                const isCompleting = getSelectValue(selectedDonorRequestStatus, request._id) === "completed" && request.status !== "completed";
-                                const isCancelling = getSelectValue(selectedDonorRequestStatus, request._id) === "cancelled" && request.status === "completed";
+                                const isCompleting = selectedDonorRequestStatus[request._id] === "completed" && request.status !== "completed";
+                                const isCancelling = selectedDonorRequestStatus[request._id] === "cancelled" && request.status === "completed";
 
                                 return currentInventory ? (
                                   null
@@ -2112,7 +2100,7 @@ export default function StaffDashboard() {
                               <p className="font-medium text-gray-800 mt-2">🛠 Cập nhật trạng thái:</p>
                               <Select
                                 onValueChange={(value) => setSelectedDonorRequestStatus(prev => ({ ...prev, [request._id]: value }))}
-                                value={getSelectValue(selectedDonorRequestStatus, request._id)}
+                                value={selectedDonorRequestStatus[request._id] || ""}
                               >
                                 <SelectTrigger className="w-full md:w-[300px] border-gray-300">
                                   <SelectValue placeholder="Chọn trạng thái" />
@@ -2132,9 +2120,9 @@ export default function StaffDashboard() {
 
                               <Button
                                 className="mt-2 bg-blue-600 text-white hover:bg-blue-700"
-                                disabled={!getSelectValue(selectedDonorRequestStatus, request._id) || getSelectValue(selectedDonorRequestStatus, request._id) === request.status}
+                                disabled={!selectedDonorRequestStatus[request._id] || selectedDonorRequestStatus[request._id] === request.status}
                                 onClick={() => {
-                                  const newStatus = getSelectValue(selectedDonorRequestStatus, request._id);
+                                  const newStatus = selectedDonorRequestStatus[request._id];
                                   handleDonorRequestStatusUpdate(newStatus, request._id, request.donor_id?._id);
                                 }}
                               >
@@ -2161,9 +2149,7 @@ export default function StaffDashboard() {
           top: 80,
         }} />
         <Footer />
-      </div>
-      </Fragment>
-      )}
-    </ProtectedRoute>
+      </div >
+    </ProtectedRoute >
   )
 }

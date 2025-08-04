@@ -1045,8 +1045,7 @@ export default function AdminDashboard() {
                           <SelectContent>
                             <SelectItem value="admin">Admin</SelectItem>
                             <SelectItem value="staff">Nhân viên</SelectItem>
-                            <SelectItem value="donor">Người hiến máu</SelectItem>
-                            <SelectItem value="recipient">Người nhận máu</SelectItem>
+                            <SelectItem value="user">Người dùng</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>

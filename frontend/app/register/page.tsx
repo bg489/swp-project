@@ -72,7 +72,7 @@ export default function RegisterPage() {
   useEffect(() => {
     try {
       const informations = scanResult.split('|');
-      setFormData((prev) => ({ ...prev, name: informations[2] || "" }))
+      setFormData((prev) => ({ ...prev, name: informations[2] }))
       if(informations[4] === "Nam"){
         setFormData((prev) => ({ ...prev, gender: "male" }))
       } else if(informations[4] === "Nữ"){
@@ -84,8 +84,8 @@ export default function RegisterPage() {
         setFormData((prev) => ({ ...prev, date_of_birth: formattedDateBirth }));
         toast.success("Render thông tin thành công");
       }
-      setFormData((prev) => ({ ...prev, cccd: informations[0] || "" }))
-      setFormData((prev) => ({ ...prev, address: informations[5] || "" }))
+      setFormData((prev) => ({ ...prev, cccd: informations[0] }))
+      setFormData((prev) => ({ ...prev, address: informations[5] }))
     } catch (error) {
       toast.error("Có lỗi khi render thông tin, vui lòng thử lại!");
     }
@@ -377,7 +377,7 @@ export default function RegisterPage() {
                         id="email"
                         type="email"
                         placeholder="email@example.com"
-                        value={formData.email || ""}
+                        value={formData.email}
                         onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
                         className="pl-10"
                         required
@@ -393,7 +393,7 @@ export default function RegisterPage() {
                         id="phone"
                         type="tel"
                         placeholder="0901234567"
-                        value={formData.phone || ""}
+                        value={formData.phone}
                         onChange={(e) => {
                           const input = e.target.value;
                           // Chỉ cho phép ký tự số
@@ -422,7 +422,7 @@ export default function RegisterPage() {
                         id="password"
                         type={showPassword ? "text" : "password"}
                         placeholder="••••••••"
-                        value={formData.password || ""}
+                        value={formData.password}
                         onChange={(e) => setFormData((prev) => ({ ...prev, password: e.target.value }))}
                         className="pl-10 pr-10"
                         required
@@ -445,7 +445,7 @@ export default function RegisterPage() {
                         id="confirmPassword"
                         type={showConfirmPassword ? "text" : "password"}
                         placeholder="••••••••"
-                        value={formData.confirmPassword || ""}
+                        value={formData.confirmPassword}
                         onChange={(e) => setFormData((prev) => ({ ...prev, confirmPassword: e.target.value }))}
                         className="pl-10 pr-10"
                         required
@@ -484,7 +484,7 @@ export default function RegisterPage() {
                       <Input
                         id="name"
                         placeholder="Nguyễn Văn A"
-                        value={formData.name || ""}
+                        value={formData.name}
                         onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
                         className="pl-10"
                         disabled
@@ -503,7 +503,7 @@ export default function RegisterPage() {
                       <Input
                         id="cccd"
                         placeholder="080*********"
-                        value={formData.cccd || ""}
+                        value={formData.cccd}
                         onChange={(e) => setFormData((prev) => ({ ...prev, cccd: e.target.value }))}
                         className="pl-10"
                         disabled
@@ -522,7 +522,7 @@ export default function RegisterPage() {
                       <Input
                         id="dob"
                         type="date"
-                        value={formData.date_of_birth || ""}
+                        value={formData.date_of_birth}
                         onChange={(e) => setFormData((prev) => ({ ...prev, date_of_birth: e.target.value }))}
                         className="pl-10"
                         min={new Date(new Date().setFullYear(new Date().getFullYear() - 60)).toISOString().split('T')[0]}
@@ -539,7 +539,7 @@ export default function RegisterPage() {
                     /> */}
                     <Label htmlFor="gender">Giới tính *</Label>
                     <Select
-                      value={formData.gender || ""}
+                      value={formData.gender}
                       onValueChange={(value) => setFormData((prev) => ({ ...prev, gender: value }))}
                       disabled
                     >
@@ -568,7 +568,7 @@ export default function RegisterPage() {
                     <Input
                       id="address"
                       placeholder="123 Đường ABC, Quận 1, TP.HCM"
-                      value={formData.address || ""}
+                      value={formData.address}
                       onChange={(e) => setFormData((prev) => ({ ...prev, address: e.target.value }))}
                       className="pl-10"
                       disabled

@@ -43,11 +43,6 @@ export default function DonatePage() {
   maxDate.setMonth(maxDate.getMonth() + 3);
   const maxDateString = `${maxDate.getFullYear()}-${String(maxDate.getMonth() + 1).padStart(2, '0')}-${String(maxDate.getDate()).padStart(2, '0')}`;
 
-  // Lấy giờ hiện tại
-  const currentHour = today.getHours();
-  const currentMinute = today.getMinutes();
-  const currentTimeString = `${String(currentHour).padStart(2, '0')}:${String(currentMinute).padStart(2, '0')}`;
-
   const [loading, setLoading] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date>()
@@ -57,6 +52,7 @@ export default function DonatePage() {
       from: "8:00",
       to: "10:00",
     },
+    amount_offered: "",
     donation_types: "whole",
     components_offered: [] as string[],
     hospital: "",
@@ -83,25 +79,6 @@ export default function DonatePage() {
 
   const bloodTypes = ["O-", "O+", "A-", "A+", "B-", "B+", "AB-", "AB+"]
   const timeSlots = ["8:00 - 10:00", "10:00 - 12:00", "12:00 - 14:00", "14:00 - 16:00", "16:00 - 18:00", "18:00 - 20:00"]
-
-  // Function to filter time slots based on selected date
-  const getAvailableTimeSlots = () => {
-    // If selected date is today, filter out past time slots
-    if (formData.available_date === todayString) {
-      return timeSlots.filter(slot => {
-        const [startTime] = slot.split(' - ');
-        const [startHour, startMinute] = startTime.split(':').map(Number);
-        const slotStartTime = startHour * 60 + startMinute;
-        const currentTime = currentHour * 60 + currentMinute;
-        
-        // Only show time slots that start at least 30 minutes from now
-        return slotStartTime >= currentTime + 30;
-      });
-    }
-    
-    // For future dates, show all time slots
-    return timeSlots;
-  };
 
   const requirements = [
     "Tuổi từ 18-60, cân nặng tối thiểu 45kg",
@@ -216,24 +193,6 @@ export default function DonatePage() {
         return;
       }
 
-      // Validate time for today's date
-      if (formData.available_date === todayString) {
-        const [selectedStartHour, selectedStartMinute] = formData.available_time_range.from.split(':').map(Number);
-        const selectedStartTime = selectedStartHour * 60 + selectedStartMinute;
-        const currentTime = currentHour * 60 + currentMinute;
-        
-        if (selectedStartTime < currentTime + 30) {
-          toast.error("Khung giờ đã chọn không hợp lệ. Vui lòng chọn khung giờ ít nhất 30 phút sau giờ hiện tại.");
-          return;
-        }
-      }
-
-      // Validate separated donation components
-      if (formData.donation_types === "separated" && formData.components_offered.length === 0) {
-        toast.error("Vui lòng chọn ít nhất một thành phần máu khi hiến máu gạn tách.")
-        return;
-      }
-
       // Validate user
       if (!user || !user._id) {
         toast.error("Vui lòng đăng nhập trước khi đăng ký hiến máu!")
@@ -258,10 +217,9 @@ export default function DonatePage() {
           from: formData.available_time_range.from,
           to: formData.available_time_range.to,
         },
+        amount_offered: formData.amount_offered,
         donation_type: formData.donation_types,
-        separated_component: formData.donation_types === "separated" && formData.components_offered.length > 0 
-          ? formData.components_offered[0] 
-          : undefined,
+        separated_component: formData.components_offered,
         notes: formData.notes,
       };
 
@@ -274,7 +232,7 @@ export default function DonatePage() {
         // Show success state
         setShowSuccessMessage(true);
         
-        toast.success(`Cảm ơn bạn đã đăng ký hiến máu vào ngày ${formData.available_date} từ ${formData.available_time_range.from} - ${formData.available_time_range.to}. Chúng tôi sẽ liên hệ với bạn sớm nhất!`)
+        toast.success(`Cảm ơn bạn đã đăng ký hiến ${formData.amount_offered}ml máu vào ngày ${formData.available_date} từ ${formData.available_time_range.from} - ${formData.available_time_range.to}. Chúng tôi sẽ liên hệ với bạn sớm nhất!`,)
         
         // Show additional success message
         setTimeout(() => {
@@ -286,6 +244,7 @@ export default function DonatePage() {
           setFormData({
             available_date: todayString,
             available_time_range: { from: "", to: "" },
+            amount_offered: "",
             components_offered: [],
             hospital: "",
             notes: "",
@@ -475,23 +434,13 @@ export default function DonatePage() {
                                 <SelectValue placeholder="Chọn khung giờ phù hợp" />
                               </SelectTrigger>
                               <SelectContent>
-                                {getAvailableTimeSlots().map((slot) => (
+                                {timeSlots.map((slot) => (
                                   <SelectItem key={slot} value={slot}>
                                     {slot}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>
-                            {formData.available_date === todayString && getAvailableTimeSlots().length === 0 && (
-                              <p className="text-xs text-red-500 mt-1">
-                                Không còn khung giờ nào khả dụng cho hôm nay. Vui lòng chọn ngày khác.
-                              </p>
-                            )}
-                            {formData.available_date === todayString && getAvailableTimeSlots().length > 0 && (
-                              <p className="text-xs text-blue-500 mt-1">
-                                Chỉ hiển thị các khung giờ từ {String(currentHour).padStart(2, '0')}:{String(currentMinute).padStart(2, '0')} trở đi
-                              </p>
-                            )}
                           </div>
 
                           {/* Khung giờ */}
@@ -513,14 +462,14 @@ export default function DonatePage() {
                                   <SelectItem key="whole" value="whole">
                                     Hiến máu toàn phần
                                   </SelectItem>
-                                  <SelectItem key="separated" value="separated">
+                                  <SelectItem key="split" value="split">
                                     Hiến các thành phần máu bằng gạn tách
                                   </SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
 
-                          {(formData.donation_types === "separated") &&
+                          {(formData.donation_types === "split") &&
                             <div>
                               <Label>Thành phần muốn hiến</Label>
                               <div className="flex gap-4 flex-wrap mt-1">

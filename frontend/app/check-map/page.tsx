@@ -39,8 +39,8 @@ interface BloodCenter {
   type: string
   rating: number
   distance: string
-  bloodTypes?: string[]
-  urgent?: string[]
+  bloodTypes: string[]
+  urgent: string[]
   coordinates: { lat: number; lng: number }
 }
 
@@ -49,7 +49,6 @@ export default function CheckMapPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedDistance, setSelectedDistance] = useState("5km")
   const [selectedFilter, setSelectedFilter] = useState("all")
-  const [allCenters, setAllCenters] = useState<BloodCenter[]>([])
   const [filteredCenters, setFilteredCenters] = useState<BloodCenter[]>([])
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null)
   const [loading, setLoading] = useState(false)
@@ -132,8 +131,6 @@ export default function CheckMapPage() {
             type: "Bệnh viện",
             rating: Number((4.0 + Math.random() * 1).toFixed(1)), // Random rating for demo
             distance: dist,
-            bloodTypes: ["O+", "O-", "A+", "A-", "B+", "B-", "AB+", "AB-"], // Default blood types
-            urgent: Math.random() > 0.7 ? ["O-", "AB+"] : [], // Random urgent blood types
             coordinates: { lat: centerLat, lng: centerLng }
           }
         }).filter((center: { distance: number }) => center.distance <= radiusKm)
@@ -143,7 +140,6 @@ export default function CheckMapPage() {
         }))
         .sort((a: BloodCenter, b: BloodCenter) => parseFloat(a.distance) - parseFloat(b.distance))
 
-      setAllCenters(centers)
       setFilteredCenters(centers)
       setLoading(false)
     } catch (error) {
@@ -163,9 +159,9 @@ export default function CheckMapPage() {
 
   // Handle filter change
   useEffect(() => {
-    if (allCenters.length === 0) return
+    if (filteredCenters.length === 0) return
 
-    let filtered = [...allCenters]
+    let filtered = filteredCenters
 
     // Filter by search term
     if (searchTerm) {
@@ -180,13 +176,13 @@ export default function CheckMapPage() {
     if (selectedFilter !== "all") {
       filtered = filtered.filter(center => {
         if (selectedFilter === "hospital") return center.type === "Bệnh viện"
-        if (selectedFilter === "urgent") return center.urgent && center.urgent.length > 0
+        if (selectedFilter === "urgent") return center.urgent.length > 0
         return true
       })
     }
 
     setFilteredCenters(filtered)
-  }, [searchTerm, selectedFilter, allCenters])
+  }, [searchTerm, selectedFilter])
 
   const getBloodTypeColor = (bloodType: string) => {
     const colors = {
@@ -278,14 +274,6 @@ export default function CheckMapPage() {
                       disabled={!userLocation}
                     >
                       10km
-                    </Button>
-                    <Button
-                      variant={selectedDistance === "50km" ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => handleDistanceChange("50km")}
-                      disabled={!userLocation}
-                    >
-                      50km
                     </Button>
                   </div>
                 </div>

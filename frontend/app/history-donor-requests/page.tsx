@@ -201,7 +201,7 @@ export default function DonorRequestHistoryPage() {
       setDonationRequests(prev => 
         prev.map(req => 
           req._id === requestId 
-            ? { ...req, status: "rejected" }
+            ? { ...req, status: "cancelled" }
             : req
         )
       )
@@ -219,15 +219,15 @@ export default function DonorRequestHistoryPage() {
     }
   }
 
-  // Hàm sắp xếp cho donationRequests thay vì bloodRequests
-  const sortedRequests = [...donationRequests].sort((a, b) => {
+  // Hàm sắp xếp
+  const sortedRequests = [...bloodRequests].sort((a, b) => {
     switch (sortOrder) {
       case "newest":
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       case "oldest":
         return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
       case "status":
-        const statusOrder = ["pending", "approved", "rejected", "cancelled"]
+        const statusOrder = ["pending", "in_progress", "approved", "matched", "completed", "cancelled", "rejected"]
         const statusA = statusOrder.indexOf(a.status)
         const statusB = statusOrder.indexOf(b.status)
         // Nếu không tìm thấy status, đặt ở cuối
@@ -417,7 +417,7 @@ export default function DonorRequestHistoryPage() {
             </Card>
           ) : (
             <div className="space-y-6">
-              {sortedRequests.map((request, index) => (
+              {donationRequests.map((request, index) => (
                 <Card key={request._id} className="overflow-hidden">
                   <CardHeader className="pb-4">
                     <div className="flex justify-between items-start">
