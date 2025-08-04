@@ -105,6 +105,7 @@ export default function StaffDashboard() {
   const [checkIns, setCheckIns] = useState<any>([])
   const [healthChecks, setHealthChecks] = useState<any>([])
   const [bloodTests, setBloodTests] = useState<any>([])
+  const [bloodUnits, setBloodUnits] = useState<any>([])
 
 
   const test = [
@@ -861,6 +862,9 @@ export default function StaffDashboard() {
           const bTests = await api.get(`/blood-test/hospital/${staffData.hospital._id}/blood-tests`);
           setBloodTests(bTests.data);
 
+          const bUnits = await api.get(`/whole-blood/hospital/${staffData.hospital._id}/whole-blood-units`);
+          setBloodUnits(bUnits.data.units);
+
         }
       } catch (error) {
         console.error("Failed to fetch staff profile or hospital:", error);
@@ -1608,7 +1612,7 @@ export default function StaffDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                    {test.map((blood: any) => (
+                    {bloodUnits.map((blood: any) => (
                       <Card key={blood._id} className="relative">
                         <CardHeader className="pb-2">
                           <div className="flex items-center justify-between">
@@ -1630,7 +1634,7 @@ export default function StaffDashboard() {
                               <span className="font-semibold">{blood.collectionDate ? blood.collectionDate : "Chưa có"}</span>
                             </div>
                             <div className="flex justify-between text-sm">
-                              <span>Sắp hết hạn:</span>
+                              <span>Tổng khổi lượng:</span>
                               <span className="font-semibold text-orange-600">{blood.volumeOrWeight} ml</span>
                             </div>
                           </div>
