@@ -17,6 +17,11 @@ const bloodTestSchema = new mongoose.Schema(
             ref: "Hospital",
             required: true,
         },
+        healthcheck_id: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "HealthCheck",
+            required: true,
+        },
         HBsAg: {
             type: Boolean,
             required: true,

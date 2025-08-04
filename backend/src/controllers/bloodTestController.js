@@ -2,15 +2,17 @@ import BloodTest from "../models/BloodTest.js";
 import User from "../models/User.js";
 import UserProfile from "../models/UserProfile.js";
 import Hospital from "../models/Hospital.js";
+import HealthCheck from "../models/HealthCheck.js";
 
 export async function createBloodTest(req, res) {
     try {
-        const { user_id, user_profile_id, hospital_id, HBsAg, hemoglobin } = req.body;
+        const { user_id, user_profile_id, hospital_id, healthcheck_id, HBsAg, hemoglobin } = req.body;
 
         if (
             !user_id ||
             !user_profile_id ||
             !hospital_id ||
+            !healthcheck_id ||
             typeof HBsAg !== "boolean" ||
             typeof hemoglobin !== "number"
         ) {
@@ -18,15 +20,17 @@ export async function createBloodTest(req, res) {
         }
 
         // Kiểm tra liên kết tồn tại
-        const [user, userProfile, hospital] = await Promise.all([
+        const [user, userProfile, hospital, healthCheck] = await Promise.all([
             User.findById(user_id),
             UserProfile.findById(user_profile_id),
             Hospital.findById(hospital_id),
+            HealthCheck.findById(healthcheck_id),
         ]);
 
         if (!user) return res.status(404).json({ message: "User not found." });
         if (!userProfile) return res.status(404).json({ message: "User profile not found." });
         if (!hospital) return res.status(404).json({ message: "Hospital not found." });
+        if (!healthCheck) return res.status(404).json({ message: "Health Check not found." });
 
         // Xác định status dựa trên HBsAg và hemoglobin
         let status = "pending";
@@ -36,6 +40,7 @@ export async function createBloodTest(req, res) {
             user_id,
             user_profile_id,
             hospital_id,
+            healthcheck_id,
             HBsAg,
             hemoglobin,
             status,

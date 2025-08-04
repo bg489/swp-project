@@ -253,6 +253,7 @@ export default function HealthCheckFormPage() {
         user_id: response.data.checkIn.user_id._id,
         user_profile_id: response.data.checkIn.userprofile_id._id,
         hospital_id: response.data.checkIn.hospital_id._id,
+        healthcheck_id: healthCheck,
         HBsAg: false,
         hemoglobin: 0
       })
