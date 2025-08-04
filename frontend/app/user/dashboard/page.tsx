@@ -1457,7 +1457,7 @@ export default function UserDashboard() {
                                 <p className="font-semibold text-gray-800 text-base">{recipient?.updatedAt ? formatDate(recipient.updatedAt) : "Chưa có cập nhật"}</p>
                                 <div className="flex items-center space-x-2 mt-1">
                                   <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                                  <p className="text-xs text-purple-600 font-medium">Thông tin đã được cập nhật</p>
+                                  <p className="text-xs text-purple-600 font-medium"></p>
                                 </div>
                               </div>
                             </div>
