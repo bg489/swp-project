@@ -37,6 +37,8 @@ export function Header() {
       return "Người nhận máu"
     } else if (role === "staff") {
       return "Nhân viên"
+    } else if (role === "user") {
+      return "Người dùng"
     } else {
       return "Vô danh"
     }
@@ -44,7 +46,7 @@ export function Header() {
   const findDashboardByRole = (role: string) => {
     if (role === "admin")
       return "/admin/dashboard"
-    else if ((role === "donor") || (role === "recipient"))
+    else if ((role === "donor") || (role === "recipient") || (role === "user"))
       return "/user/dashboard"
     else {
       return "/staff/dashboard"
@@ -78,6 +80,11 @@ export function Header() {
     if (!user) return []
     
     switch (user.role) {
+      case "user":
+        return [
+          { href: "/check-map", label: "Hiến máu" },
+          { href: "/history-donor-requests", label: "Lịch sử yêu cầu" },
+        ]
       case "donor":
         return [
           { href: "/donate", label: "Hiến máu" },
@@ -104,7 +111,10 @@ export function Header() {
   // Navigation items cho mobile menu
   const mobileNavigationItems = user ? [...publicPages, ...infoPages, ...protectedPages] : [...publicPages, ...infoPages]
 
-  const isActivePath = (href: string) => {
+  const isActivePath = (href: string, customPaths: string[] = []) => {
+    if (customPaths.length > 0) {
+      return customPaths.some((path) => pathname.startsWith(path))
+    }
     if (href === "/") {
       return pathname === "/"
     }
@@ -174,22 +184,27 @@ export function Header() {
             ))}
 
             {/* Các trang protected khi đã đăng nhập - phân quyền theo role */}
-            {user && protectedPages.map((item, index) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={scrollToTop}
-                className={`
-                  px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 relative
-                  ${isActivePath(item.href)
-                    ? "bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg shadow-red-200"
-                    : "text-gray-700 hover:text-red-600 hover:bg-red-50 hover:shadow-md"
-                  }
-                `}
-              >
-                <span className="relative z-10">{item.label}</span>
-              </Link>
-            ))}
+            {user && protectedPages.map((item, index) => {
+              const customActivePaths =
+                item.label === "Hiến máu" ? ["/donate", "/check-map"] : []
+
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={scrollToTop}
+                  className={`
+                    px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 relative
+                    ${isActivePath(item.href, customActivePaths)
+                      ? "bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg shadow-red-200"
+                      : "text-gray-700 hover:text-red-600 hover:bg-red-50 hover:shadow-md"
+                    }
+                  `}
+                >
+                  <span className="relative z-10">{item.label}</span>
+                </Link>
+              )
+            })}
 
             {/* Dropdown menu cho thông tin khi đã đăng nhập */}
             {user && (

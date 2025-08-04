@@ -5,7 +5,7 @@ export interface User {
   full_name: string
   email: string
   password_hash: string
-  role: "donor" | "recipient" | "staff" | "admin"
+  role: "donor" | "recipient" | "user" | "staff" | "admin"
   phone: string | null
   gender: "male" | "female" | "other"
   date_of_birth: string | null // or Date if you're parsing it

@@ -25,8 +25,30 @@ import Image from "next/image"
 import { useAuth } from "@/contexts/auth-context"
 import { Footer } from "@/components/footer"
 import api from "@/lib/axios"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo, useCallback, Fragment } from "react"
 import toast, { Toaster } from "react-hot-toast"
+import { useRouter } from "next/navigation";
+
+interface DonorDonationRequest {
+  _id: string
+  user_id: string
+  hospital: {
+    _id: string
+    name: string
+    address: string
+  }
+  donation_date: string // ISO string
+  donation_type: "whole" | "separated"
+  donation_time_range: {
+    from: string
+    to: string
+  }
+  separated_component?: "RBC" | "plasma" | "platelet"
+  notes: string
+  status: "pending" | "approved" | "rejected"
+  createdAt: string
+  updatedAt: string
+}
 
 // Function to translate status from English to Vietnamese
 function translateStatus(status: string) {
@@ -61,6 +83,8 @@ function translateComponent(component: string) {
 
 export default function StaffDashboard() {
   const { user, logout } = useAuth()
+  const router = useRouter();
+  const [isMounted, setIsMounted] = useState(true);
   const [staff, setStaff] = useState<any>({});
   const [donorList, setDonorList] = useState<any>([]);
   const [bloodReqList, setBloodReqList] = useState<any>([]);
@@ -74,6 +98,325 @@ export default function StaffDashboard() {
   const [mockDonorRequests, setMockDonorRequests] = useState<any>([]);
   const [donorDonationCounts, setDonorDonationCounts] = useState<{ [key: string]: number }>({});
   const [bloodRequestFilter, setBloodRequestFilter] = useState("newest");
+  const [total, setTotal] = useState(0);
+  const [pending, setPending] = useState(0);
+  const [approved, setApproved] = useState(0);
+  const [rejected, setRejected] = useState(0);
+  const [donationRequests, setDonationRequests] = useState<DonorDonationRequest[]>([])
+  const [checkIns, setCheckIns] = useState<any>([])
+  const [healthChecks, setHealthChecks] = useState<any>([])
+  const [loading, setLoading] = useState(true)
+  const [checkinFilter, setCheckinFilter] = useState("newest")
+  
+
+  const test = [
+    {
+        "checkIn": {
+            "_id": "688fde414f0215256112040b",
+            "user_id": {
+                "_id": "688ef4f5eadc867beb1aa04e",
+                "full_name": "Nguyễn Văn A",
+                "email": "giabao123963@gmail.com",
+                "phone": "0352573142",
+                "gender": "male",
+                "date_of_birth": "2004-07-20T00:00:00.000Z"
+            },
+            "userprofile_id": {
+                "_id": "688ef4f5eadc867beb1aa053",
+                "cccd": "111111111111"
+            },
+            "hospital_id": {
+                "_id": "685e2769156fe3d352db3552",
+                "name": "Bệnh viện Quân Dân Y Miền Đông",
+                "address": "50 Lê Văn Việt, Hiệp Phú, TP. Thủ Đức, TP.HCM",
+                "phone": "028 3897 0321"
+            },
+            "donorDonationRequest_id": {
+                "donation_time_range": {
+                    "from": "12:00",
+                    "to": "14:00"
+                },
+                "_id": "688fb1ffe10cfe4a9a1d786a",
+                "donation_date": "2025-08-04T00:00:00.000Z",
+                "donation_type": "whole",
+                "notes": "",
+                "status": "approved"
+            },
+            "status": "verified"
+        },
+        "healthCheck": {
+            "_id": "688fdf8eb94820b2e2f921ac",
+            "checkin_id": "688fde414f0215256112040b"
+        },
+        "status": "pending"
+    },
+    {
+        "checkIn": {
+            "_id": "688fda3bceafdc6bbe71249e",
+            "user_id": {
+                "_id": "688ef4f5eadc867beb1aa04e",
+                "full_name": "Nguyễn Văn A",
+                "email": "giabao123963@gmail.com",
+                "phone": "0352573142",
+                "gender": "male",
+                "date_of_birth": "2004-07-20T00:00:00.000Z"
+            },
+            "userprofile_id": {
+                "_id": "688ef4f5eadc867beb1aa053",
+                "cccd": "111111111111"
+            },
+            "hospital_id": {
+                "_id": "685e2769156fe3d352db3552",
+                "name": "Bệnh viện Quân Dân Y Miền Đông",
+                "address": "50 Lê Văn Việt, Hiệp Phú, TP. Thủ Đức, TP.HCM",
+                "phone": "028 3897 0321"
+            },
+            "donorDonationRequest_id": {
+                "donation_time_range": {
+                    "from": "8:00",
+                    "to": "10:00"
+                },
+                "_id": "688fda01ceafdc6bbe712438",
+                "donation_date": "2025-08-04T00:00:00.000Z",
+                "donation_type": "whole",
+                "notes": "",
+                "status": "approved"
+            },
+            "status": "verified"
+        },
+        "healthCheck": {
+            "_id": "688fdfefb94820b2e2f921da",
+            "checkin_id": "688fda3bceafdc6bbe71249e"
+        },
+        "status": "pending"
+    }
+]
+
+
+
+  const checkInsMock = [
+  {
+    _id: "688f99816269d09759193953",
+    user_id: {
+      _id: "688ef4f5eadc867beb1aa04e",
+      full_name: "Nguyễn Văn A",
+      email: "giabao123963@gmail.com",
+      phone: "0352573142",
+      gender: "male",
+      date_of_birth: "2004-07-20T00:00:00.000Z",
+    },
+    userprofile_id: {
+      _id: "688ef4f5eadc867beb1aa053",
+      cccd: "111111111111",
+    },
+    hospital_id: {
+      _id: "685e2769156fe3d352db3552",
+      name: "Bệnh viện Quân Dân Y Miền Đông",
+      address: "50 Lê Văn Việt, Hiệp Phú, TP. Thủ Đức, TP.HCM",
+      phone: "028 3897 0321",
+    },
+    donorDonationRequest_id: {
+      _id: "688f6dae5f82851d117eca19",
+      donation_time_range: {
+        from: "12:00",
+        to: "14:00",
+      },
+      donation_date: "2025-08-03T00:00:00.000Z",
+      donation_type: "whole",
+      notes: "dfff",
+      status: "approved",
+    },
+    status: "in_progress",
+    comment: "",
+    createdAt: "2025-08-03T17:16:49.712Z",
+    updatedAt: "2025-08-03T17:16:49.712Z",
+  },
+  {
+    _id: "688f7749267544a714d81664",
+    user_id: {
+      _id: "688ef4f5eadc867beb1aa04e",
+      full_name: "Nguyễn Văn A",
+      email: "giabao123963@gmail.com",
+      phone: "0352573142",
+      gender: "male",
+      date_of_birth: "2004-07-20T00:00:00.000Z",
+    },
+    userprofile_id: {
+      _id: "688ef4f5eadc867beb1aa053",
+      cccd: "111111111111",
+    },
+    hospital_id: {
+      _id: "685e2769156fe3d352db3552",
+      name: "Bệnh viện Quân Dân Y Miền Đông",
+      address: "50 Lê Văn Việt, Hiệp Phú, TP. Thủ Đức, TP.HCM",
+      phone: "028 3897 0321",
+    },
+    donorDonationRequest_id: {
+      _id: "688f6dae5f82851d117eca19",
+      donation_time_range: {
+        from: "12:00",
+        to: "14:00",
+      },
+      donation_date: "2025-08-03T00:00:00.000Z",
+      donation_type: "whole",
+      notes: "dfff",
+      status: "approved",
+    },
+    status: "in_progress",
+    comment: "",
+    createdAt: "2025-08-03T14:50:49.579Z",
+    updatedAt: "2025-08-03T14:50:49.579Z",
+  },
+]
+
+
+
+
+  const mockDonationRequests = [
+    {
+      _id: "req1",
+      user_id: { _id: "user1", email: "nguyenvana@example.com" },
+      hospital: {
+        name: "Bệnh viện Trung ương",
+        address: "123 Đường A, Quận 1, TP.HCM",
+        phone: "0123456789",
+      },
+      donation_date: "2025-08-06T00:00:00.000Z",
+      donation_time_range: {
+        from: "10:00",
+        to: "12:00",
+      },
+      donation_type: "whole",
+      notes: "Sẵn sàng bất cứ lúc nào",
+      status: "pending",
+      createdAt: "2025-08-03T13:05:25.150Z",
+    },
+    {
+      _id: "req2",
+      user_id: { _id: "user2", email: "tranthib@example.com" },
+      hospital: {
+        name: "Bệnh viện Chợ Rẫy",
+        address: "456 Đường B, Quận 5, TP.HCM",
+        phone: "0987654321",
+      },
+      donation_date: "2025-08-03T00:00:00.000Z",
+      donation_time_range: {
+        from: "8:00",
+        to: "10:00",
+      },
+      donation_type: "whole",
+      notes: "",
+      status: "approved",
+      createdAt: "2025-08-03T13:05:11.717Z",
+    },
+    {
+      _id: "req3",
+      user_id: { _id: "user3", email: "lethilan@example.com" },
+      hospital: {
+        name: "Bệnh viện Nhân Dân 115",
+        address: "789 Đường C, Quận 10, TP.HCM",
+        phone: "0912345678",
+      },
+      donation_date: "2025-08-03T00:00:00.000Z",
+      donation_time_range: {
+        from: "12:00",
+        to: "14:00",
+      },
+      donation_type: "separated",
+      notes: "Ưu tiên buổi chiều",
+      status: "rejected",
+      createdAt: "2025-08-03T12:56:57.998Z",
+    },
+  ]
+
+  const [requestFilter, setRequestFilter] = useState("newest");
+
+
+
+
+  function StatusSummary({ summary }: { summary: { pending: number, approved: number, rejected: number } }) {
+    return (
+      <div className="flex gap-4 text-sm text-gray-700">
+        <Badge className="bg-yellow-100 text-yellow-800">Đang chờ: {summary.pending}</Badge>
+        <Badge className="bg-green-100 text-green-800">Đã duyệt: {summary.approved}</Badge>
+        <Badge className="bg-red-100 text-red-800">Từ chối: {summary.rejected}</Badge>
+      </div>
+    )
+  }
+
+  function translateStatus(status: string): string {
+    switch (status) {
+      case "pending": return "Đang chờ duyệt";
+      case "approved": return "Đã duyệt";
+      case "rejected": return "Đã từ chối";
+      case "verified": return "Đã xác minh";
+      case "unverified": return "Chưa xác minh";
+      case "in_progress": return "Đang xử lý";
+      case "passed": return "Đã thông qua";
+      case "failed": return "Bị từ chối";
+      default: return "Không rõ";
+    }
+  }
+
+  function translateDonationType(type: string): string {
+    switch (type) {
+      case "whole": return "Máu toàn phần";
+      case "separated": return "Thành phần máu";
+      default: return "Không rõ";
+    }
+  }
+
+  useEffect(() => {
+    async function fetchBloodRequests() {
+      // Only proceed if staff and hospital data are available
+      if (!staff?.hospital?._id) {
+        console.log("Staff hospital ID not yet available, skipping blood requests fetch")
+        return
+      }
+      
+      try {
+        const response2 = await api.get(`/donation-requests/donor-donation-request/hospital/${staff.hospital._id}`)
+        console.log("Fetched donor requests:", response2.data)
+        setTotal(response2.data.total || 0)
+        setPending(response2.data.status_summary.pending || 0)
+        setApproved(response2.data.status_summary.approved || 0)
+        setRejected(response2.data.status_summary.rejected || 0)
+        setDonationRequests(response2.data.requests || [])
+      } catch (error: any) {
+        console.error("Error fetching donor requests:", error)
+        console.error("Error details:", error.response?.data)
+        
+        // Show user-friendly error message
+        if (error.response?.status === 404) {
+          console.error("No donation requests found for this hospital")
+        } else if (error.response?.status === 500) {
+          console.error("Server error occurred")
+        }
+        
+        setDonationRequests([])
+      }
+    }
+
+    fetchBloodRequests()
+  }, [staff])
+
+  // Cleanup function to prevent memory leaks and DOM corruption
+  useEffect(() => {
+    setIsMounted(true);
+    return () => {
+      // Cleanup any pending state updates on unmount
+      setIsMounted(false);
+      setLoading(false);
+    };
+  }, []);
+
+  // Safe state update helper
+  const safeSetState = useCallback((setter: Function, value: any) => {
+    if (isMounted) {
+      setter(value);
+    }
+  }, [isMounted]);
+
 
   const warehouseDonationsList = [
     {
@@ -162,14 +505,19 @@ export default function StaffDashboard() {
 
   const handleStatusUpdate = async (newStatus: string, donationId: string) => {
     try {
+      if (!newStatus || !donationId) {
+        toast.error("Tham số không hợp lệ");
+        return;
+      }
+
       await api.put(`/staff/donations/${donationId}/update-status`, {
         status: newStatus,
       });
 
       setDonationList((prev: any) =>
-        prev.map((donation: any) =>
+        prev?.map((donation: any) =>
           donation._id === donationId ? { ...donation, status: newStatus } : donation
-        )
+        ) || []
       );
 
       toast.success(`Đã thay đổi status thành ${newStatus}`)
@@ -204,12 +552,18 @@ export default function StaffDashboard() {
 
   const handleWarehouseStatusUpdate = async (newStatus: string, donationId: string) => {
     try {
+      if (!newStatus || !donationId) {
+        toast.error("Tham số không hợp lệ");
+        return;
+      }
+
       await api.put(`/staff/donations-blood-inventory/${donationId}/update-status`, {
         status: newStatus,
       });
 
-      setWarehouseDonationsList2((prev: any) =>
-        prev.map((donation: any) => {
+      setWarehouseDonationsList2((prev: any) => {
+        if (!prev) return [];
+        return prev.map((donation: any) => {
           if (donation._id !== donationId) return donation;
 
           const isCancelling = newStatus === "cancelled" && donation.status !== "cancelled";
@@ -236,8 +590,8 @@ export default function StaffDashboard() {
               quantity: updatedQuantity,
             },
           };
-        })
-      );
+        });
+      });
 
       toast.success(`Đã thay đổi status thành ${newStatus}`)
 
@@ -479,7 +833,7 @@ export default function StaffDashboard() {
   }
 
   // Function to sort blood requests based on filter
-  const getSortedBloodRequests = (requests: any[]) => {
+  const getSortedBloodRequests = useCallback((requests: any[]) => {
     if (!Array.isArray(requests)) return [];
 
     const sortedRequests = [...requests];
@@ -499,12 +853,70 @@ export default function StaffDashboard() {
       default:
         return sortedRequests;
     }
+  }, [bloodRequestFilter]);
+
+  // Function to sort check-ins based on filter
+  const getSortedCheckIns = useCallback((checkIns: any[]) => {
+    if (!Array.isArray(checkIns)) return [];
+
+    const sortedCheckIns = [...checkIns];
+
+    switch (checkinFilter) {
+      case "newest":
+        return sortedCheckIns.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      case "oldest":
+        return sortedCheckIns.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+      default:
+        return sortedCheckIns;
+    }
+  }, [checkinFilter]);
+
+  // Function to sort health checks based on filter
+  const getSortedHealthChecks = useCallback((healthChecks: any[]) => {
+    if (!Array.isArray(healthChecks)) return [];
+
+    const sortedHealthChecks = [...healthChecks];
+
+    switch (checkinFilter) {
+      case "newest":
+        return sortedHealthChecks.sort((a, b) => new Date(b.checkIn?.createdAt || 0).getTime() - new Date(a.checkIn?.createdAt || 0).getTime());
+      case "oldest":
+        return sortedHealthChecks.sort((a, b) => new Date(a.checkIn?.createdAt || 0).getTime() - new Date(b.checkIn?.createdAt || 0).getTime());
+      default:
+        return sortedHealthChecks;
+    }
+  }, [checkinFilter]);
+
+  // Memoized computed values to prevent unnecessary re-renders
+  const sortedDonationRequests = useMemo(() => {
+    if (!Array.isArray(donationRequests)) return [];
+    const sorted = [...donationRequests];
+    switch (requestFilter) {
+      case "newest":
+        return sorted.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      case "oldest":
+        return sorted.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+      default:
+        return sorted;
+    }
+  }, [donationRequests, requestFilter]);
+
+  const sortedCheckIns = useMemo(() => getSortedCheckIns(checkIns), [checkIns, getSortedCheckIns]);
+  const sortedHealthChecks = useMemo(() => getSortedHealthChecks(healthChecks), [healthChecks, getSortedHealthChecks]);
+  const sortedBloodRequests = useMemo(() => getSortedBloodRequests(bloodReqList.data || []), [bloodReqList.data, getSortedBloodRequests]);
+
+  // Helper function to safely get select values
+  const getSelectValue = (stateObject: { [key: string]: string }, key: string): string => {
+    return stateObject[key] ?? "";
   };
 
   useEffect(() => {
     async function fetchProfile() {
       try {
-        if (!user?._id) return;
+        if (!user?._id) {
+          setLoading(false)
+          return
+        }
 
         const profileRes = await api.get(`/users/staff-profiles/active/${user._id}`);
         const staffData = profileRes.data.staffProfile;
@@ -565,14 +977,28 @@ export default function StaffDashboard() {
           const mockDonor = await api.get(`/users/donor/staff/get-requests-by-hospital/${staffData.hospital._id}`);
           setMockDonorRequests(mockDonor.data.requests);
 
+          const checkInns = await api.get(`/checkin/hospital/${staffData.hospital._id}`);
+          setCheckIns(checkInns.data.checkIns);
+
+          const hChecks = await api.get(`/health-check/hospital/${staffData.hospital._id}/checkin-statuses`);
+          setHealthChecks(hChecks.data);
+
+          // Set loading to false after all data is loaded
+          setLoading(false)
+        } else {
+          // If no hospital data, still set loading to false
+          setLoading(false)
         }
       } catch (error) {
         console.error("Failed to fetch staff profile or hospital:", error);
+        setLoading(false)
       }
     }
 
     if (user?._id) {
       fetchProfile();
+    } else {
+      setLoading(false)
     }
   }, [user]);
 
@@ -666,7 +1092,15 @@ export default function StaffDashboard() {
       case "approved":
         return "bg-blue-100 text-blue-800"
       case "completed":
+      case "passed":
         return "bg-green-100 text-green-800"
+      case "verified":
+        return "bg-green-500 text-white";
+      case "unverified":
+      case "failed":
+      case "rejected":
+        return "bg-red-500 text-white";
+      case "in_progress":
       default:
         return "bg-gray-100 text-gray-800"
     }
@@ -695,8 +1129,145 @@ export default function StaffDashboard() {
     }
   }
 
+  async function handleUpdateStatus(_id: any, arg1: string): Promise<void> {
+    if (!window.confirm("Bạn có chắc chắn muốn chấp nhận yêu cầu hiến máu này?")) {
+      return
+    }
+
+    try {
+      const response = await api.put(`/donation-requests/donor-donation-request/approve/${_id}`)
+
+      // Cập nhật state local
+      setDonationRequests(prev => 
+        prev.map(req => 
+          req._id === _id 
+            ? { ...req, status: "approved" }
+            : req
+        )
+      )
+
+      console.log(donationRequests)
+
+      setApproved(prev => prev + 1)
+      setPending(prev => prev - 1)
+
+      const response2 = await api.get(`/users/user-profile/${response.data.request.user_id._id}`)
+
+      await api.post(`/checkin`, {
+        user_id: response.data.request.user_id._id,
+        userprofile_id: response2.data.profile._id,
+        hospital_id: response.data.request.hospital._id,
+        donorDonationRequest_id: response.data.request._id
+      })
+
+      toast.success("Đã chấp nhận yêu cầu hiến máu thành công!")
+    } catch (error: any) {
+      console.error("Error cancelling request:", error)
+      const errorMessage = error.response?.data?.message || "Đã xảy ra lỗi khi hủy yêu cầu."
+      toast.error(errorMessage)
+    }
+  }
+
+  async function handleCancelStatus(_id: any, arg1: string): Promise<void> {
+    if (!window.confirm("Bạn có chắc chắn muốn hủy yêu cầu hiến máu này?")) {
+      return
+    }
+
+    try {
+      await api.put(`/donation-requests/donor-donation-request/reject/${_id}`)
+
+      // Cập nhật state local
+      setDonationRequests(prev => 
+        prev.map(req => 
+          req._id === _id 
+            ? { ...req, status: "rejected" }
+            : req
+        )
+      )
+
+      console.log(donationRequests)
+
+      setRejected(prev => prev + 1)
+      setPending(prev => prev - 1)
+      
+      toast.success("Đã hủy yêu cầu hiến máu thành công!")
+    } catch (error: any) {
+      console.error("Error cancelling request:", error)
+      const errorMessage = error.response?.data?.message || "Đã xảy ra lỗi khi hủy yêu cầu."
+      toast.error(errorMessage)
+    }
+  }
+
+  async function handleUnverifiedStatus(_id: any, arg1: string): Promise<void> {
+    if (!window.confirm("Bạn có chắc chắn muốn hủy xác minh thông tin này?")) {
+      return
+    }
+
+    try {
+      await api.put(`/checkin/unverify/${_id}`)
+
+      // Cập nhật state local
+      setCheckIns((prev: any[]) => 
+        prev.map(req => 
+          req._id === _id 
+            ? { ...req, status: "unverified" }
+            : req
+        )
+      )
+      
+      toast.success("Đã hủy xác minh thành công!")
+    } catch (error: any) {
+      console.error("Error cancelling request:", error)
+      const errorMessage = error.response?.data?.message || "Đã xảy ra lỗi khi hủy yêu cầu."
+      toast.error(errorMessage)
+    }
+  }
+
+  async function handleVerifiedStatus(_id: any, arg1: string): Promise<void> {
+    if (!window.confirm("Xác nhận xác minh thông tin này?")) {
+      return
+    }
+
+    try {
+      const response = await api.put(`/checkin/checkins/${_id}/verify`)
+
+      // Cập nhật state local
+      setCheckIns((prev: any[]) => 
+        prev.map(req => 
+          req._id === _id 
+            ? { ...req, status: "verified" }
+            : req
+        )
+      )
+
+      await api.post("/health-check/create", {
+        checkin_id: response.data.checkIn._id,
+        hospital_id: staff.hospital._id
+      })
+      
+      toast.success("Đã xác minh thành công!")
+    } catch (error: any) {
+      console.error("Error cancelling request:", error)
+      const errorMessage = error.response?.data?.message || "Đã xảy ra lỗi khi hủy yêu cầu."
+      toast.error(errorMessage)
+    }
+  }
+
+  function handleCardClick(_id: any, name: string): void {
+    router.push(`/staff/edit/health-check/whole?healthCheck=${_id}&name=${name}`);
+  }
+
   return (
     <ProtectedRoute requiredRole="staff">
+      {loading ? (
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-red-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Đang tải dữ liệu...</p>
+          </div>
+        </div>
+      ) : (
+      <Fragment>
       <div className="min-h-screen bg-gray-50 flex flex-col">
         {/* Staff Header */}
         <header className="bg-white border-b sticky top-0 z-50">
@@ -761,11 +1332,11 @@ export default function StaffDashboard() {
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Yêu cầu máu</CardTitle>
+                <CardTitle className="text-sm font-medium">Yêu cầu hiến máu</CardTitle>
                 <Hospital className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-orange-600">{staffStats.pendingRequests}</div>
+                <div className="text-2xl font-bold text-orange-600">{pending}</div>
                 <p className="text-xs text-muted-foreground">đang chờ xử lý</p>
               </CardContent>
             </Card>
@@ -807,11 +1378,288 @@ export default function StaffDashboard() {
           </div>
 
           <Tabs defaultValue="inventory" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-6">
+              <TabsTrigger value="donation-requests">Yêu cầu hiến máu</TabsTrigger>
+              <TabsTrigger value="check-in">Check In</TabsTrigger>
+              <TabsTrigger value="health-check">Khám</TabsTrigger>
               <TabsTrigger value="inventory">Kho máu</TabsTrigger>
               <TabsTrigger value="requests">Yêu cầu máu</TabsTrigger>
               <TabsTrigger value="reports">Quản lý lịch trình hiến máu</TabsTrigger>
             </TabsList>
+
+            <TabsContent value="donation-requests" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <span>Quản lý yêu cầu hiến máu</span>
+                    <Select onValueChange={setRequestFilter} value={requestFilter}>
+                      <SelectTrigger className="w-48">
+                        <SelectValue placeholder="Sắp xếp theo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="newest">Mới nhất</SelectItem>
+                        <SelectItem value="oldest">Cũ nhất</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </CardTitle>
+                  <CardDescription>Quản lý các yêu cầu hiến máu đã gửi bởi người dùng</CardDescription>
+                  <StatusSummary summary={{ pending: pending, approved: approved, rejected: rejected }} />
+                </CardHeader>
+
+                <CardContent>
+                  <div className="space-y-4">
+                    {Array.isArray(sortedDonationRequests) && sortedDonationRequests.length > 0 ? sortedDonationRequests.map((request: any) => (
+                      <div
+                        key={request._id || `req-${Math.random()}`}
+                        className="p-4 border rounded-lg hover:bg-gray-50 transition space-y-2"
+                      >
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <p><strong>Email:</strong> {request.user_id.email}</p>
+                            <p><strong>Ngày hiến:</strong> {formatDate(request.donation_date)}</p>
+                            <p><strong>Khung giờ:</strong> {request.donation_time_range.from} - {request.donation_time_range.to}</p>
+                            <p><strong>Loại hiến:</strong> {translateDonationType(request.donation_type)}</p>
+                            <p><strong>Ghi chú:</strong> {request.notes || "Không có"}</p>
+                          </div>
+                          <div className="flex flex-col items-end gap-1">
+                            <Badge className={getStatusColor(request.status)}>
+                              {translateStatus(request.status)}
+                            </Badge>
+                            <p className="text-sm text-gray-600">Ngày tạo: {formatDate(request.createdAt)}</p>
+
+                            {/* Nút xử lý nếu còn trạng thái pending */}
+                            {request.status === "pending" && (
+                              <div className="flex gap-2 mt-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleUpdateStatus(request._id, "approved")}
+                                >
+                                  Chấp nhận
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => handleCancelStatus(request._id, "rejected")}
+                                >
+                                  Từ chối
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )) : (
+                      <p className="text-gray-600">Không có yêu cầu hiến máu nào.</p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="check-in" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <span>Quản lý điểm danh hiến máu</span>
+                    <Select onValueChange={setCheckinFilter} value={checkinFilter}>
+                      <SelectTrigger className="w-48">
+                        <SelectValue placeholder="Sắp xếp theo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="newest">Mới nhất</SelectItem>
+                        <SelectItem value="oldest">Cũ nhất</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </CardTitle>
+                  <CardDescription>
+                    Danh sách người dùng đã đến bệnh viện để hiến máu
+                  </CardDescription>
+                </CardHeader>
+
+                <CardContent>
+                  <div className="space-y-4">
+                    {Array.isArray(sortedCheckIns) && sortedCheckIns.length > 0 ? sortedCheckIns.map((checkIn: any) => (
+                      <div
+                        key={checkIn._id || `checkin-${Math.random()}`}
+                        className="p-4 border rounded-lg hover:bg-gray-50 transition space-y-2"
+                      >
+                        <div className="flex justify-between items-start">
+                          <div className="space-y-1">
+                            <p><strong>Họ tên:</strong> {checkIn.user_id.full_name}</p>
+                            <p><strong>Email:</strong> {checkIn.user_id.email}</p>
+                            <p><strong>CCCD:</strong> {checkIn.userprofile_id?.cccd || "Không có"}</p>
+                            <p><strong>Giới tính:</strong> {checkIn.user_id.gender}</p>
+                            <p><strong>SĐT:</strong> {checkIn.user_id.phone}</p>
+                            <p><strong>Ngày sinh:</strong> {formatDate(checkIn.user_id.date_of_birth)}</p>
+                            <p><strong>Bệnh viện:</strong> {checkIn.hospital_id.name}</p>
+                            <p><strong>Địa chỉ:</strong> {checkIn.hospital_id.address}</p>
+
+                            {/* Nếu có donorDonationRequest_id thì hiển thị */}
+                            {checkIn.donorDonationRequest_id && (
+                              <>
+                                <hr />
+                                <p><strong>Ngày đăng ký hiến:</strong> {formatDate(checkIn.donorDonationRequest_id.donation_date)}</p>
+                                <p><strong>Thời gian:</strong> {checkIn.donorDonationRequest_id.donation_time_range.from} - {checkIn.donorDonationRequest_id.donation_time_range.to}</p>
+                                <p><strong>Loại hiến máu:</strong> {checkIn.donorDonationRequest_id.donation_type === "whole" ? "Toàn phần" : "Tách thành phần"}</p>
+                                {checkIn.donorDonationRequest_id.separated_component && (
+                                  <p><strong>Thành phần:</strong> {checkIn.donorDonationRequest_id.separated_component}</p>
+                                )}
+                                <p><strong>Ghi chú:</strong> {checkIn.donorDonationRequest_id.notes || "Không có"}</p>
+                                <p><strong>Trạng thái yêu cầu:</strong> {translateStatus(checkIn.donorDonationRequest_id.status)}</p>
+                              </>
+                            )}
+                          </div>
+
+                          <div className="flex flex-col items-end gap-1">
+                            <Badge className={getStatusColor(checkIn.status)}>
+                              {translateStatus(checkIn.status)}
+                            </Badge>
+                            <p className="text-sm text-gray-600">
+                              Ngày điểm danh: {formatDate(checkIn.createdAt)}
+                            </p>
+
+                            {/* Nút xử lý trạng thái */}
+                            {checkIn.status === "in_progress" && (
+                              <div className="flex gap-2 mt-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleVerifiedStatus(checkIn._id, "verified")}
+                                >
+                                  Xác minh
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => handleUnverifiedStatus(checkIn._id, "unverified")}
+                                >
+                                  Huỷ xác minh
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )) : (
+                      <p className="text-gray-600">Không có check-in nào.</p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="health-check" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <span className="text-xl font-semibold text-gray-900">Quản lý khám hiến máu</span>
+                    <Select onValueChange={setCheckinFilter} value={checkinFilter}>
+                      <SelectTrigger className="w-48 border rounded-md bg-gray-100 focus:ring-2 focus:ring-blue-500">
+                        <SelectValue placeholder="Sắp xếp theo" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white shadow-md rounded-md">
+                        <SelectItem value="newest">Mới nhất</SelectItem>
+                        <SelectItem value="oldest">Cũ nhất</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </CardTitle>
+                  <CardDescription className="text-sm text-gray-500">
+                    Danh sách người dùng khám để hiến máu
+                  </CardDescription>
+                </CardHeader>
+
+                <CardContent className="space-y-4">
+                  {Array.isArray(sortedHealthChecks) && sortedHealthChecks.length > 0 ? sortedHealthChecks.map((checkInData: any) => (
+                    <div
+                      key={checkInData?.checkIn?._id || `health-${Math.random()}`}
+                      className="p-4 border rounded-lg bg-white shadow-md hover:shadow-xl transition-all duration-200 space-y-4 cursor-pointer"
+                      onClick={() => handleCardClick(checkInData.healthCheck._id, checkInData.checkIn.user_id.full_name)}
+                    >
+                      {/* Thông tin Người Dùng và Bệnh Viện */}
+                      <div className="flex justify-between items-start space-x-6">
+                        <div className="space-y-2 flex-1">
+                          <p className="text-lg font-semibold text-gray-900">{checkInData.checkIn.user_id.full_name}</p>
+                          <p className="text-sm text-gray-600"><strong>Email:</strong> {checkInData.checkIn.user_id.email}</p>
+                          <p className="text-sm text-gray-600"><strong>CCCD:</strong> {checkInData.checkIn.userprofile_id?.cccd || "Không có"}</p>
+                          <p className="text-sm text-gray-600"><strong>Giới tính:</strong> {checkInData.checkIn.user_id.gender}</p>
+                          <p className="text-sm text-gray-600"><strong>SĐT:</strong> {checkInData.checkIn.user_id.phone}</p>
+                          <p className="text-sm text-gray-600"><strong>Ngày sinh:</strong> {formatDate(checkInData.checkIn.user_id.date_of_birth)}</p>
+                          <p className="text-sm text-gray-600"><strong>Bệnh viện:</strong> {checkInData.checkIn.hospital_id.name}</p>
+                          <p className="text-sm text-gray-600"><strong>Địa chỉ:</strong> {checkInData.checkIn.hospital_id.address}</p>
+
+                          {/* Hiển thị thông tin đăng ký hiến máu */}
+                          {checkInData.checkIn.donorDonationRequest_id && (
+                            <div className="mt-4 space-y-2">
+                              <hr />
+                              <p className="text-sm"><strong>Ngày đăng ký hiến:</strong> {formatDate(checkInData.checkIn.donorDonationRequest_id.donation_date)}</p>
+                              <p className="text-sm"><strong>Thời gian:</strong> {checkInData.checkIn.donorDonationRequest_id.donation_time_range.from} - {checkInData.checkIn.donorDonationRequest_id.donation_time_range.to}</p>
+                              <p className="text-sm"><strong>Loại hiến máu:</strong> {checkInData.checkIn.donorDonationRequest_id.donation_type === "whole" ? "Toàn phần" : "Tách thành phần"}</p>
+                              {checkInData.checkIn.donorDonationRequest_id.separated_component && (
+                                <p className="text-sm"><strong>Thành phần:</strong> {checkInData.checkIn.donorDonationRequest_id.separated_component}</p>
+                              )}
+                              <p className="text-sm"><strong>Ghi chú:</strong> {checkInData.checkIn.donorDonationRequest_id.notes || "Không có"}</p>
+                              <p className="text-sm"><strong>Trạng thái yêu cầu:</strong> {translateStatus(checkInData.checkIn.donorDonationRequest_id.status)}</p>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Thông tin trạng thái và các hành động */}
+                        <div className="flex flex-col items-end gap-1">
+                          <Badge className={getStatusColor(checkInData.status)}>{translateStatus(checkInData.status)}</Badge>
+                          {/* Nút xử lý trạng thái */}
+                          {checkInData.status === "in_progress" && (
+                            <div className="flex gap-2 mt-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleVerifiedStatus(checkInData.checkIn._id, "verified")}
+                                className="bg-green-500 text-white hover:bg-green-600"
+                              >
+                                Xác minh
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => handleUnverifiedStatus(checkInData.checkIn._id, "unverified")}
+                                className="bg-red-500 text-white hover:bg-red-600"
+                              >
+                                Huỷ xác minh
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Thông tin HealthCheck */}
+                      <div className="mt-4 space-y-2">
+                        <div className="text-sm">
+                          <strong>Trạng thái sức khỏe:</strong> {translateStatus(checkInData.healthCheck.status)}
+                        </div>
+                        <div className="text-sm">
+                          <strong>Health Check ID:</strong> {checkInData.healthCheck._id}
+                        </div>
+                      </div>
+
+                      {/* Trạng thái tổng của check-in */}
+                      <div className="mt-4 space-y-2">
+                        <div className="text-sm">
+                          <strong>Trạng thái tổng:</strong> {translateStatus(checkInData.status)}
+                        </div>
+                      </div>
+                    </div>
+                  )) : (
+                    <p className="text-gray-600">Không có khám sức khỏe nào.</p>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+
+
+
+
+
 
             <TabsContent value="inventory" className="space-y-6">
               <Card>
@@ -872,7 +1720,7 @@ export default function StaffDashboard() {
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                     <span>Quản lý yêu cầu máu</span>
-                    <Select onValueChange={setBloodRequestFilter} defaultValue="newest">
+                    <Select onValueChange={setBloodRequestFilter} value={bloodRequestFilter}>
                       <SelectTrigger className="w-48">
                         <SelectValue placeholder="Sắp xếp theo" />
                       </SelectTrigger>
@@ -887,7 +1735,7 @@ export default function StaffDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {getSortedBloodRequests(bloodReqList.data || []).map((recipient: any) => (
+                    {Array.isArray(sortedBloodRequests) && sortedBloodRequests.length > 0 ? sortedBloodRequests.map((recipient: any) => (
                       <Link
                         key={recipient._id}
                         href={`/staff/edit/request?requestId=${recipient._id}`}
@@ -939,7 +1787,9 @@ export default function StaffDashboard() {
                           </div>
                         </div>
                       </Link>
-                    ))}
+                    )) : (
+                      <p className="text-gray-600">Không có yêu cầu máu nào.</p>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -950,7 +1800,7 @@ export default function StaffDashboard() {
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                     <span>Quản lý lịch trình hiến máu</span>
-                    <Select onValueChange={setBloodManageFilter}>
+                    <Select onValueChange={setBloodManageFilter} value={bloodManageFilter}>
                       <SelectTrigger className="w-48">
                         <SelectValue placeholder="Loại quản lý" />
                       </SelectTrigger>
@@ -1016,7 +1866,7 @@ export default function StaffDashboard() {
                               <p className="font-medium text-gray-800">🛠 Cập nhật trạng thái:</p>
                               <Select
                                 onValueChange={(value) => setSelectedDonationStatus(prev => ({ ...prev, [donation._id]: value }))}
-                                value={selectedDonationStatus[donation._id] || ""}
+                                value={getSelectValue(selectedDonationStatus, donation._id)}
                               >
                                 <SelectTrigger className="w-full md:w-[300px] border-gray-300">
                                   <SelectValue placeholder="Chọn trạng thái" />
@@ -1036,8 +1886,8 @@ export default function StaffDashboard() {
 
                               <Button
                                 className="mt-2 bg-blue-600 text-white hover:bg-blue-700"
-                                disabled={!selectedDonationStatus[donation._id] || selectedDonationStatus[donation._id] === donation?.status}
-                                onClick={() => handleStatusUpdate(selectedDonationStatus[donation._id], donation._id)}
+                                disabled={!getSelectValue(selectedDonationStatus, donation._id) || getSelectValue(selectedDonationStatus, donation._id) === donation?.status}
+                                onClick={() => handleStatusUpdate(getSelectValue(selectedDonationStatus, donation._id), donation._id)}
                               >
                                 Cập nhật trạng thái
                               </Button>
@@ -1117,7 +1967,7 @@ export default function StaffDashboard() {
                               <p className="font-medium text-gray-800">🛠 Cập nhật trạng thái:</p>
                               <Select
                                 onValueChange={(value) => setSelectedWarehouseStatus(prev => ({ ...prev, [donation._id]: value }))}
-                                value={selectedWarehouseStatus[donation._id] || ""}
+                                value={getSelectValue(selectedWarehouseStatus, donation._id)}
                               >
                                 <SelectTrigger className="w-full md:w-[300px] border-gray-300">
                                   <SelectValue placeholder="Chọn trạng thái" />
@@ -1137,8 +1987,8 @@ export default function StaffDashboard() {
 
                               <Button
                                 className="mt-2 bg-blue-600 text-white hover:bg-blue-700"
-                                disabled={!selectedWarehouseStatus[donation._id] || selectedWarehouseStatus[donation._id] === donation.status}
-                                onClick={() => handleWarehouseStatusUpdate(selectedWarehouseStatus[donation._id], donation._id)}
+                                disabled={!getSelectValue(selectedWarehouseStatus, donation._id) || getSelectValue(selectedWarehouseStatus, donation._id) === donation.status}
+                                onClick={() => handleWarehouseStatusUpdate(getSelectValue(selectedWarehouseStatus, donation._id), donation._id)}
                               >
                                 Cập nhật trạng thái
                               </Button>
@@ -1149,9 +1999,7 @@ export default function StaffDashboard() {
                           </div>
                         </div>
                       ))
-                    ) : bloodManageFilter === "donor" ? (
-                      ""
-                    ) : bloodManageFilter === "donor-request" ? "" : <p className="text-gray-600">Không tìm thấy dữ liệu yêu cầu máu trong kho.</p>}
+                    ) : <p className="text-gray-600">Không tìm thấy dữ liệu yêu cầu máu trong kho.</p>}
 
                     {bloodManageFilter === "donor-request" &&
                       Array.isArray(mockDonorRequests) &&
@@ -1232,8 +2080,8 @@ export default function StaffDashboard() {
                                   );
                                 }
 
-                                const isCompleting = selectedDonorRequestStatus[request._id] === "completed" && request.status !== "completed";
-                                const isCancelling = selectedDonorRequestStatus[request._id] === "cancelled" && request.status === "completed";
+                                const isCompleting = getSelectValue(selectedDonorRequestStatus, request._id) === "completed" && request.status !== "completed";
+                                const isCancelling = getSelectValue(selectedDonorRequestStatus, request._id) === "cancelled" && request.status === "completed";
 
                                 return currentInventory ? (
                                   null
@@ -1264,7 +2112,7 @@ export default function StaffDashboard() {
                               <p className="font-medium text-gray-800 mt-2">🛠 Cập nhật trạng thái:</p>
                               <Select
                                 onValueChange={(value) => setSelectedDonorRequestStatus(prev => ({ ...prev, [request._id]: value }))}
-                                value={selectedDonorRequestStatus[request._id] || ""}
+                                value={getSelectValue(selectedDonorRequestStatus, request._id)}
                               >
                                 <SelectTrigger className="w-full md:w-[300px] border-gray-300">
                                   <SelectValue placeholder="Chọn trạng thái" />
@@ -1284,9 +2132,9 @@ export default function StaffDashboard() {
 
                               <Button
                                 className="mt-2 bg-blue-600 text-white hover:bg-blue-700"
-                                disabled={!selectedDonorRequestStatus[request._id] || selectedDonorRequestStatus[request._id] === request.status}
+                                disabled={!getSelectValue(selectedDonorRequestStatus, request._id) || getSelectValue(selectedDonorRequestStatus, request._id) === request.status}
                                 onClick={() => {
-                                  const newStatus = selectedDonorRequestStatus[request._id];
+                                  const newStatus = getSelectValue(selectedDonorRequestStatus, request._id);
                                   handleDonorRequestStatusUpdate(newStatus, request._id, request.donor_id?._id);
                                 }}
                               >
@@ -1314,6 +2162,8 @@ export default function StaffDashboard() {
         }} />
         <Footer />
       </div>
+      </Fragment>
+      )}
     </ProtectedRoute>
   )
 }

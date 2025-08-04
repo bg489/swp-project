@@ -4,6 +4,7 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
@@ -25,6 +26,8 @@ import Link from "next/link"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import MapboxMapStyled from "@/components/ui/MapboxMapStyled"
+import api from "@/lib/axios";
+import toast, { Toaster } from "react-hot-toast"
 
 // Interface for blood donation center
 interface BloodCenter {
@@ -36,19 +39,27 @@ interface BloodCenter {
   type: string
   rating: number
   distance: string
-  bloodTypes: string[]
-  urgent: string[]
+  bloodTypes?: string[]
+  urgent?: string[]
   coordinates: { lat: number; lng: number }
 }
 
 export default function CheckMapPage() {
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedDistance, setSelectedDistance] = useState("5km")
   const [selectedFilter, setSelectedFilter] = useState("all")
+  const [allCenters, setAllCenters] = useState<BloodCenter[]>([])
   const [filteredCenters, setFilteredCenters] = useState<BloodCenter[]>([])
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const handleSelect = (center: BloodCenter) => {
+    toast.success("Đã chọn trung tâm: " + center.name);
+    router.push(`/donate?hospital=${center.id}`);
+  }
+
 
   // Get user's current location
   const getCurrentLocation = () => {
@@ -102,54 +113,37 @@ export default function CheckMapPage() {
     try {
       const radiusKm = parseInt(distance.replace('km', ''))
       
-      // Using Overpass API to search for hospitals and blood donation centers
-      const overpassQuery = `
-        [out:json][timeout:25];
-        (
-          node["amenity"="hospital"](around:${radiusKm * 1000},${lat},${lng});
-          way["amenity"="hospital"](around:${radiusKm * 1000},${lat},${lng});
-          relation["amenity"="hospital"](around:${radiusKm * 1000},${lat},${lng});
-          node["healthcare"="blood_donation"](around:${radiusKm * 1000},${lat},${lng});
-          way["healthcare"="blood_donation"](around:${radiusKm * 1000},${lat},${lng});
-          relation["healthcare"="blood_donation"](around:${radiusKm * 1000},${lat},${lng});
-        );
-        out center;
-      `
-
-      const response = await fetch('https://overpass-api.de/api/interpreter', {
-        method: 'POST',
-        body: overpassQuery
-      })
-
-      if (!response.ok) {
-        throw new Error('Không thể tìm kiếm địa điểm')
-      }
-
-      const data = await response.json()
+      const response = await api.get("/hospital/");
+      const hospitals = response.data.hospitals;
       
-      const centers: BloodCenter[] = data.elements
-        .filter((element: any) => element.tags && element.tags.name)
-        .map((element: any, index: number) => {
-          const centerLat = element.lat || element.center?.lat
-          const centerLng = element.lon || element.center?.lon
+      const centers: BloodCenter[] = hospitals
+        .map((element: { latitude: any; longitude: any; _id: any; name: any; address: any; phone: any; tags: { opening_hours: any } }) => {
+          const centerLat = element.latitude
+          const centerLng = element.longitude
           const dist = calculateDistance(lat, lng, centerLat, centerLng)
+
           
           return {
-            id: index + 1,
-            name: element.tags.name || "Cơ sở y tế",
-            address: element.tags["addr:full"] || element.tags["addr:street"] || "Địa chỉ không rõ",
-            phone: element.tags.phone || element.tags["contact:phone"] || "Chưa có thông tin",
-            hours: element.tags.opening_hours || "Chưa có thông tin",
-            type: element.tags.amenity === "hospital" ? "Bệnh viện" : "Trung tâm hiến máu",
-            rating: 4.0 + Math.random() * 1, // Random rating for demo
-            distance: `${dist.toFixed(1)} km`,
-            bloodTypes: ["O+", "A+", "B+", "AB+", "O-", "A-", "B-", "AB-"], // Default blood types
-            urgent: Math.random() > 0.5 ? ["O-", "A+"] : [], // Random urgent types
+            id: element._id,
+            name: element.name || "Cơ sở y tế",
+            address: element.address || "Địa chỉ không rõ",
+            phone: element.phone || "Chưa có thông tin",
+            hours: "Chưa có thông tin",
+            type: "Bệnh viện",
+            rating: Number((4.0 + Math.random() * 1).toFixed(1)), // Random rating for demo
+            distance: dist,
+            bloodTypes: ["O+", "O-", "A+", "A-", "B+", "B-", "AB+", "AB-"], // Default blood types
+            urgent: Math.random() > 0.7 ? ["O-", "AB+"] : [], // Random urgent blood types
             coordinates: { lat: centerLat, lng: centerLng }
           }
-        })
+        }).filter((center: { distance: number }) => center.distance <= radiusKm)
+        .map((center: { distance: number }) => ({
+          ...center,
+          distance: `${center.distance.toFixed(1)} km` // định dạng sau khi lọc
+        }))
         .sort((a: BloodCenter, b: BloodCenter) => parseFloat(a.distance) - parseFloat(b.distance))
 
+      setAllCenters(centers)
       setFilteredCenters(centers)
       setLoading(false)
     } catch (error) {
@@ -169,9 +163,9 @@ export default function CheckMapPage() {
 
   // Handle filter change
   useEffect(() => {
-    if (filteredCenters.length === 0) return
+    if (allCenters.length === 0) return
 
-    let filtered = filteredCenters
+    let filtered = [...allCenters]
 
     // Filter by search term
     if (searchTerm) {
@@ -186,13 +180,13 @@ export default function CheckMapPage() {
     if (selectedFilter !== "all") {
       filtered = filtered.filter(center => {
         if (selectedFilter === "hospital") return center.type === "Bệnh viện"
-        if (selectedFilter === "urgent") return center.urgent.length > 0
+        if (selectedFilter === "urgent") return center.urgent && center.urgent.length > 0
         return true
       })
     }
 
     setFilteredCenters(filtered)
-  }, [searchTerm, selectedFilter])
+  }, [searchTerm, selectedFilter, allCenters])
 
   const getBloodTypeColor = (bloodType: string) => {
     const colors = {
@@ -220,9 +214,9 @@ export default function CheckMapPage() {
               <MapPin className="w-8 h-8 text-white" />
             </div>
             <Badge className="mb-4 bg-blue-100 text-blue-800">🗺️ Tìm điểm hiến máu</Badge>
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">Bản đồ điểm hiến máu</h1>
+            <h1 className="text-4xl font-bold text-gray-900 mb-4">Tìm kiếm địa điểm hiến máu</h1>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Tìm kiếm các điểm hiến máu, bệnh viện và trung tâm y tế gần bạn để thực hiện việc hiến máu tình nguyện.
+              Vui lòng click chuột vào bệnh viện bạn muốn hiến.
             </p>
           </div>
 
@@ -284,6 +278,14 @@ export default function CheckMapPage() {
                       disabled={!userLocation}
                     >
                       10km
+                    </Button>
+                    <Button
+                      variant={selectedDistance === "50km" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => handleDistanceChange("50km")}
+                      disabled={!userLocation}
+                    >
+                      50km
                     </Button>
                   </div>
                 </div>
@@ -389,7 +391,7 @@ export default function CheckMapPage() {
                 )}
 
                 {!loading && filteredCenters.map((center) => (
-                  <Card key={center.id} className="hover:shadow-lg transition-shadow cursor-pointer">
+                  <Card key={center.id} className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => handleSelect(center)} >
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex-1">
@@ -423,38 +425,7 @@ export default function CheckMapPage() {
                         </div>
                       </div>
 
-                      {/* Blood Types */}
-                      <div className="mt-3">
-                        <p className="text-sm font-medium text-gray-700 mb-2">Nhóm máu tiếp nhận:</p>
-                        <div className="flex flex-wrap gap-1 mb-2">
-                          {center.bloodTypes.map((type) => (
-                            <Badge 
-                              key={type} 
-                              variant="secondary" 
-                              className={`text-xs ${getBloodTypeColor(type)}`}
-                            >
-                              {type}
-                            </Badge>
-                          ))}
-                        </div>
-                        
-                        {center.urgent.length > 0 && (
-                          <div>
-                            <p className="text-sm font-medium text-red-600 mb-1">Cần gấp:</p>
-                            <div className="flex flex-wrap gap-1">
-                              {center.urgent.map((type) => (
-                                <Badge 
-                                  key={type} 
-                                  variant="destructive" 
-                                  className="text-xs animate-pulse"
-                                >
-                                  {type}
-                                </Badge>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
+                      
                     </CardContent>
                   </Card>
                 ))}
@@ -464,6 +435,33 @@ export default function CheckMapPage() {
         </div>
       </div>
 
+      <Toaster
+        position="top-center"
+        containerStyle={{
+          top: 80,
+        }}
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: 'rgba(255, 255, 255, 0.95)',
+            backdropFilter: 'blur(10px)',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+          },
+          success: {
+            iconTheme: {
+              primary: '#10B981',
+              secondary: 'white',
+            },
+          },
+          error: {
+            iconTheme: {
+              primary: '#EF4444',
+              secondary: 'white',
+            },
+          },
+        }}
+      />
       <Footer />
     </div>
   )
