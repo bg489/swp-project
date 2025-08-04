@@ -118,19 +118,26 @@ export async function markBloodTestPassed(req, res) {
     try {
         const { id } = req.params;
 
-        // Tìm bản ghi xét nghiệm máu theo ID
+        // Tìm bản ghi xét nghiệm máu
         const bloodTest = await BloodTest.findById(id);
         if (!bloodTest) {
             return res.status(404).json({ message: "Blood test record not found." });
         }
 
-        // Cập nhật status thành "passed"
+        // Đánh dấu passed
         bloodTest.status = "passed";
         await bloodTest.save();
+
+        // Lấy thông tin blood_volume_allowed từ healthcheck_id
+        const healthCheck = await HealthCheck.findById(bloodTest.healthcheck_id);
+        if (!healthCheck) {
+            return res.status(404).json({ message: "Related health check not found." });
+        }
 
         return res.status(200).json({
             message: "Blood test status marked as passed.",
             bloodTest,
+            blood_volume_allowed: healthCheck.blood_volume_allowed,
         });
     } catch (error) {
         console.error("Error marking blood test as passed:", error);

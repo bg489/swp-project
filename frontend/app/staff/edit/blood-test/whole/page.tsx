@@ -102,7 +102,13 @@ export default function HealthCheckFormPage() {
 
   async function acceptForm(): Promise<void> {
     try {
-      await api.put(`/blood-test/blood-test/${bloodTestId}/pass`);
+      const response = await api.put(`/blood-test/blood-test/${bloodTestId}/pass`);
+      await api.post(`/whole-blood/create`, {
+        user_id: response.data.bloodTest.user_id,
+        user_profile_id: response.data.bloodTest.user_profile_id,
+        hospital_id: response.data.bloodTest.hospital_id,
+        volume: response.data.blood_volume_allowed
+      });
       toast.success("Chấp nhận thành công!")
       router.push("/staff/dashboard");
     } catch (error) {

@@ -108,34 +108,51 @@ export default function StaffDashboard() {
 
 
   const test = [
-    {
-      "_id": "689084aafb276701dae2e8f9",
-      "user_id": {
-        "_id": "68905b99ef8fac243847816e",
-        "full_name": "Lê Minh Hòa",
-        "email": "minhvuplo09@gmail.com",
-        "phone": "0909876902",
-        "gender": "male",
-        "date_of_birth": "1998-08-12T00:00:00.000Z"
-      },
-      "user_profile_id": {
-        "_id": "68905b99ef8fac2438478173",
-        "cccd": "096728451203"
-      },
-      "hospital_id": {
-        "_id": "685e2769156fe3d352db3552",
-        "name": "Bệnh viện Quân Dân Y Miền Đông",
-        "address": "50 Lê Văn Việt, Hiệp Phú, TP. Thủ Đức, TP.HCM",
-        "phone": "028 3897 0321"
-      },
-      "HBsAg": true,
-      "hemoglobin": 124,
-      "status": "passed",
-      "createdAt": "2025-08-04T10:00:10.127Z",
-      "updatedAt": "2025-08-04T10:19:20.913Z",
-      "__v": 0
-    }
-  ]
+        {
+            "_id": "6890af2575d4d1f242a0f5c3",
+            "user_id": {
+                "_id": "688ef4f5eadc867beb1aa04e",
+                "full_name": "Nguyễn Văn A",
+                "email": "giabao123963@gmail.com",
+                "phone": "0352573142",
+                "gender": "male",
+                "date_of_birth": "2004-07-20T00:00:00.000Z"
+            },
+            "user_profile_id": {
+                "_id": "688ef4f5eadc867beb1aa053",
+                "cccd": "111111111111"
+            },
+            "hospital_id": "685e2769156fe3d352db3552",
+            "volumeOrWeight": 250,
+            "notes": "",
+            "status": "pending",
+            "__v": 0,
+            "createdAt": "2025-08-04T13:01:25.258Z",
+            "updatedAt": "2025-08-04T13:01:25.258Z"
+        },
+        {
+            "_id": "6890af2575d4d1f242a0f5c4",
+            "user_id": {
+                "_id": "688ef4f5eadc867beb1aa04e",
+                "full_name": "Nguyễn Văn A",
+                "email": "giabao123963@gmail.com",
+                "phone": "0352573142",
+                "gender": "male",
+                "date_of_birth": "2004-07-20T00:00:00.000Z"
+            },
+            "user_profile_id": {
+                "_id": "688ef4f5eadc867beb1aa053",
+                "cccd": "111111111111"
+            },
+            "hospital_id": "685e2769156fe3d352db3552",
+            "volumeOrWeight": 250,
+            "notes": "",
+            "status": "pending",
+            "__v": 0,
+            "createdAt": "2025-08-04T13:01:25.258Z",
+            "updatedAt": "2025-08-04T13:01:25.258Z"
+        }
+    ]
 
 
 
@@ -297,6 +314,8 @@ export default function StaffDashboard() {
       case "verified": return "Đã xác minh";
       case "unverified": return "Chưa xác minh";
       case "in_progress": return "Đang xử lý";
+      case "donated": return "Đã hiến";
+      case "expired": return "Đã hết hạn";
       case "passed": return "Đã thông qua";
       case "failed": return "Bị từ chối";
       default: return "Không rõ";
@@ -946,10 +965,12 @@ export default function StaffDashboard() {
       case "passed":
         return "bg-green-100 text-green-800"
       case "verified":
+      case "donated":
         return "bg-green-500 text-white";
       case "unverified":
       case "failed":
       case "rejected":
+      case "expired":
         return "bg-red-500 text-white";
       case "in_progress":
       default:
@@ -1228,11 +1249,12 @@ export default function StaffDashboard() {
           </div>
 
           <Tabs defaultValue="inventory" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-7">
+            <TabsList className="grid w-full grid-cols-8">
               <TabsTrigger value="donation-requests">Yêu cầu hiến máu</TabsTrigger>
               <TabsTrigger value="check-in">Check In</TabsTrigger>
               <TabsTrigger value="health-check">Khám</TabsTrigger>
               <TabsTrigger value="blood-test">Xét nghiệm máu</TabsTrigger>
+              <TabsTrigger value="blood-unit">Đơn vị máu</TabsTrigger>
               <TabsTrigger value="inventory">Kho máu</TabsTrigger>
               <TabsTrigger value="requests">Yêu cầu máu</TabsTrigger>
               <TabsTrigger value="reports">Quản lý lịch trình hiến máu</TabsTrigger>
@@ -1573,7 +1595,52 @@ export default function StaffDashboard() {
             </TabsContent>
 
 
-
+            <TabsContent value="blood-unit" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <span className="flex items-center">
+                      <Package className="w-5 h-5 mr-2" />
+                      Đơn vị máu
+                    </span>
+                  </CardTitle>
+                  <CardDescription>Theo dõi đơn vị máu của người hiến</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    {test.map((blood: any) => (
+                      <Card key={blood._id} className="relative">
+                        <CardHeader className="pb-2">
+                          <div className="flex items-center justify-between">
+                            <CardTitle className="text-lg font-bold text-black-600">{"#" + blood._id}</CardTitle>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <CardTitle className="text-lg font-bold text-red-600">{(blood.bloodGroupABO) ? (blood.bloodGroupABO + blood.bloodGroupRh) : "Chưa biết nhóm máu"}</CardTitle>
+                            <Badge className={getStatusColor(blood.status)}>{translateStatus(blood.status)}</Badge>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-2">
+                            <div className="flex justify-between text-sm">
+                              <span>Tên người hiến máu:</span>
+                              <span className="font-semibold">{blood.user_id.full_name}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span>Ngày hiến:</span>
+                              <span className="font-semibold">{blood.collectionDate ? blood.collectionDate : "Chưa có"}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span>Sắp hết hạn:</span>
+                              <span className="font-semibold text-orange-600">{blood.volumeOrWeight} ml</span>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
 
 
 
