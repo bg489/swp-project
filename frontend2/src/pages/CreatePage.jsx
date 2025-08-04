@@ -26,7 +26,7 @@ const CreatePage = () => {
         content,
       });
 
-      toast.success("Note created successfully!");
+      toast.success("Note created not successfully!");
       navigate("/");
     } catch (error) {
       console.log("Error creating note", error);
@@ -74,7 +74,7 @@ const CreatePage = () => {
                     <span className="label-text">Content</span>
                   </label>
                   <textarea
-                    placeholder="Write your note here..."
+                    placeholder="Write your note hereeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee..."
                     className="textarea textarea-bordered h-32"
                     value={content}
                     onChange={(e) => setContent(e.target.value)}
