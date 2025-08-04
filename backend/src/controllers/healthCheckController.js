@@ -101,13 +101,39 @@ export async function markHealthCheckPassed(req, res) {
       return res.status(404).json({ message: "Health check record not found." });
     }
 
+
+
     // Cập nhật overall_result thành "passed"
     healthCheck.overall_result = "passed";
     await healthCheck.save();
 
+    // Truy vấn thông tin check-in từ checkin_id
+    const checkIn = await CheckIn.findById(healthCheck.checkin_id)
+      .populate({
+        path: "user_id",
+        model: "User",
+        select: "full_name email phone gender date_of_birth",
+      })
+      .populate({
+        path: "userprofile_id",
+        model: "UserProfile",
+        select: "blood_type cccd cooldown_until",
+      })
+      .populate({
+        path: "hospital_id",
+        model: "Hospital",
+        select: "name address phone",
+      })
+      .populate({
+        path: "donorDonationRequest_id",
+        model: "DonorDonationRequest",
+        select: "donation_date donation_time_range donation_type separated_component notes status",
+      });
+
     return res.status(200).json({
       message: "Health check marked as passed.",
       healthCheck,
+      checkIn
     });
   } catch (error) {
     console.error("Error marking health check passed:", error);
