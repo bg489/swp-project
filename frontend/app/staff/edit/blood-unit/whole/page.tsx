@@ -42,6 +42,13 @@ export default function HealthCheckFormPage() {
     birth: "",
     cccd: "",
     user_id: "",
+    abnormalAntibodyDetected: false,
+    hivPositive: false,
+    hbvPositive: false,
+    hcvPositive: false,
+    syphilisPositive: false,
+    malariaPositive: false,
+    cmvPositive: false
   });
 
   function getGenderLabel(gender: string) {
@@ -80,7 +87,14 @@ export default function HealthCheckFormPage() {
           gender: data.unit.user_id.gender,
           birth: data.unit.user_id.date_of_birth,
           cccd: data.unit.user_profile_id.cccd,
-          user_id: data.unit.user_id._id
+          user_id: data.unit.user_id._id,
+          abnormalAntibodyDetected: data.unit.abnormalAntibodyDetected,
+          hivPositive: data.unit.hivPositive,
+          hbvPositive: data.unit.hbvPositive,
+          hcvPositive: data.unit.hcvPositive,
+          syphilisPositive: data.unit.syphilisPositive,
+          malariaPositive: data.unit.malariaPositive,
+          cmvPositive: data.unit.cmvPositive
         })
 
       } catch (error) {
@@ -117,6 +131,13 @@ export default function HealthCheckFormPage() {
         storageTemperature: form.storageTemperature,
         irradiated: form.irradiated,
         notes: form.notes,
+        abnormalAntibodyDetected: form.abnormalAntibodyDetected,
+        hivPositive: form.hivPositive,
+        hbvPositive: form.hbvPositive,
+        hcvPositive: form.hcvPositive,
+        syphilisPositive: form.syphilisPositive,
+        malariaPositive: form.malariaPositive,
+        cmvPositive: form.cmvPositive
       })
 
       const inputDate = new Date(form.expiryDate);
@@ -158,6 +179,16 @@ export default function HealthCheckFormPage() {
       await api.put(`/whole-blood/whole-blood-unit/${bloodUnitId}/donate`);
       toast.success("Dán nhãn hiến máu thành công!")
       emailBloodTypeToUser();
+      router.push("/staff/dashboard");
+    } catch (error) {
+      toast.error("Có lỗi xảy ra khi chấp nhận đơn khám!")
+    }
+  }
+
+  async function rejectForm(): Promise<void> {
+    try {
+      await api.put(`/whole-blood/whole-blood-unit/${bloodUnitId}/not-eligible`);
+      toast.success("Dán nhãn không phù hợp thành công!")
       router.push("/staff/dashboard");
     } catch (error) {
       toast.error("Có lỗi xảy ra khi chấp nhận đơn khám!")
@@ -341,11 +372,84 @@ export default function HealthCheckFormPage() {
                   } />
                   Có chiếu xạ
                 </Label>
+
+                <Label>
+                  <Checkbox name="abnormalAntibodyDetected" checked={form.abnormalAntibodyDetected} onCheckedChange={(checked) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      abnormalAntibodyDetected: Boolean(checked),
+                    }))
+                  } />
+                  Phát hiện kháng thể bất thường
+                </Label>
+
+                <Label>
+                  <Checkbox name="hivPositive" checked={form.hivPositive} onCheckedChange={(checked) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      hivPositive: Boolean(checked),
+                    }))
+                  } />
+                  Dương tính HIV
+                </Label>
+
+                <Label>
+                  <Checkbox name="hbvPositive" checked={form.hbvPositive} onCheckedChange={(checked) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      hbvPositive: Boolean(checked),
+                    }))
+                  } />
+                  Dương tính viêm gan B
+                </Label>
+
+                <Label>
+                  <Checkbox name="hcvPositive" checked={form.hcvPositive} onCheckedChange={(checked) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      hcvPositive: Boolean(checked),
+                    }))
+                  } />
+                  Dương tính viêm gan C
+                </Label>
+
+                <Label>
+                  <Checkbox name="syphilisPositive" checked={form.syphilisPositive} onCheckedChange={(checked) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      syphilisPositive: Boolean(checked),
+                    }))
+                  } />
+                  Dương tính giang mai
+                </Label>
+
+                <Label>
+                  <Checkbox name="malariaPositive" checked={form.malariaPositive} onCheckedChange={(checked) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      malariaPositive: Boolean(checked),
+                    }))
+                  } />
+                  Dương tính sốt rét
+                </Label>
+
+                <Label>
+                  <Checkbox name="cmvPositive" checked={form.cmvPositive} onCheckedChange={(checked) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      cmvPositive: Boolean(checked),
+                    }))
+                  } />
+                  Dương tính CMV (Cytomegalovirus – vi rút gây nhiễm trùng tế bào)
+                </Label>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 mt-6">
+              <div className="grid grid-cols-3 gap-4 mt-6">
                 <Button type="button" onClick={() => saveField()}>
                   Lưu
+                </Button>
+                <Button type="button" variant="destructive" onClick={() => rejectForm()}>
+                  Không phù hợp truyền
                 </Button>
                 <Button type="submit" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => acceptForm()}>
                   Chấp nhận

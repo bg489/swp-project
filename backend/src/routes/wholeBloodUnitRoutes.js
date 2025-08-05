@@ -7,7 +7,9 @@ import {
     getWholeBloodUnitById,
     getWholeBloodUnitsByHospitalId,
     isBloodGroupComplete,
-    getBloodTypeStringById
+    getBloodTypeStringById,
+    markWholeBloodUnitAsNotEligible,
+    markWholeBloodUnitAsTransfused
 } from "../controllers/wholeBloodUnitController.js";
 
 const router = express.Router();
@@ -33,5 +35,10 @@ router.get("/hospital/:hospital_id/whole-blood-units", getWholeBloodUnitsByHospi
 router.get("/whole-blood-unit/:id/check-blood-type", isBloodGroupComplete);
 
 router.get("/whole-blood-unit/:id/email-blood-type", getBloodTypeStringById);
+
+router.put("/whole-blood-unit/:id/not-eligible", markWholeBloodUnitAsNotEligible);
+
+router.put("/whole-blood-unit/:id/transfused", markWholeBloodUnitAsTransfused);
+
 
 export default router;

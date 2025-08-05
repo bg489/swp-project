@@ -95,7 +95,7 @@ interface DonorDonationRequest {
 export default function DonationRequestsManagement() {
   const router = useRouter()
   const { user, logout } = useAuth()
-  
+
   // States from main dashboard
   const [staff, setStaff] = useState<any>({})
   const [donationRequests, setDonationRequests] = useState<DonorDonationRequest[]>([])
@@ -108,7 +108,7 @@ export default function DonationRequestsManagement() {
   const [searchTerm, setSearchTerm] = useState("")
   const [sortBy, setSortBy] = useState("newest")
   const [requestFilter, setRequestFilter] = useState("newest")
-  
+
   // Stats states
   const [total, setTotal] = useState(0)
   const [pending, setPending] = useState(0)
@@ -146,6 +146,8 @@ export default function DonationRequestsManagement() {
       case "expired": return "Đã hết hạn";
       case "passed": return "Đã thông qua";
       case "failed": return "Bị từ chối";
+      case "not_eligible": return "Không phù hợp truyền";
+      case "transfused": return "Đã truyền";
       default: return "Không rõ";
     }
   }
@@ -181,11 +183,13 @@ export default function DonationRequestsManagement() {
         return "bg-green-100 text-green-800"
       case "verified":
       case "donated":
+      case "transfused":
         return "bg-green-500 text-white";
       case "unverified":
       case "failed":
       case "rejected":
       case "expired":
+      case "not_eligible":
         return "bg-red-500 text-white";
       case "in_progress":
       default:
@@ -307,7 +311,7 @@ export default function DonationRequestsManagement() {
       if (filter === "all") return true
       return req.status === filter
     })
-    .filter(req => 
+    .filter(req =>
       (req.user_id.full_name || req.user_id.email || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
       req.user_id.email.toLowerCase().includes(searchTerm.toLowerCase())
     )

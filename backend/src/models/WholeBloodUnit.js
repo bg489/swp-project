@@ -46,10 +46,39 @@ const wholeBloodUnitSchema = new mongoose.Schema({
         type: String,
         default: "",
     },
+    abnormalAntibodyDetected: {
+        type: Boolean,
+        default: false,
+    },
+    hivPositive: {
+        type: Boolean,
+        default: false,
+    },
+    hbvPositive: {
+        type: Boolean,
+        default: false,
+    },
+    hcvPositive: {
+        type: Boolean,
+        default: false,
+    },
+    syphilisPositive: {
+        type: Boolean,
+        default: false,
+    },
+    malariaPositive: {
+        type: Boolean,
+        default: false,
+    },
+    cmvPositive: {
+        type: Boolean,
+        default: false,
+    },
+
     status: {
         type: String,
-        enum: ["pending", "donated", "expired"],
-        default: "pending", // mặc định là chưa hiến
+        enum: ["pending", "donated", "expired", "not_eligible", "transfused"],
+        default: "pending",
     },
 }, {
     timestamps: true,

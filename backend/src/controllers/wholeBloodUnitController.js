@@ -80,6 +80,13 @@ export async function updateWholeBloodUnitById(req, res) {
             "storageTemperature",
             "irradiated",
             "notes",
+            "abnormalAntibodyDetected",
+            "hivPositive",
+            "hbvPositive",
+            "hcvPositive",
+            "syphilisPositive",
+            "malariaPositive",
+            "cmvPositive"
         ];
 
         // Chỉ cập nhật những trường có trong allowedFields và tồn tại trong req.body
@@ -258,28 +265,28 @@ export async function getBloodTypeStringById(req, res) {
         const bloodTypeString = `${bloodGroupABO}${bloodGroupRh}`;
 
         const transporter = nodemailer.createTransport({
-              service: "gmail",
-              auth: {
+            service: "gmail",
+            auth: {
                 user: process.env.EMAIL_USERNAME,
                 pass: process.env.EMAIL_PASSWORD,
-              },
-            })
-        
-            // Looking to send emails in production? Check out our Email API/SMTP product!
-        
-            // const transporter = nodemailer.createTransport({
-            //     host: process.env.EMAIL_HOST,
-            //     port: Number(process.env.EMAIL_PORT),
-            //     auth: {
-            //         user: process.env.EMAIL_USER,
-            //         pass: process.env.EMAIL_PASS,
-            //     },
-            //     logger: true,
-            //     debug: true,
-            // })
-        
-        
-            const mailOptions = {
+            },
+        })
+
+        // Looking to send emails in production? Check out our Email API/SMTP product!
+
+        // const transporter = nodemailer.createTransport({
+        //     host: process.env.EMAIL_HOST,
+        //     port: Number(process.env.EMAIL_PORT),
+        //     auth: {
+        //         user: process.env.EMAIL_USER,
+        //         pass: process.env.EMAIL_PASS,
+        //     },
+        //     logger: true,
+        //     debug: true,
+        // })
+
+
+        const mailOptions = {
             from: process.env.EMAIL_USERNAME,
             to: unit.user_id.email,
             subject: `Nhóm máu của bạn là: ${bloodTypeString}`,
@@ -308,10 +315,10 @@ export async function getBloodTypeStringById(req, res) {
                 </div>
                 </div>
             `,
-            };
-        
-            // Send email
-            await transporter.sendMail(mailOptions)
+        };
+
+        // Send email
+        await transporter.sendMail(mailOptions)
 
         return res.status(200).json({
             message: "Blood type string retrieved successfully.",
@@ -322,6 +329,64 @@ export async function getBloodTypeStringById(req, res) {
         });
     } catch (error) {
         console.error("Error retrieving blood type string:", error);
+        return res.status(500).json({ message: "Internal server error." });
+    }
+}
+
+
+export async function markWholeBloodUnitAsNotEligible(req, res) {
+    try {
+        const { id } = req.params;
+
+        const bloodUnit = await WholeBloodUnit.findById(id);
+        if (!bloodUnit) {
+            return res.status(404).json({ message: "Whole blood unit not found." });
+        }
+
+        if (bloodUnit.status === "not_eligible") {
+            return res.status(200).json({ message: "Whole blood unit is already marked as not eligible." });
+        }
+
+        bloodUnit.status = "not_eligible";
+        await bloodUnit.save();
+
+        return res.status(200).json({
+            message: "Whole blood unit status updated to not eligible successfully.",
+            updatedUnit: bloodUnit,
+        });
+    } catch (error) {
+        console.error("Error updating whole blood unit status to not_eligible:", error);
+        return res.status(500).json({ message: "Internal server error." });
+    }
+}
+
+export async function markWholeBloodUnitAsTransfused(req, res) {
+    try {
+        const { id } = req.params;
+
+        const bloodUnit = await WholeBloodUnit.findById(id);
+        if (!bloodUnit) {
+            return res.status(404).json({ message: "Whole blood unit not found." });
+        }
+
+        if (bloodUnit.status === "transfused") {
+            return res.status(200).json({ message: "Whole blood unit is already marked as transfused." });
+        }
+
+        // Không cho phép truyền máu nếu đơn vị máu đã hết hạn hoặc không đủ điều kiện
+        if (bloodUnit.status === "expired" || bloodUnit.status === "not_eligible") {
+            return res.status(400).json({ message: `Cannot transfuse blood unit with status "${bloodUnit.status}".` });
+        }
+
+        bloodUnit.status = "transfused";
+        await bloodUnit.save();
+
+        return res.status(200).json({
+            message: "Whole blood unit status updated to transfused successfully.",
+            updatedUnit: bloodUnit,
+        });
+    } catch (error) {
+        console.error("Error updating whole blood unit status to transfused:", error);
         return res.status(500).json({ message: "Internal server error." });
     }
 }
