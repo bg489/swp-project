@@ -114,13 +114,8 @@ export async function getDonorRequestsByHospitalId(req, res) {
     const { hospitalId } = req.params;
 
     // Kiểm tra hospitalId hợp lệ
-    if (!hospitalId || hospitalId === 'undefined' || hospitalId === 'null') {
+    if (!hospitalId) {
       return res.status(400).json({ message: "Missing hospitalId" });
-    }
-
-    // Validate ObjectId format
-    if (!/^[0-9a-fA-F]{24}$/.test(hospitalId)) {
-      return res.status(400).json({ message: "Invalid hospital ID format" });
     }
 
     // Kiểm tra bệnh viện có tồn tại

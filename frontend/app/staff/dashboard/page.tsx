@@ -340,14 +340,9 @@ export default function StaffDashboard() {
 
   useEffect(() => {
     async function fetchBloodRequests() {
-      // Only make API call if we have a valid hospital ID
-      if (!staff?.hospital?._id) {
-        console.log("No hospital ID available, skipping fetchBloodRequests")
-        return
-      }
 
       try {
-        const response2 = await api.get(`/donation-requests/donor-donation-request/hospital/${staff.hospital._id}`)
+        const response2 = await api.get(`/donation-requests/donor-donation-request/hospital/${staff?.hospital?._id}`)
         console.log("Fetched donor requests:", response2.data)
         setTotal(response2.data.total || 0)
         setPending(response2.data.status_summary.pending || 0)
@@ -615,7 +610,7 @@ export default function StaffDashboard() {
             } else if (action === 'create') {
               // Tạo mới inventory
               const newInventoryData = {
-                hospital: staff?.hospital?._id,
+                hospital: staff.hospital._id,
                 blood_type: currentRequest.blood_type_offered,
                 component: targetComponent,
                 quantity: currentRequest.amount_offered,
@@ -1128,7 +1123,7 @@ export default function StaffDashboard() {
 
       await api.post("/health-check/create", {
         checkin_id: response.data.checkIn._id,
-        hospital_id: staff?.hospital?._id
+        hospital_id: staff.hospital._id
       })
 
       toast.success("Đã xác minh thành công!")
