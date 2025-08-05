@@ -2,6 +2,7 @@ import WholeBloodUnit from "../models/WholeBloodUnit.js"; // đường dẫn mod
 import User from "../models/User.js";
 import UserProfile from "../models/UserProfile.js";
 import Hospital from "../models/Hospital.js";
+import nodemailer from "nodemailer"
 
 export async function createWholeBloodUnit(req, res) {
     try {
