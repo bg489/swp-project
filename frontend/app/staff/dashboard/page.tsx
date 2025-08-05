@@ -31,7 +31,14 @@ import { useRouter } from "next/navigation";
 
 interface DonorDonationRequest {
   _id: string
-  user_id: string
+  user_id: {
+    _id: string
+    email: string
+    full_name?: string
+    phone?: string
+    gender?: string
+    date_of_birth?: string
+  }
   hospital: {
     _id: string
     name: string
@@ -353,9 +360,7 @@ export default function StaffDashboard() {
           console.error("Server error occurred")
         }
 
-        setBloodRequests([])
-      } finally {
-        setLoading(false)
+        setDonationRequests([])
       }
     }
 
@@ -889,7 +894,7 @@ export default function StaffDashboard() {
       const donationDate = new Date(donation.donation_date).toDateString();
       return donationDate === today && donation.status === "completed";
     }).length || 0,
-    totalDonationsStat: Object.values(donorDonationCounts).reduce((total: number, count: number) => total + count, 0),
+    totalDonationsStat: Object.values(donorDonationCounts).reduce((total: number, count: number) => total + (count || 0), 0),
     // Thống kê hiến máu vào kho
     pendingDonorRequests: mockDonorRequests?.filter((req: any) => req.status === "in_progress").length || 0,
     completedDonorRequests: mockDonorRequests?.filter((req: any) => req.status === "completed").length || 0,
@@ -1014,8 +1019,8 @@ export default function StaffDashboard() {
       const response = await api.put(`/donation-requests/donor-donation-request/approve/${_id}`)
 
       // Cập nhật state local
-      setDonationRequests(prev =>
-        prev.map(req =>
+      setDonationRequests((prev: DonorDonationRequest[]) =>
+        prev.map((req: DonorDonationRequest) =>
           req._id === _id
             ? { ...req, status: "approved" }
             : req
@@ -1024,8 +1029,8 @@ export default function StaffDashboard() {
 
       console.log(donationRequests)
 
-      setApproved(prev => prev + 1)
-      setPending(prev => prev - 1)
+      setApproved((prev: number) => prev + 1)
+      setPending((prev: number) => prev - 1)
 
       const response2 = await api.get(`/users/user-profile/${response.data.request.user_id._id}`)
 
@@ -1053,8 +1058,8 @@ export default function StaffDashboard() {
       await api.put(`/donation-requests/donor-donation-request/reject/${_id}`)
 
       // Cập nhật state local
-      setDonationRequests(prev =>
-        prev.map(req =>
+      setDonationRequests((prev: DonorDonationRequest[]) =>
+        prev.map((req: DonorDonationRequest) =>
           req._id === _id
             ? { ...req, status: "rejected" }
             : req
@@ -1063,8 +1068,8 @@ export default function StaffDashboard() {
 
       console.log(donationRequests)
 
-      setRejected(prev => prev + 1)
-      setPending(prev => prev - 1)
+      setRejected((prev: number) => prev + 1)
+      setPending((prev: number) => prev - 1)
 
       toast.success("Đã hủy yêu cầu hiến máu thành công!")
     } catch (error: any) {
@@ -1256,16 +1261,13 @@ export default function StaffDashboard() {
             </Card>
           </div>
 
-          <Tabs defaultValue="inventory" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-8">
+          <Tabs defaultValue="donation-requests" className="space-y-6">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="donation-requests">Yêu cầu hiến máu</TabsTrigger>
               <TabsTrigger value="check-in">Check In</TabsTrigger>
               <TabsTrigger value="health-check">Khám</TabsTrigger>
               <TabsTrigger value="blood-test">Xét nghiệm máu</TabsTrigger>
               <TabsTrigger value="blood-unit">Đơn vị máu</TabsTrigger>
-              <TabsTrigger value="inventory">Kho máu</TabsTrigger>
-              <TabsTrigger value="requests">Yêu cầu máu</TabsTrigger>
-              <TabsTrigger value="reports">Quản lý lịch trình hiến máu</TabsTrigger>
             </TabsList>
 
             <TabsContent value="donation-requests" className="space-y-6">
