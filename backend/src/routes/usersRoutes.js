@@ -23,7 +23,8 @@ import {
   getCompatibleDonorsByHospitalAndRecipientBloodType,
   createUserProfile,
   checkCCCDExists,
-  getUserProfileByUserId
+  getUserProfileByUserId,
+  updateUserProfileBloodType
 } from "../controllers/usersController.js";
 import {
   getDonationsByDonorId,
@@ -70,6 +71,7 @@ router.get("/donor/get-requests-by-id/:donorId", getDonorRequestsByDonorId);
 router.get("/donor/staff/get-requests-by-hospital/:hospitalId", getDonorRequestsByHospitalId);
 router.put("/donor-requests/staff/:requestId/status", updateDonorRequestStatus);
 router.get("/user-profile/:userId", getUserProfileByUserId);
+router.put("/user-profile/update-blood-type/:userId", updateUserProfileBloodType);
 
 
 
