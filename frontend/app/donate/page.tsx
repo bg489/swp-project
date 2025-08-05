@@ -232,7 +232,7 @@ export default function DonatePage() {
         // Show success state
         setShowSuccessMessage(true);
         
-        toast.success(`Cảm ơn bạn đã đăng ký hiến ${formData.amount_offered}ml máu vào ngày ${formData.available_date} từ ${formData.available_time_range.from} - ${formData.available_time_range.to}. Chúng tôi sẽ liên hệ với bạn sớm nhất!`,)
+        toast.success(`Cảm ơn bạn đã đăng ký hiến máu vào ngày ${formData.available_date} từ ${formData.available_time_range.from} - ${formData.available_time_range.to}. Chúng tôi sẽ liên hệ với bạn sớm nhất!`,)
         
         // Show additional success message
         setTimeout(() => {
@@ -243,7 +243,7 @@ export default function DonatePage() {
         setTimeout(() => {
           setFormData({
             available_date: todayString,
-            available_time_range: { from: "", to: "" },
+            available_time_range: { from: "8:00", to: "10:00" },
             amount_offered: "",
             components_offered: [],
             hospital: "",
