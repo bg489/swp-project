@@ -6,6 +6,8 @@ import {
     markWholeBloodUnitAsDonated,
     getWholeBloodUnitById,
     getWholeBloodUnitsByHospitalId,
+    isBloodGroupComplete,
+    getBloodTypeStringById
 } from "../controllers/wholeBloodUnitController.js";
 
 const router = express.Router();
@@ -27,5 +29,9 @@ router.get("/whole-blood-unit/:id", getWholeBloodUnitById);
 
 // Lấy tất cả đơn vị máu theo bệnh viện
 router.get("/hospital/:hospital_id/whole-blood-units", getWholeBloodUnitsByHospitalId);
+
+router.get("/whole-blood-unit/:id/check-blood-type", isBloodGroupComplete);
+
+router.get("/whole-blood-unit/:id/email-blood-type", getBloodTypeStringById);
 
 export default router;
