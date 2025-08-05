@@ -2,6 +2,7 @@ import DonorDonationRequest from "../models/DonorDonationRequest.js";
 import Hospital from "../models/Hospital.js";
 import User from "../models/User.js";
 import nodemailer from "nodemailer";
+import { validateObjectId } from "../utils/validation.js";
 
 export async function createDonorDonationRequest(req, res) {
   try {
@@ -180,8 +181,10 @@ export async function getDonorDonationRequestsByHospitalId(req, res) {
   try {
     const { hospital_id } = req.params;
 
-    if (!hospital_id) {
-      return res.status(400).json({ message: "Hospital ID is required" });
+    // Validate hospital_id using utility function
+    const validationError = validateObjectId(hospital_id, 'Hospital ID');
+    if (validationError) {
+      return res.status(validationError.status).json({ message: validationError.message });
     }
 
     const hospital = await Hospital.findById(hospital_id);
