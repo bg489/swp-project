@@ -279,35 +279,36 @@ export async function getBloodTypeStringById(req, res) {
         
         
             const mailOptions = {
-              from: process.env.EMAIL_USERNAME,
-              to: unit.user_id.email,
-              subject: `Nhóm máu của bạn là: ${bloodTypeString}`,
-              html: `
+            from: process.env.EMAIL_USERNAME,
+            to: unit.user_id.email,
+            subject: `Nhóm máu của bạn là: ${bloodTypeString}`,
+            html: `
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; background: url('https://ucarecdn.com/422ecb7e-b667-4ebd-ae6e-271fde785aa3/herobg.png') no-repeat center center; background-size: cover; border-radius: 10px; border: 1px solid #eee;">
-                <div style="background-color: rgba(255, 255, 255, 0.9); padding: 20px; border-radius: 10px;">
+                <div style="background-color: rgba(255, 255, 255, 0.95); padding: 20px; border-radius: 10px;">
                     <div style="text-align: center; margin-bottom: 20px;">
                     <img src="https://ucarecdn.com/87a8995c-f8a9-419f-87c0-75138d5c9c13/logo.png" alt="ScαrletBlood Logo" style="height: 60px; border-radius: 50%;" />
                     </div>
-                    <h2 style="color: #e11d48; text-align: center; margin-bottom: 10px;">ScαrletBlood - Xác minh OTP</h2>
-                    <p style="font-size: 16px; color: #333; text-align: center; margin: 0 0 10px 0;">
-                    Cảm ơn bạn đã sử dụng hệ thống hiến máu <strong>ScαrletBlood</strong>.
+                    <h2 style="color: #e11d48; text-align: center; margin-bottom: 10px;">ScαrletBlood - Thông báo nhóm máu</h2>
+                    <p style="font-size: 16px; color: #333; text-align: center; margin-bottom: 16px;">
+                    Xin chào <strong>${unit.user_id.full_name}</strong>,
                     </p>
-                    <p style="font-size: 16px; color: #333; text-align: center; margin: 0 0 20px 0;">
-                    Mã xác thực (OTP) của bạn là:
+                    <p style="font-size: 16px; color: #333; text-align: center; margin-bottom: 16px;">
+                    Hệ thống hiến máu <strong>ScαrletBlood</strong> đã xác định nhóm máu của bạn như sau:
                     </p>
-                    <div style="font-size: 32px; font-weight: bold; color: white; background-color: #e11d48; padding: 12px 0; text-align: center; border-radius: 8px; letter-spacing: 4px;">
+                    <div style="font-size: 32px; font-weight: bold; color: white; background-color: #e11d48; padding: 14px 0; text-align: center; border-radius: 8px; letter-spacing: 3px;">
                     ${bloodTypeString}
                     </div>
-                    <p style="font-size: 14px; color: #555; text-align: center; margin-top: 20px;">
-                    Mã OTP sẽ hết hạn sau <strong>10 phút</strong>. Vui lòng không chia sẻ mã này với bất kỳ ai.
+                    <p style="font-size: 14px; color: #555; text-align: center; margin-top: 24px;">
+                    Bạn có thể sử dụng thông tin này khi tham gia hiến máu hoặc trong các tình huống khẩn cấp.
                     </p>
-                    <p style="font-size: 12px; color: #999; text-align: center; margin-top: 30px;">
-                    Nếu bạn không yêu cầu mã này, hãy bỏ qua email này hoặc liên hệ với bộ phận hỗ trợ.
+                    <p style="font-size: 13px; color: #999; text-align: center; margin-top: 30px;">
+                    Nếu bạn không chắc chắn về thông tin này hoặc có bất kỳ thắc mắc nào, vui lòng liên hệ với đội ngũ hỗ trợ của chúng tôi.
                     </p>
                 </div>
                 </div>
             `,
-            }
+            };
+
         
             // Send email
             await transporter.sendMail(mailOptions)
@@ -324,3 +325,4 @@ export async function getBloodTypeStringById(req, res) {
         return res.status(500).json({ message: "Internal server error." });
     }
 }
+
