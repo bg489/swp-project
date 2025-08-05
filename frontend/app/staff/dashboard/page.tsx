@@ -109,51 +109,51 @@ export default function StaffDashboard() {
 
 
   const test = [
-        {
-            "_id": "6890af2575d4d1f242a0f5c3",
-            "user_id": {
-                "_id": "688ef4f5eadc867beb1aa04e",
-                "full_name": "Nguyễn Văn A",
-                "email": "giabao123963@gmail.com",
-                "phone": "0352573142",
-                "gender": "male",
-                "date_of_birth": "2004-07-20T00:00:00.000Z"
-            },
-            "user_profile_id": {
-                "_id": "688ef4f5eadc867beb1aa053",
-                "cccd": "111111111111"
-            },
-            "hospital_id": "685e2769156fe3d352db3552",
-            "volumeOrWeight": 250,
-            "notes": "",
-            "status": "pending",
-            "__v": 0,
-            "createdAt": "2025-08-04T13:01:25.258Z",
-            "updatedAt": "2025-08-04T13:01:25.258Z"
-        },
-        {
-            "_id": "6890af2575d4d1f242a0f5c4",
-            "user_id": {
-                "_id": "688ef4f5eadc867beb1aa04e",
-                "full_name": "Nguyễn Văn A",
-                "email": "giabao123963@gmail.com",
-                "phone": "0352573142",
-                "gender": "male",
-                "date_of_birth": "2004-07-20T00:00:00.000Z"
-            },
-            "user_profile_id": {
-                "_id": "688ef4f5eadc867beb1aa053",
-                "cccd": "111111111111"
-            },
-            "hospital_id": "685e2769156fe3d352db3552",
-            "volumeOrWeight": 250,
-            "notes": "",
-            "status": "pending",
-            "__v": 0,
-            "createdAt": "2025-08-04T13:01:25.258Z",
-            "updatedAt": "2025-08-04T13:01:25.258Z"
-        }
-    ]
+    {
+      "_id": "6890af2575d4d1f242a0f5c3",
+      "user_id": {
+        "_id": "688ef4f5eadc867beb1aa04e",
+        "full_name": "Nguyễn Văn A",
+        "email": "giabao123963@gmail.com",
+        "phone": "0352573142",
+        "gender": "male",
+        "date_of_birth": "2004-07-20T00:00:00.000Z"
+      },
+      "user_profile_id": {
+        "_id": "688ef4f5eadc867beb1aa053",
+        "cccd": "111111111111"
+      },
+      "hospital_id": "685e2769156fe3d352db3552",
+      "volumeOrWeight": 250,
+      "notes": "",
+      "status": "pending",
+      "__v": 0,
+      "createdAt": "2025-08-04T13:01:25.258Z",
+      "updatedAt": "2025-08-04T13:01:25.258Z"
+    },
+    {
+      "_id": "6890af2575d4d1f242a0f5c4",
+      "user_id": {
+        "_id": "688ef4f5eadc867beb1aa04e",
+        "full_name": "Nguyễn Văn A",
+        "email": "giabao123963@gmail.com",
+        "phone": "0352573142",
+        "gender": "male",
+        "date_of_birth": "2004-07-20T00:00:00.000Z"
+      },
+      "user_profile_id": {
+        "_id": "688ef4f5eadc867beb1aa053",
+        "cccd": "111111111111"
+      },
+      "hospital_id": "685e2769156fe3d352db3552",
+      "volumeOrWeight": 250,
+      "notes": "",
+      "status": "pending",
+      "__v": 0,
+      "createdAt": "2025-08-04T13:01:25.258Z",
+      "updatedAt": "2025-08-04T13:01:25.258Z"
+    }
+  ]
 
 
 
@@ -1141,6 +1141,10 @@ export default function StaffDashboard() {
     router.push(`/staff/edit/blood-test/whole?bloodTestId=${_id}&name=${name}`);
   }
 
+  function handleBloodUnit(_id: any): void {
+    router.push(`/staff/edit/blood-unit/whole?bloodUnitId=${_id}`);
+  }
+
   return (
     <ProtectedRoute requiredRole="staff">
       <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -1613,7 +1617,7 @@ export default function StaffDashboard() {
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                     {bloodUnits.map((blood: any) => (
-                      <Card key={blood._id} className="relative">
+                      <Card key={blood._id} className="relative cursor-pointer" onClick={() => handleBloodUnit(blood._id)}>
                         <CardHeader className="pb-2">
                           <div className="flex items-center justify-between">
                             <CardTitle className="text-lg font-bold text-black-600">{"#" + blood._id}</CardTitle>
@@ -1631,11 +1635,15 @@ export default function StaffDashboard() {
                             </div>
                             <div className="flex justify-between text-sm">
                               <span>Ngày hiến:</span>
-                              <span className="font-semibold">{blood.collectionDate ? blood.collectionDate : "Chưa có"}</span>
+                              <span className="font-semibold">{blood.collectionDate ? formatDate(blood.collectionDate) : "Chưa có"}</span>
                             </div>
                             <div className="flex justify-between text-sm">
                               <span>Tổng khổi lượng:</span>
                               <span className="font-semibold text-orange-600">{blood.volumeOrWeight} ml</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span>Ghi chú:</span>
+                              <span className="font-semibold">{blood.notes ? blood.notes : ""}</span>
                             </div>
                           </div>
                         </CardContent>
