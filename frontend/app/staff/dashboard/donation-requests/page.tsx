@@ -323,9 +323,76 @@ export default function DonationRequestsManagement() {
     logout()
   }
 
+  async function handleUnverifiedStatus(_id: any, arg1: string): Promise<void> {
+    if (!window.confirm("Bạn có chắc chắn muốn hủy xác minh thông tin này?")) {
+      return
+    }
+
+    try {
+      await api.put(`/checkin/unverify/${_id}`)
+
+      // Cập nhật state local
+      setCheckIns((prev: any[]) =>
+        prev.map(req =>
+          req._id === _id
+            ? { ...req, status: "unverified" }
+            : req
+        )
+      )
+
+      toast.success("Đã hủy xác minh thành công!")
+    } catch (error: any) {
+      console.error("Error cancelling request:", error)
+      const errorMessage = error.response?.data?.message || "Đã xảy ra lỗi khi hủy yêu cầu."
+      toast.error(errorMessage)
+    }
+  }
+
+  async function handleVerifiedStatus(_id: any, arg1: string): Promise<void> {
+    if (!window.confirm("Xác nhận xác minh thông tin này?")) {
+      return
+    }
+
+    try {
+      const response = await api.put(`/checkin/checkins/${_id}/verify`)
+
+      // Cập nhật state local
+      setCheckIns((prev: any[]) =>
+        prev.map(req =>
+          req._id === _id
+            ? { ...req, status: "verified" }
+            : req
+        )
+      )
+
+      await api.post("/health-check/create", {
+        checkin_id: response.data.checkIn._id,
+        hospital_id: staff.hospital._id
+      })
+
+      toast.success("Đã xác minh thành công!")
+    } catch (error: any) {
+      console.error("Error cancelling request:", error)
+      const errorMessage = error.response?.data?.message || "Đã xảy ra lỗi khi hủy yêu cầu."
+      toast.error(errorMessage)
+    }
+  }
+
+  function handleCardClick(_id: any, name: string): void {
+    router.push(`/staff/edit/health-check/whole?healthCheck=${_id}&name=${name}`);
+  }
+
+  function handleBloodTestClick(_id: any, name: string): void {
+    router.push(`/staff/edit/blood-test/whole?bloodTestId=${_id}&name=${name}`);
+  }
+
+  function handleBloodUnit(_id: any): void {
+    router.push(`/staff/edit/blood-unit/whole?bloodUnitId=${_id}`);
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Header */}
+      {/* Staff Header - matching blood-management style */}
       <header className="bg-white border-b sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
@@ -341,30 +408,31 @@ export default function DonationRequestsManagement() {
                   />
                 </div>
                 <div>
-                  <h1 className="text-xl font-bold text-gray-900">Quản lý yêu cầu hiến máu</h1>
-                  <p className="text-sm text-gray-600">Hệ thống quản lý yêu cầu hiến máu</p>
+                  <h1 className="text-xl font-bold text-gray-900">ScαrletBlood Staff</h1>
+                  <p className="text-sm text-gray-600">Bảng điều khiển nhân viên</p>
                 </div>
               </Link>
-              <Badge className="bg-orange-100 text-orange-800">
+              <Badge className="bg-blue-100 text-blue-800">
                 <ClipboardList className="w-3 h-3 mr-1" />
-                Hiến máu
+                Nhân viên
               </Badge>
             </div>
 
             <div className="flex items-center space-x-4">
-              <Button variant="outline" size="sm" onClick={() => router.back()}>
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Quay lại
-              </Button>
+              <span className="text-sm text-gray-600">
+                Xin chào, <strong>Staff</strong>
+              </span>
               <Button variant="outline" size="sm" asChild>
                 <Link href="/">
                   <Home className="w-4 h-4 mr-2" />
                   Về trang chủ
                 </Link>
               </Button>
-              <Button variant="outline" size="sm" onClick={handleLogout}>
-                <LogOut className="w-4 h-4 mr-2" />
-                Đăng xuất
+              <Button variant="outline" size="sm" asChild>
+                <Link href="/staff/dashboard">
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Dashboard
+                </Link>
               </Button>
             </div>
           </div>
@@ -372,6 +440,22 @@ export default function DonationRequestsManagement() {
       </header>
 
       <div className="container mx-auto px-4 py-8 flex-grow">
+        {/* Breadcrumb Navigation */}
+        <div className="mb-6">
+          <div className="flex items-center text-sm text-gray-500">
+            <Link href="/staff/dashboard" className="hover:text-gray-700">
+              Dashboard
+            </Link>
+            <span className="mx-2">/</span>
+            <span className="text-gray-900 font-medium">Hệ thống quản lý yêu cầu hiến máu</span>
+          </div>
+        </div>
+
+        {/* Main header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Hệ thống quản lý yêu cầu hiến máu</h1>
+          <p className="text-gray-600">Quản lý và xử lý các yêu cầu hiến máu từ người dùng</p>
+        </div>
         {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <Card>
@@ -576,15 +660,72 @@ export default function DonationRequestsManagement() {
                   Danh sách người dùng đến bệnh viện để check in
                 </CardDescription>
               </CardHeader>
+
               <CardContent>
-                <div className="text-center py-8">
-                  <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    Chức năng Check-in
-                  </h3>
-                  <p className="text-gray-600">
-                    Tính năng này sẽ được tích hợp với API thực tế
-                  </p>
+                <div className="space-y-4">
+                  {checkIns.map((checkIn: any) => (
+                    <div
+                      key={checkIn._id}
+                      className="p-4 border rounded-lg hover:bg-gray-50 transition space-y-2"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="space-y-1">
+                          <p><strong>Họ tên:</strong> {checkIn.user_id.full_name}</p>
+                          <p><strong>Email:</strong> {checkIn.user_id.email}</p>
+                          <p><strong>CCCD:</strong> {checkIn.userprofile_id?.cccd || "Không có"}</p>
+                          <p><strong>Giới tính:</strong> {checkIn.user_id.gender}</p>
+                          <p><strong>SĐT:</strong> {checkIn.user_id.phone}</p>
+                          <p><strong>Ngày sinh:</strong> {formatDate(checkIn.user_id.date_of_birth)}</p>
+                          <p><strong>Bệnh viện:</strong> {checkIn.hospital_id.name}</p>
+                          <p><strong>Địa chỉ:</strong> {checkIn.hospital_id.address}</p>
+
+                          {/* Nếu có donorDonationRequest_id thì hiển thị */}
+                          {checkIn.donorDonationRequest_id && (
+                            <>
+                              <hr />
+                              <p><strong>Ngày đăng ký hiến:</strong> {formatDate(checkIn.donorDonationRequest_id.donation_date)}</p>
+                              <p><strong>Thời gian:</strong> {checkIn.donorDonationRequest_id.donation_time_range.from} - {checkIn.donorDonationRequest_id.donation_time_range.to}</p>
+                              <p><strong>Loại hiến máu:</strong> {checkIn.donorDonationRequest_id.donation_type === "whole" ? "Toàn phần" : "Tách thành phần"}</p>
+                              {checkIn.donorDonationRequest_id.separated_component && (
+                                <p><strong>Thành phần:</strong> {checkIn.donorDonationRequest_id.separated_component}</p>
+                              )}
+                              <p><strong>Ghi chú:</strong> {checkIn.donorDonationRequest_id.notes || "Không có"}</p>
+                              <p><strong>Trạng thái yêu cầu:</strong> {translateStatus(checkIn.donorDonationRequest_id.status)}</p>
+                            </>
+                          )}
+                        </div>
+
+                        <div className="flex flex-col items-end gap-1">
+                          <Badge className={getStatusColor(checkIn.status)}>
+                            {translateStatus(checkIn.status)}
+                          </Badge>
+                          <p className="text-sm text-gray-600">
+                            Ngày điểm danh: {formatDate(checkIn.createdAt)}
+                          </p>
+
+                          {/* Nút xử lý trạng thái */}
+                          {checkIn.status === "in_progress" && (
+                            <div className="flex gap-2 mt-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleVerifiedStatus(checkIn._id, "verified")}
+                              >
+                                Xác minh
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => handleUnverifiedStatus(checkIn._id, "unverified")}
+                              >
+                                Huỷ xác minh
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </CardContent>
             </Card>
@@ -609,16 +750,87 @@ export default function DonationRequestsManagement() {
                   Danh sách người dùng khám để hiến máu
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="text-center py-8">
-                  <TestTube className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    Chức năng khám sức khỏe
-                  </h3>
-                  <p className="text-gray-600">
-                    Tính năng này sẽ được tích hợp với API thực tế
-                  </p>
-                </div>
+
+              <CardContent className="space-y-4">
+                {healthChecks.map((checkInData: any) => (
+                  <div
+                    key={checkInData.checkIn._id}
+                    className="p-4 border rounded-lg bg-white shadow-md hover:shadow-xl transition-all duration-200 space-y-4 cursor-pointer"
+                    onClick={() => handleCardClick(checkInData.healthCheck._id, checkInData.checkIn.user_id.full_name)}
+                  >
+                    {/* Thông tin Người Dùng và Bệnh Viện */}
+                    <div className="flex justify-between items-start space-x-6">
+                      <div className="space-y-2 flex-1">
+                        <p className="text-lg font-semibold text-gray-900">{checkInData.checkIn.user_id.full_name}</p>
+                        <p className="text-sm text-gray-600"><strong>Email:</strong> {checkInData.checkIn.user_id.email}</p>
+                        <p className="text-sm text-gray-600"><strong>CCCD:</strong> {checkInData.checkIn.userprofile_id?.cccd || "Không có"}</p>
+                        <p className="text-sm text-gray-600"><strong>Giới tính:</strong> {checkInData.checkIn.user_id.gender}</p>
+                        <p className="text-sm text-gray-600"><strong>SĐT:</strong> {checkInData.checkIn.user_id.phone}</p>
+                        <p className="text-sm text-gray-600"><strong>Ngày sinh:</strong> {formatDate(checkInData.checkIn.user_id.date_of_birth)}</p>
+                        <p className="text-sm text-gray-600"><strong>Bệnh viện:</strong> {checkInData.checkIn.hospital_id.name}</p>
+                        <p className="text-sm text-gray-600"><strong>Địa chỉ:</strong> {checkInData.checkIn.hospital_id.address}</p>
+
+                        {/* Hiển thị thông tin đăng ký hiến máu */}
+                        {checkInData.checkIn.donorDonationRequest_id && (
+                          <div className="mt-4 space-y-2">
+                            <hr />
+                            <p className="text-sm"><strong>Ngày đăng ký hiến:</strong> {formatDate(checkInData.checkIn.donorDonationRequest_id.donation_date)}</p>
+                            <p className="text-sm"><strong>Thời gian:</strong> {checkInData.checkIn.donorDonationRequest_id.donation_time_range.from} - {checkInData.checkIn.donorDonationRequest_id.donation_time_range.to}</p>
+                            <p className="text-sm"><strong>Loại hiến máu:</strong> {checkInData.checkIn.donorDonationRequest_id.donation_type === "whole" ? "Toàn phần" : "Tách thành phần"}</p>
+                            {checkInData.checkIn.donorDonationRequest_id.separated_component && (
+                              <p className="text-sm"><strong>Thành phần:</strong> {checkInData.checkIn.donorDonationRequest_id.separated_component}</p>
+                            )}
+                            <p className="text-sm"><strong>Ghi chú:</strong> {checkInData.checkIn.donorDonationRequest_id.notes || "Không có"}</p>
+                            <p className="text-sm"><strong>Trạng thái yêu cầu:</strong> {translateStatus(checkInData.checkIn.donorDonationRequest_id.status)}</p>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Thông tin trạng thái và các hành động */}
+                      <div className="flex flex-col items-end gap-1">
+                        <Badge className={getStatusColor(checkInData.status)}>{translateStatus(checkInData.status)}</Badge>
+                        {/* Nút xử lý trạng thái */}
+                        {checkInData.status === "in_progress" && (
+                          <div className="flex gap-2 mt-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleVerifiedStatus(checkInData.checkIn._id, "verified")}
+                              className="bg-green-500 text-white hover:bg-green-600"
+                            >
+                              Xác minh
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => handleUnverifiedStatus(checkInData.checkIn._id, "unverified")}
+                              className="bg-red-500 text-white hover:bg-red-600"
+                            >
+                              Huỷ xác minh
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Thông tin HealthCheck */}
+                    <div className="mt-4 space-y-2">
+                      <div className="text-sm">
+                        <strong>Trạng thái sức khỏe:</strong> {translateStatus(checkInData.healthCheck.status)}
+                      </div>
+                      <div className="text-sm">
+                        <strong>Health Check ID:</strong> {checkInData.healthCheck._id}
+                      </div>
+                    </div>
+
+                    {/* Trạng thái tổng của check-in */}
+                    <div className="mt-4 space-y-2">
+                      <div className="text-sm">
+                        <strong>Trạng thái tổng:</strong> {translateStatus(checkInData.status)}
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </CardContent>
             </Card>
           </TabsContent>
@@ -642,16 +854,54 @@ export default function DonationRequestsManagement() {
                   Danh sách người dùng xét nghiệm máu
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="text-center py-8">
-                  <Droplets className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    Chức năng xét nghiệm máu
-                  </h3>
-                  <p className="text-gray-600">
-                    Tính năng này sẽ được tích hợp với API thực tế
-                  </p>
-                </div>
+
+              <CardContent className="space-y-4">
+                {bloodTests.map((bloodTestData: any) => (
+                  <div
+                    key={bloodTestData._id}
+                    className="p-4 border rounded-lg bg-white shadow-md hover:shadow-xl transition-all duration-200 space-y-4 cursor-pointer"
+                    onClick={() => handleBloodTestClick(bloodTestData._id, bloodTestData.user_id.full_name)}
+                  >
+                    {/* Thông tin Người Dùng và Bệnh Viện */}
+                    <div className="flex justify-between items-start space-x-6">
+                      <div className="space-y-2 flex-1">
+                        <p className="text-lg font-semibold text-gray-900">{bloodTestData.user_id.full_name}</p>
+                        <p className="text-sm text-gray-600"><strong>Email:</strong> {bloodTestData.user_id.email}</p>
+                        <p className="text-sm text-gray-600"><strong>CCCD:</strong> {bloodTestData.userprofile_id?.cccd || "Không có"}</p>
+                        <p className="text-sm text-gray-600"><strong>Giới tính:</strong> {bloodTestData.user_id.gender}</p>
+                        <p className="text-sm text-gray-600"><strong>SĐT:</strong> {bloodTestData.user_id.phone}</p>
+                        <p className="text-sm text-gray-600"><strong>Ngày sinh:</strong> {formatDate(bloodTestData.user_id.date_of_birth)}</p>
+                        <p className="text-sm text-gray-600"><strong>Bệnh viện:</strong> {bloodTestData.hospital_id.name}</p>
+                        <p className="text-sm text-gray-600"><strong>Địa chỉ:</strong> {bloodTestData.hospital_id.address}</p>
+                      </div>
+                    </div>
+
+                    {/* Thông tin trạng thái và các hành động */}
+                    <div className="flex flex-col items-end gap-1">
+                      <Badge className={getStatusColor(bloodTestData.status)}>{translateStatus(bloodTestData.status)}</Badge>
+                    </div>
+
+                    {/* Thông tin HealthCheck */}
+                    <div className="mt-4 space-y-2">
+                      <div className="text-sm">
+                        <strong>Trạng thái sức khỏe:</strong> {translateStatus(bloodTestData.status)}
+                      </div>
+                      <div className="text-sm">
+                        <strong>Test HBsAg:</strong> {bloodTestData.HBsAg ? "Dương tính" : "Âm tính"}
+                      </div>
+                      <div className="text-sm">
+                        <strong>Huyết sắc tố (g/l):</strong> {bloodTestData.hemoglobin}
+                      </div>
+                    </div>
+
+                    {/* Trạng thái tổng của check-in */}
+                    <div className="mt-4 space-y-2">
+                      <div className="text-sm">
+                        <strong>Trạng thái tổng:</strong> {translateStatus(bloodTestData.status)}
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </CardContent>
             </Card>
           </TabsContent>
@@ -668,14 +918,40 @@ export default function DonationRequestsManagement() {
                 <CardDescription>Theo dõi đơn vị máu của người hiến</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-center py-8">
-                  <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    Chức năng quản lý đơn vị máu
-                  </h3>
-                  <p className="text-gray-600">
-                    Tính năng này sẽ được tích hợp với API thực tế
-                  </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                  {bloodUnits.map((blood: any) => (
+                    <Card key={blood._id} className="relative cursor-pointer" onClick={() => handleBloodUnit(blood._id)}>
+                      <CardHeader className="pb-2">
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-lg font-bold text-black-600">{"#" + blood._id}</CardTitle>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-lg font-bold text-red-600">{(blood.bloodGroupABO) ? (blood.bloodGroupABO + blood.bloodGroupRh) : "Chưa biết nhóm máu"}</CardTitle>
+                          <Badge className={getStatusColor(blood.status)}>{translateStatus(blood.status)}</Badge>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span>Tên người hiến máu:</span>
+                            <span className="font-semibold">{blood.user_id.full_name}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span>Ngày hiến:</span>
+                            <span className="font-semibold">{blood.collectionDate ? formatDate(blood.collectionDate) : "Chưa có"}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span>Tổng khổi lượng:</span>
+                            <span className="font-semibold text-orange-600">{blood.volumeOrWeight} ml</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span>Ghi chú:</span>
+                            <span className="font-semibold">{blood.notes ? blood.notes : ""}</span>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
               </CardContent>
             </Card>
