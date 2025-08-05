@@ -340,6 +340,11 @@ export default function StaffDashboard() {
 
   useEffect(() => {
     async function fetchBloodRequests() {
+      // Only fetch if hospital ID exists
+      if (!staff?.hospital?._id) {
+        console.log("No hospital ID available, skipping donation requests fetch")
+        return
+      }
 
       try {
         const response2 = await api.get(`/donation-requests/donor-donation-request/hospital/${staff?.hospital?._id}`)
@@ -365,7 +370,7 @@ export default function StaffDashboard() {
     }
 
     fetchBloodRequests()
-  }, [staff])
+  }, [staff?.hospital?._id])
 
 
   const warehouseDonationsList = [
