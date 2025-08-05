@@ -1079,140 +1079,13 @@ export default function BloodManagementPage() {
       }
     ])
 
-    setBloodRequests([
-      {
-        id: '1',
-        patientName: 'Nguyễn Văn A',
-        patientId: 'P001',
-        bloodType: 'O+',
-        component: 'whole_blood',
-        unitsNeeded: 3,
-        urgency: 'high',
-        requestDate: '2025-08-05',
-        requiredDate: '2025-08-06',
-        status: 'pending',
-        hospital: 'Bệnh viện Chợ Rẫy',
-        doctorName: 'BS. Trần Thị B',
-        reason: 'Phẫu thuật tim'
-      },
-      {
-        id: '2',
-        patientName: 'Lê Thị C',
-        patientId: 'P002',
-        bloodType: 'A+',
-        component: 'red_cells',
-        unitsNeeded: 2,
-        urgency: 'medium',
-        requestDate: '2025-08-04',
-        requiredDate: '2025-08-07',
-        status: 'approved',
-        hospital: 'Bệnh viện 115',
-        doctorName: 'BS. Phạm Văn D',
-        reason: 'Tai nạn giao thông'
-      },
-      {
-        id: '3',
-        patientName: 'Phạm Văn D',
-        patientId: 'P003',
-        bloodType: 'B+',
-        component: 'platelets',
-        unitsNeeded: 1,
-        urgency: 'critical',
-        requestDate: '2025-08-03',
-        requiredDate: '2025-08-06',
-        status: 'in_progress',
-        hospital: 'Bệnh viện Từ Dũ',
-        doctorName: 'BS. Nguyễn Thị E',
-        reason: 'Chấn thương nghiêm trọng'
-      }
-    ])
+    setBloodRequests([])
 
-    setBloodTests([
-      {
-        id: '1',
-        donorId: 'D001',
-        donorName: 'Hoàng Văn E',
-        testDate: '2025-08-03',
-        bloodType: 'O+',
-        hemoglobin: 14.5,
-        hiv: false,
-        hepatitisB: false,
-        hepatitisC: false,
-        syphilis: false,
-        status: 'passed',
-        technician: 'KTV. Nguyễn F'
-      },
-      {
-        id: '2',
-        donorId: 'D002',
-        donorName: 'Vũ Thị G',
-        testDate: '2025-08-02',
-        bloodType: 'A+',
-        hemoglobin: 12.8,
-        hiv: false,
-        hepatitisB: false,
-        hepatitisC: false,
-        syphilis: false,
-        status: 'passed',
-        technician: 'KTV. Lê H'
-      }
-    ])
+    setBloodTests([])
 
     // Load patients from localStorage or use default data
     const storedPatients = localStorage.getItem('patients')
-    const defaultPatients: Patient[] = [
-      {
-        id: 'P001',
-        name: 'Nguyễn Văn A',
-        age: 45,
-        gender: 'male' as const,
-        bloodType: 'O+',
-        bloodComponent: 'whole_blood',
-        urgency: 'high' as const,
-        phone: '0901234567',
-        email: 'nguyenvana@gmail.com',
-        address: '123 Nguyễn Huệ, Q1, TP.HCM',
-        emergencyContact: '0907654321',
-        medicalHistory: ['Cao huyết áp', 'Tiểu đường'],
-        registrationDate: '2025-01-15',
-        status: 'active' as const,
-        citizenId: '001234567890'
-      },
-      {
-        id: 'P002',
-        name: 'Lê Thị C',
-        age: 28,
-        gender: 'female' as const,
-        bloodType: 'A+',
-        bloodComponent: 'red_cells',
-        urgency: 'medium' as const,
-        phone: '0902345678',
-        email: 'lethic@gmail.com',
-        address: '456 Lê Lợi, Q3, TP.HCM',
-        emergencyContact: '0908765432',
-        medicalHistory: [],
-        registrationDate: '2025-02-20',
-        status: 'active' as const,
-        citizenId: '002345678901'
-      },
-      {
-        id: 'P003',
-        name: 'Phạm Văn D',
-        age: 35,
-        gender: 'male' as const,
-        bloodType: 'B+',
-        bloodComponent: 'platelets',
-        urgency: 'critical' as const,
-        phone: '0903456789',
-        email: 'phamvand@gmail.com',
-        address: '789 Đường 3/2, Q10, TP.HCM',
-        emergencyContact: '0909876543',
-        medicalHistory: ['Chấn thương nghiêm trọng'],
-        registrationDate: '2025-08-03',
-        status: 'active' as const,
-        citizenId: '003456789012'
-      }
-    ]
+    const defaultPatients: Patient[] = []
     
     let patientsData = defaultPatients
     
@@ -1220,24 +1093,12 @@ export default function BloodManagementPage() {
     if (storedPatients) {
       try {
         const parsedPatients = JSON.parse(storedPatients)
-        // Kiểm tra xem dữ liệu có đầy đủ không, nếu không thì dùng default
-        if (parsedPatients.length > 0 && parsedPatients[0].bloodType) {
-          patientsData = parsedPatients
-        } else {
-          // Dữ liệu cũ không đầy đủ, xóa và dùng default
-          localStorage.removeItem('patients')
-          localStorage.setItem('patients', JSON.stringify(defaultPatients))
-          console.log('Đã cập nhật dữ liệu bệnh nhân với định dạng mới')
-        }
+        patientsData = parsedPatients
       } catch (error) {
         // Lỗi parse JSON, dùng default data
         localStorage.removeItem('patients')
-        localStorage.setItem('patients', JSON.stringify(defaultPatients))
         console.log('Đã khôi phục dữ liệu bệnh nhân')
       }
-    } else {
-      // Không có dữ liệu, lưu default
-      localStorage.setItem('patients', JSON.stringify(defaultPatients))
     }
     
     setPatients(patientsData)
@@ -2298,6 +2159,15 @@ export default function BloodManagementPage() {
                   </TableCell>
                 </TableRow>
               ))}
+              {bloodRequests.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={10} className="text-center py-8 text-gray-500">
+                    <ClipboardList className="w-12 h-12 mx-auto mb-3 text-gray-400" />
+                    <p className="text-lg font-medium mb-1">Chưa có yêu cầu máu nào</p>
+                    <p className="text-sm">Tạo yêu cầu từ kết quả xét nghiệm</p>
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>
@@ -3044,61 +2914,9 @@ export default function BloodManagementPage() {
             variant="outline" 
             size="sm"
             onClick={() => {
-              // Xóa dữ liệu cũ và tạo lại với dữ liệu mẫu đầy đủ
+              // Xóa dữ liệu cũ 
               localStorage.removeItem('patients')
-              const defaultPatients: Patient[] = [
-                {
-                  id: 'P001',
-                  name: 'Nguyễn Văn A',
-                  age: 45,
-                  gender: 'male' as const,
-                  bloodType: 'O+',
-                  bloodComponent: 'whole_blood',
-                  urgency: 'high' as const,
-                  phone: '0901234567',
-                  email: 'nguyenvana@gmail.com',
-                  address: '123 Nguyễn Huệ, Q1, TP.HCM',
-                  emergencyContact: '0907654321',
-                  medicalHistory: ['Cao huyết áp', 'Tiểu đường'],
-                  registrationDate: '2025-01-15',
-                  status: 'active' as const,
-                  citizenId: '001234567890'
-                },
-                {
-                  id: 'P002',
-                  name: 'Lê Thị C',
-                  age: 28,
-                  gender: 'female' as const,
-                  bloodType: 'A+',
-                  bloodComponent: 'red_cells',
-                  urgency: 'medium' as const,
-                  phone: '0902345678',
-                  email: 'lethic@gmail.com',
-                  address: '456 Lê Lợi, Q3, TP.HCM',
-                  emergencyContact: '0908765432',
-                  medicalHistory: [],
-                  registrationDate: '2025-02-20',
-                  status: 'active' as const,
-                  citizenId: '002345678901'
-                },
-                {
-                  id: 'P003',
-                  name: 'Phạm Văn D',
-                  age: 35,
-                  gender: 'male' as const,
-                  bloodType: 'B+',
-                  bloodComponent: 'platelets',
-                  urgency: 'critical' as const,
-                  phone: '0903456789',
-                  email: 'phamvand@gmail.com',
-                  address: '789 Đường 3/2, Q10, TP.HCM',
-                  emergencyContact: '0909876543',
-                  medicalHistory: ['Chấn thương nghiêm trọng'],
-                  registrationDate: '2025-08-03',
-                  status: 'active' as const,
-                  citizenId: '003456789012'
-                }
-              ]
+              const defaultPatients: Patient[] = []
               localStorage.setItem('patients', JSON.stringify(defaultPatients))
               setPatients(defaultPatients)
               console.log('Đã làm mới dữ liệu bệnh nhân')

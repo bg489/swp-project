@@ -606,64 +606,26 @@ export default function StaffDashboard() {
         </header>
 
         <div className="container mx-auto px-4 py-8 flex-grow">
-          {/* Staff Stats Overview - Expanded with Blood Donation to Inventory Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
-            <Card>
+          {/* Staff Information Overview */}
+          <div className="mb-8">
+            <Card className="w-full">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Kho máu tổng</CardTitle>
-                <Droplets className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-lg font-medium">Cơ sở làm việc</CardTitle>
+                <CheckCircle className="h-6 w-6 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-red-600">{staffStats.totalBloodUnits} ml</div>
-                <p className="text-xs text-muted-foreground">
-                  {staffStats.lowStockTypes > 0 ? `${staffStats.lowStockTypes} loại thiếu` : "Tình trạng tốt"}
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Yêu cầu hiến máu</CardTitle>
-                <Hospital className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-orange-600">-</div>
-                <p className="text-xs text-muted-foreground">đang chờ xử lý</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Hiến máu vào kho</CardTitle>
-                <Heart className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-green-600">{staffStats.completedDonorRequests}</div>
-                <p className="text-xs text-muted-foreground">
-                  đã hoàn tất | {staffStats.pendingDonorRequests} đang xử lý
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Máu nhận được</CardTitle>
-                <Droplet className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-blue-600">{staffStats.totalVolumeFromDonorRequests} ml</div>
-                <p className="text-xs text-muted-foreground">từ hiến máu vào kho</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Cơ sở làm việc</CardTitle>
-                <CheckCircle className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-green-600">{staff?.hospital?.name || "Không có thông tin"}</div>
-                <p className="text-xs text-muted-foreground">{staff?.hospital?.address || "Không có thông tin"}</p>
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <div className="text-2xl font-bold text-green-600 mb-2">{staff?.hospital?.name || "Không có thông tin"}</div>
+                    <p className="text-sm text-muted-foreground">{staff?.hospital?.address || "Không có thông tin"}</p>
+                  </div>
+                  <div className="mt-4 md:mt-0">
+                    <Badge className="bg-green-100 text-green-800 text-sm">
+                      <CheckCircle className="w-4 h-4 mr-1" />
+                      Đang hoạt động
+                    </Badge>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -698,7 +660,7 @@ export default function StaffDashboard() {
                     <Package className="h-5 w-5 text-blue-600" />
                   </div>
                   <div className="text-lg font-bold text-blue-600">{staffStats.totalBloodUnits}</div>
-                  <div className="text-xs text-blue-600">Tồn kho máu (ml)</div>
+                  <div className="text-xs text-blue-600">Tồn kho máu</div>
                 </div>
                 <div className="text-center p-3 bg-yellow-50 rounded-lg">
                   <div className="flex items-center justify-center mb-2">
@@ -725,7 +687,7 @@ export default function StaffDashboard() {
               <div className="mt-4 p-3 bg-gray-50 rounded-lg">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-gray-600">Tính năng bao gồm:</span>
-                  <span className="text-gray-500">Tồn kho • Yêu cầu • Xét nghiệm • Bệnh nhân</span>
+                  <span className="text-gray-500">kho máu • Yêu cầu • Xét nghiệm • Bệnh nhân</span>
                 </div>
               </div>
             </CardContent>
