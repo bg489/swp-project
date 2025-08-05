@@ -160,6 +160,16 @@ export default function DonationRequestsManagement() {
     }
   }
 
+  function translateBloodComponent(component: string) {
+    const componentMap: Record<string, string> = {
+      "whole": "Máu toàn phần",
+      "RBC": "Hồng cầu",
+      "plasma": "Huyết tương",
+      "platelet": "Tiểu cầu",
+    }
+    return componentMap[component] || component
+  }
+
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
     const day = String(date.getDate()).padStart(2, "0");
@@ -608,6 +618,7 @@ export default function DonationRequestsManagement() {
                             <p><strong>Ngày hiến:</strong> {formatDate(request.donation_date)}</p>
                             <p><strong>Khung giờ:</strong> {request.donation_time_range.from} - {request.donation_time_range.to}</p>
                             <p><strong>Loại hiến:</strong> {translateDonationType(request.donation_type)}</p>
+                            {(request.donation_type === "separated") ? <p><strong>Các thành phần:</strong> {request.separated_component.map(translateBloodComponent).join(", ")}</p> : ""}
                             <p><strong>Ghi chú:</strong> {request.notes || "Không có"}</p>
                           </div>
                           <div className="flex flex-col items-end gap-1">
