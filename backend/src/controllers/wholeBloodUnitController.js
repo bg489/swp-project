@@ -309,7 +309,6 @@ export async function getBloodTypeStringById(req, res) {
                 </div>
             `,
             };
-
         
             // Send email
             await transporter.sendMail(mailOptions)
@@ -326,4 +325,3 @@ export async function getBloodTypeStringById(req, res) {
         return res.status(500).json({ message: "Internal server error." });
     }
 }
-
