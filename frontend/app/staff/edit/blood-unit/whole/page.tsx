@@ -134,11 +134,24 @@ export default function HealthCheckFormPage() {
     }
   }
 
+  async function emailBloodTypeToUser(){
+    try {
+      const responseBoolean = await api.get(`/whole-blood/whole-blood-unit/${bloodUnitId}/check-blood-type`);
+      if(responseBoolean.data.isComplete){
+        await api.get(`/whole-blood/whole-blood-unit/${bloodUnitId}/email-blood-type`);
+        toast.success("Đã gửi email thông tin nhóm máu cho người dùng");
+      }
+    } catch (error) {
+      toast.error("Đã có lỗi xảy ra khi gửi mail cho user");
+    }
+  }
+
 
   async function acceptForm(): Promise<void> {
     try {
       await api.put(`/whole-blood/whole-blood-unit/${bloodUnitId}/donate`);
       toast.success("Dán nhãn hiến máu thành công!")
+      emailBloodTypeToUser();
       router.push("/staff/dashboard");
     } catch (error) {
       toast.error("Có lỗi xảy ra khi chấp nhận đơn khám!")
