@@ -24,7 +24,8 @@ import {
   createUserProfile,
   checkCCCDExists,
   getUserProfileByUserId,
-  updateUserProfileBloodType
+  updateUserProfileBloodType,
+  setBloodTypeInUserProfile
 } from "../controllers/usersController.js";
 import {
   getDonationsByDonorId,
@@ -72,6 +73,7 @@ router.get("/donor/staff/get-requests-by-hospital/:hospitalId", getDonorRequests
 router.put("/donor-requests/staff/:requestId/status", updateDonorRequestStatus);
 router.get("/user-profile/:userId", getUserProfileByUserId);
 router.put("/user-profile/update-blood-type/:userId", updateUserProfileBloodType);
+router.put("/user-profile/set-blood-type", setBloodTypeInUserProfile);
 
 
 

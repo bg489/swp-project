@@ -888,3 +888,31 @@ export async function updateUserProfileBloodType(req, res) {
     return res.status(500).json({ message: "Lỗi máy chủ" });
   }
 }
+
+// PATCH /api/user-profile/set-blood-type
+export async function setBloodTypeInUserProfile(req, res) {
+  try {
+    const { user_id, blood_type } = req.body;
+
+    if (!user_id || !blood_type) {
+      return res.status(400).json({ message: "Thiếu user_id hoặc blood_type" });
+    }
+
+    const profile = await UserProfile.findOne({ user_id });
+
+    if (!profile) {
+      return res.status(404).json({ message: "Không tìm thấy hồ sơ người dùng" });
+    }
+
+    profile.blood_type = blood_type;
+    await profile.save();
+
+    return res.status(200).json({
+      message: "Cập nhật nhóm máu thành công",
+      profile,
+    });
+  } catch (error) {
+    console.error("Lỗi khi cập nhật nhóm máu trong UserProfile:", error);
+    return res.status(500).json({ message: "Lỗi máy chủ" });
+  }
+}

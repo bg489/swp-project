@@ -40,7 +40,8 @@ export default function HealthCheckFormPage() {
     phone: "",
     gender: "",
     birth: "",
-    cccd: ""
+    cccd: "",
+    user_id: "",
   });
 
   function getGenderLabel(gender: string) {
@@ -78,7 +79,8 @@ export default function HealthCheckFormPage() {
           phone: data.unit.user_id.phone,
           gender: data.unit.user_id.gender,
           birth: data.unit.user_id.date_of_birth,
-          cccd: data.unit.user_profile_id.cccd
+          cccd: data.unit.user_profile_id.cccd,
+          user_id: data.unit.user_id._id
         })
 
       } catch (error) {
@@ -134,11 +136,15 @@ export default function HealthCheckFormPage() {
     }
   }
 
-  async function emailBloodTypeToUser(){
+  async function emailBloodTypeToUser() {
     try {
       const responseBoolean = await api.get(`/whole-blood/whole-blood-unit/${bloodUnitId}/check-blood-type`);
-      if(responseBoolean.data.isComplete){
+      if (responseBoolean.data.isComplete) {
         await api.get(`/whole-blood/whole-blood-unit/${bloodUnitId}/email-blood-type`);
+        await api.put(`/users/user-profile/set-blood-type`, {
+          user_id: form.user_id,
+          blood_type: form.bloodGroupABO + form.bloodGroupRh,
+        });
         toast.success("Đã gửi email thông tin nhóm máu cho người dùng");
       }
     } catch (error) {
