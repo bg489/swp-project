@@ -1656,6 +1656,55 @@ export default function StaffDashboard() {
               </Card>
             </TabsContent>
 
+
+
+
+            <TabsContent value="inventory" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <span className="flex items-center">
+                      <Package className="w-5 h-5 mr-2" />
+                      Quản lý kho máu
+                    </span>
+                  </CardTitle>
+                  <CardDescription>Theo dõi tồn kho và tình trạng máu theo từng nhóm</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    {bloodInven.map((blood: any) => (
+                      <Card key={blood.blood_type} className="relative">
+                        <CardHeader className="pb-2">
+                          <div className="flex items-center justify-between">
+                            <CardTitle className="text-lg font-bold text-red-600">{blood.blood_type}</CardTitle>
+                            <Badge className={getBloodStatusColor(blood.quantity)}>
+                              {blood.quantity < 30
+                                ? "Rất thấp"
+                                : blood.quantity < 150
+                                  ? "Thấp"
+                                  : "Tốt"}
+                            </Badge>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-2">
+                            <div className="flex justify-between text-sm">
+                              <span>Có sẵn:</span>
+                              <span className="font-semibold">{blood.quantity} ml</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span>Ghi chú:</span>
+                              <span className="font-semibold">{blood.notes ? blood.notes : ""}</span>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
             <TabsContent value="requests" className="space-y-6">
             </TabsContent>
 
