@@ -19,6 +19,10 @@ import {
   Clock,
   CheckCircle,
   Droplet,
+  FileText,
+  TestTube,
+  User,
+  X,
 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
@@ -28,34 +32,6 @@ import api from "@/lib/axios"
 import { useEffect, useState } from "react"
 import toast, { Toaster } from "react-hot-toast"
 import { useRouter } from "next/navigation";
-
-interface DonorDonationRequest {
-  _id: string
-  user_id: {
-    _id: string
-    email: string
-    full_name?: string
-    phone?: string
-    gender?: string
-    date_of_birth?: string
-  }
-  hospital: {
-    _id: string
-    name: string
-    address: string
-  }
-  donation_date: string // ISO string
-  donation_type: "whole" | "separated"
-  donation_time_range: {
-    from: string
-    to: string
-  }
-  separated_component?: "RBC" | "plasma" | "platelet"
-  notes: string
-  status: "pending" | "approved" | "rejected"
-  createdAt: string
-  updatedAt: string
-}
 
 // Function to translate status from English to Vietnamese
 function translateStatus(status: string) {
@@ -87,7 +63,6 @@ function translateComponent(component: string) {
   return map[component?.toLowerCase()] || map[component] || component
 }
 
-
 export default function StaffDashboard() {
   const { user, logout } = useAuth()
   const router = useRouter();
@@ -103,360 +78,6 @@ export default function StaffDashboard() {
   const [selectedDonorRequestStatus, setSelectedDonorRequestStatus] = useState<{ [key: string]: string }>({});
   const [mockDonorRequests, setMockDonorRequests] = useState<any>([]);
   const [donorDonationCounts, setDonorDonationCounts] = useState<{ [key: string]: number }>({});
-  const [bloodRequestFilter, setBloodRequestFilter] = useState("newest");
-  const [total, setTotal] = useState(0);
-  const [pending, setPending] = useState(0);
-  const [approved, setApproved] = useState(0);
-  const [rejected, setRejected] = useState(0);
-  const [donationRequests, setDonationRequests] = useState<DonorDonationRequest[]>([])
-  const [checkIns, setCheckIns] = useState<any>([])
-  const [healthChecks, setHealthChecks] = useState<any>([])
-  const [bloodTests, setBloodTests] = useState<any>([])
-  const [bloodUnits, setBloodUnits] = useState<any>([])
-
-
-  const test = [
-    {
-      "_id": "6890af2575d4d1f242a0f5c3",
-      "user_id": {
-        "_id": "688ef4f5eadc867beb1aa04e",
-        "full_name": "Nguyễn Văn A",
-        "email": "giabao123963@gmail.com",
-        "phone": "0352573142",
-        "gender": "male",
-        "date_of_birth": "2004-07-20T00:00:00.000Z"
-      },
-      "user_profile_id": {
-        "_id": "688ef4f5eadc867beb1aa053",
-        "cccd": "111111111111"
-      },
-      "hospital_id": "685e2769156fe3d352db3552",
-      "volumeOrWeight": 250,
-      "notes": "",
-      "status": "pending",
-      "__v": 0,
-      "createdAt": "2025-08-04T13:01:25.258Z",
-      "updatedAt": "2025-08-04T13:01:25.258Z"
-    },
-    {
-      "_id": "6890af2575d4d1f242a0f5c4",
-      "user_id": {
-        "_id": "688ef4f5eadc867beb1aa04e",
-        "full_name": "Nguyễn Văn A",
-        "email": "giabao123963@gmail.com",
-        "phone": "0352573142",
-        "gender": "male",
-        "date_of_birth": "2004-07-20T00:00:00.000Z"
-      },
-      "user_profile_id": {
-        "_id": "688ef4f5eadc867beb1aa053",
-        "cccd": "111111111111"
-      },
-      "hospital_id": "685e2769156fe3d352db3552",
-      "volumeOrWeight": 250,
-      "notes": "",
-      "status": "pending",
-      "__v": 0,
-      "createdAt": "2025-08-04T13:01:25.258Z",
-      "updatedAt": "2025-08-04T13:01:25.258Z"
-    }
-  ]
-
-
-
-  const checkInsMock = [
-    {
-      _id: "688f99816269d09759193953",
-      user_id: {
-        _id: "688ef4f5eadc867beb1aa04e",
-        full_name: "Nguyễn Văn A",
-        email: "giabao123963@gmail.com",
-        phone: "0352573142",
-        gender: "male",
-        date_of_birth: "2004-07-20T00:00:00.000Z",
-      },
-      userprofile_id: {
-        _id: "688ef4f5eadc867beb1aa053",
-        cccd: "111111111111",
-      },
-      hospital_id: {
-        _id: "685e2769156fe3d352db3552",
-        name: "Bệnh viện Quân Dân Y Miền Đông",
-        address: "50 Lê Văn Việt, Hiệp Phú, TP. Thủ Đức, TP.HCM",
-        phone: "028 3897 0321",
-      },
-      donorDonationRequest_id: {
-        _id: "688f6dae5f82851d117eca19",
-        donation_time_range: {
-          from: "12:00",
-          to: "14:00",
-        },
-        donation_date: "2025-08-03T00:00:00.000Z",
-        donation_type: "whole",
-        notes: "dfff",
-        status: "approved",
-      },
-      status: "in_progress",
-      comment: "",
-      createdAt: "2025-08-03T17:16:49.712Z",
-      updatedAt: "2025-08-03T17:16:49.712Z",
-    },
-    {
-      _id: "688f7749267544a714d81664",
-      user_id: {
-        _id: "688ef4f5eadc867beb1aa04e",
-        full_name: "Nguyễn Văn A",
-        email: "giabao123963@gmail.com",
-        phone: "0352573142",
-        gender: "male",
-        date_of_birth: "2004-07-20T00:00:00.000Z",
-      },
-      userprofile_id: {
-        _id: "688ef4f5eadc867beb1aa053",
-        cccd: "111111111111",
-      },
-      hospital_id: {
-        _id: "685e2769156fe3d352db3552",
-        name: "Bệnh viện Quân Dân Y Miền Đông",
-        address: "50 Lê Văn Việt, Hiệp Phú, TP. Thủ Đức, TP.HCM",
-        phone: "028 3897 0321",
-      },
-      donorDonationRequest_id: {
-        _id: "688f6dae5f82851d117eca19",
-        donation_time_range: {
-          from: "12:00",
-          to: "14:00",
-        },
-        donation_date: "2025-08-03T00:00:00.000Z",
-        donation_type: "whole",
-        notes: "dfff",
-        status: "approved",
-      },
-      status: "in_progress",
-      comment: "",
-      createdAt: "2025-08-03T14:50:49.579Z",
-      updatedAt: "2025-08-03T14:50:49.579Z",
-    },
-  ]
-
-
-
-
-  const mockDonationRequests = [
-    {
-      _id: "req1",
-      user_id: { _id: "user1", email: "nguyenvana@example.com" },
-      hospital: {
-        name: "Bệnh viện Trung ương",
-        address: "123 Đường A, Quận 1, TP.HCM",
-        phone: "0123456789",
-      },
-      donation_date: "2025-08-06T00:00:00.000Z",
-      donation_time_range: {
-        from: "10:00",
-        to: "12:00",
-      },
-      donation_type: "whole",
-      notes: "Sẵn sàng bất cứ lúc nào",
-      status: "pending",
-      createdAt: "2025-08-03T13:05:25.150Z",
-    },
-    {
-      _id: "req2",
-      user_id: { _id: "user2", email: "tranthib@example.com" },
-      hospital: {
-        name: "Bệnh viện Chợ Rẫy",
-        address: "456 Đường B, Quận 5, TP.HCM",
-        phone: "0987654321",
-      },
-      donation_date: "2025-08-03T00:00:00.000Z",
-      donation_time_range: {
-        from: "8:00",
-        to: "10:00",
-      },
-      donation_type: "whole",
-      notes: "",
-      status: "approved",
-      createdAt: "2025-08-03T13:05:11.717Z",
-    },
-    {
-      _id: "req3",
-      user_id: { _id: "user3", email: "lethilan@example.com" },
-      hospital: {
-        name: "Bệnh viện Nhân Dân 115",
-        address: "789 Đường C, Quận 10, TP.HCM",
-        phone: "0912345678",
-      },
-      donation_date: "2025-08-03T00:00:00.000Z",
-      donation_time_range: {
-        from: "12:00",
-        to: "14:00",
-      },
-      donation_type: "separated",
-      notes: "Ưu tiên buổi chiều",
-      status: "rejected",
-      createdAt: "2025-08-03T12:56:57.998Z",
-    },
-  ]
-
-  const [requestFilter, setRequestFilter] = useState("newest");
-
-
-
-
-  function StatusSummary({ summary }: { summary: { pending: number, approved: number, rejected: number } }) {
-    return (
-      <div className="flex gap-4 text-sm text-gray-700">
-        <Badge className="bg-yellow-100 text-yellow-800">Đang chờ: {summary.pending}</Badge>
-        <Badge className="bg-green-100 text-green-800">Đã duyệt: {summary.approved}</Badge>
-        <Badge className="bg-red-100 text-red-800">Từ chối: {summary.rejected}</Badge>
-      </div>
-    )
-  }
-
-  function translateStatus(status: string): string {
-    switch (status) {
-      case "pending": return "Đang chờ duyệt";
-      case "approved": return "Đã duyệt";
-      case "rejected": return "Đã từ chối";
-      case "verified": return "Đã xác minh";
-      case "unverified": return "Chưa xác minh";
-      case "in_progress": return "Đang xử lý";
-      case "donated": return "Đã hiến";
-      case "expired": return "Đã hết hạn";
-      case "passed": return "Đã thông qua";
-      case "failed": return "Bị từ chối";
-      default: return "Không rõ";
-    }
-  }
-
-  function translateDonationType(type: string): string {
-    switch (type) {
-      case "whole": return "Máu toàn phần";
-      case "separated": return "Thành phần máu";
-      default: return "Không rõ";
-    }
-  }
-
-  useEffect(() => {
-    async function fetchBloodRequests() {
-      // Only fetch if hospital ID exists
-      if (!staff?.hospital?._id) {
-        console.log("No hospital ID available, skipping donation requests fetch")
-        return
-      }
-
-      try {
-        const response2 = await api.get(`/donation-requests/donor-donation-request/hospital/${staff?.hospital?._id}`)
-        console.log("Fetched donor requests:", response2.data)
-        setTotal(response2.data.total || 0)
-        setPending(response2.data.status_summary.pending || 0)
-        setApproved(response2.data.status_summary.approved || 0)
-        setRejected(response2.data.status_summary.rejected || 0)
-        setDonationRequests(response2.data.requests || [])
-      } catch (error: any) {
-        console.error("Error fetching donor requests:", error)
-        console.error("Error details:", error.response?.data)
-
-        // Show user-friendly error message
-        if (error.response?.status === 404) {
-          console.error("User not found or not a valid donor")
-        } else if (error.response?.status === 500) {
-          console.error("Server error occurred")
-        }
-
-        setDonationRequests([])
-      }
-    }
-
-    fetchBloodRequests()
-  }, [staff?.hospital?._id])
-
-
-  const warehouseDonationsList = [
-    {
-      _id: "6877457f831b2a12c790cd57",
-      inventory_item: {
-        _id: "6876423a8e865f4e6cbb83bc",
-        blood_type: "A+",
-        component: "RBC",
-        quantity: 452,
-        expiring_quantity: 12,
-        low_stock_alert: false,
-        last_updated: "2025-07-16T06:26:03.261Z",
-        hospital: {
-          _id: "685e2769156fe3d352db3552",
-          name: "Bệnh viện Quân Dân Y Miền Đông",
-          address: "50 Lê Văn Việt, Hiệp Phú, TP. Thủ Đức, TP.HCM"
-        },
-        createdAt: "2025-07-15T11:57:46.030Z",
-        updatedAt: "2025-07-16T06:26:03.262Z",
-        __v: 0
-      },
-      recipient_id: {
-        _id: "6857d7dcd2429b1ef0e6af3c",
-        full_name: "Chữ A",
-        email: "a@a.a",
-        phone: "0901234567"
-      },
-      donation_date: "2025-07-27T00:00:00.000Z",
-      volume: 12,
-      status: "in_progress",
-      updated_by: {
-        _id: "6857c0f098b0c3e8061bd59e",
-        full_name: "Lê Văn C",
-        email: "staff@example.com"
-      },
-      notes: "Gấp rút cho ca mổ tim",
-      hospital: {
-        _id: "685e2769156fe3d352db3552",
-        name: "Bệnh viện Quân Dân Y Miền Đông",
-        address: "50 Lê Văn Việt, Hiệp Phú, TP. Thủ Đức, TP.HCM"
-      },
-      createdAt: "2025-07-16T06:23:59.809Z",
-      updatedAt: "2025-07-16T06:23:59.809Z",
-      __v: 0
-    },
-    {
-      _id: "6877457f831b2a12c790cd99",
-      inventory_item: {
-        _id: "6876423a8e865f4e6cbb8499",
-        blood_type: "O-",
-        component: "plasma",
-        quantity: 88,
-        expiring_quantity: 5,
-        low_stock_alert: false,
-        last_updated: "2025-07-15T11:26:03.261Z",
-        hospital: {
-          _id: "685e2769156fe3d352db3552",
-          name: "Bệnh viện Quân Dân Y Miền Đông",
-          address: "50 Lê Văn Việt, Hiệp Phú, TP. Thủ Đức, TP.HCM"
-        },
-        createdAt: "2025-07-12T09:11:46.030Z",
-        updatedAt: "2025-07-15T11:26:03.262Z",
-        __v: 0
-      },
-      recipient_id: null,
-      donation_date: "2025-07-28T00:00:00.000Z",
-      volume: 8,
-      status: "fulfilled",
-      updated_by: {
-        _id: "6857c0f098b0c3e8061bd59e",
-        full_name: "Lê Văn C",
-        email: "staff@example.com"
-      },
-      notes: "Dự phòng nội bộ",
-      hospital: {
-        _id: "685e2769156fe3d352db3552",
-        name: "Bệnh viện Quân Dân Y Miền Đông",
-        address: "50 Lê Văn Việt, Hiệp Phú, TP. Thủ Đức, TP.HCM"
-      },
-      createdAt: "2025-07-15T08:00:00.000Z",
-      updatedAt: "2025-07-15T08:00:00.000Z",
-      __v: 0
-    }
-  ];
-
 
   const handleStatusUpdate = async (newStatus: string, donationId: string) => {
     try {
@@ -776,29 +397,6 @@ export default function StaffDashboard() {
     return { inventory: null, action: 'create' };
   }
 
-  // Function to sort blood requests based on filter
-  const getSortedBloodRequests = (requests: any[]) => {
-    if (!Array.isArray(requests)) return [];
-
-    const sortedRequests = [...requests];
-
-    switch (bloodRequestFilter) {
-      case "newest":
-        return sortedRequests.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      case "oldest":
-        return sortedRequests.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-      case "emergency":
-        return sortedRequests.sort((a, b) => {
-          // Khẩn cấp lên đầu, sau đó sắp xếp theo thời gian mới nhất
-          if (a.is_emergency && !b.is_emergency) return -1;
-          if (!a.is_emergency && b.is_emergency) return 1;
-          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-        });
-      default:
-        return sortedRequests;
-    }
-  };
-
   useEffect(() => {
     async function fetchProfile() {
       try {
@@ -863,18 +461,6 @@ export default function StaffDashboard() {
           const mockDonor = await api.get(`/users/donor/staff/get-requests-by-hospital/${staffData.hospital._id}`);
           setMockDonorRequests(mockDonor.data.requests);
 
-          const checkInns = await api.get(`/checkin/hospital/${staffData.hospital._id}`);
-          setCheckIns(checkInns.data.checkIns);
-
-          const hChecks = await api.get(`/health-check/hospital/${staffData.hospital._id}/checkin-statuses`);
-          setHealthChecks(hChecks.data);
-
-          const bTests = await api.get(`/blood-test/hospital/${staffData.hospital._id}/blood-tests`);
-          setBloodTests(bTests.data);
-
-          const bUnits = await api.get(`/whole-blood/hospital/${staffData.hospital._id}/whole-blood-units`);
-          setBloodUnits(bUnits.data.units);
-
         }
       } catch (error) {
         console.error("Failed to fetch staff profile or hospital:", error);
@@ -907,64 +493,6 @@ export default function StaffDashboard() {
       .reduce((total: number, req: any) => total + (req.amount_offered || 0), 0) || 0,
   }
 
-  // Mock blood inventory
-  const bloodInventory = [
-    { type: "O-", available: 45, reserved: 5, status: "low", target: 100, color: "bg-red-500", expiringSoon: 5 },
-    { type: "O+", available: 120, reserved: 10, status: "good", target: 150, color: "bg-red-400", expiringSoon: 8 },
-    { type: "A-", available: 78, reserved: 8, status: "good", target: 100, color: "bg-blue-500", expiringSoon: 3 },
-    { type: "A+", available: 156, reserved: 15, status: "good", target: 150, color: "bg-blue-400", expiringSoon: 12 },
-    { type: "B-", available: 34, reserved: 3, status: "critical", target: 80, color: "bg-green-500", expiringSoon: 2 },
-    { type: "B+", available: 89, reserved: 9, status: "good", target: 120, color: "bg-green-400", expiringSoon: 7 },
-    { type: "AB-", available: 23, reserved: 2, status: "critical", target: 60, color: "bg-purple-500", expiringSoon: 1 },
-    { type: "AB+", available: 67, reserved: 7, status: "good", target: 80, color: "bg-purple-400", expiringSoon: 4 },
-  ]
-
-  // Mock blood requests
-  const bloodRequests = [
-    {
-      id: "REQ001",
-      patientName: "Nguyễn Văn C",
-      hospital: "Bệnh viện Chợ Rẫy",
-      bloodType: "O-",
-      unitsNeeded: 2,
-      urgency: "Khẩn cấp",
-      contactPhone: "0901111111",
-      doctorName: "BS. Trần Văn D",
-      reason: "Phẫu thuật tim",
-      status: "pending",
-      requestTime: "08:00 - 24/12/2024",
-      neededBy: "14:00 - 24/12/2024",
-    },
-    {
-      id: "REQ002",
-      patientName: "Lê Thị E",
-      hospital: "Bệnh viện Bình Dan",
-      bloodType: "A+",
-      unitsNeeded: 1,
-      urgency: "Cao",
-      contactPhone: "0902222222",
-      doctorName: "BS. Phạm Thị F",
-      reason: "Tai nạn giao thông",
-      status: "approved",
-      requestTime: "09:30 - 24/12/2024",
-      neededBy: "16:00 - 24/12/2024",
-    },
-    {
-      id: "REQ003",
-      name: "Hoàng Văn G",
-      hospital: "Bệnh viện Từ Dũ",
-      bloodType: "B+",
-      unitsNeeded: 3,
-      urgency: "Trung bình",
-      contactPhone: "0903333333",
-      doctorName: "BS. Nguyễn Văn H",
-      reason: "Sinh con khó",
-      status: "completed",
-      requestTime: "15:00 - 23/12/2024",
-      neededBy: "10:00 - 24/12/2024",
-    },
-  ]
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case "active":
@@ -992,98 +520,6 @@ export default function StaffDashboard() {
     }
   }
 
-  const getBloodStatusColor = (quantity: number) => {
-    if (quantity < 30) {
-      return "bg-red-100 text-red-800"
-    } else if (quantity < 150) {
-      return "bg-yellow-100 text-yellow-800"
-    } else {
-      return "bg-green-100 text-green-800"
-    }
-  }
-
-  const getUrgencyColor = (urgency: string) => {
-    switch (urgency) {
-      case "Khẩn cấp":
-        return "bg-red-100 text-red-800"
-      case "Cao":
-        return "bg-orange-100 text-orange-800"
-      case "Trung bình":
-        return "bg-yellow-100 text-yellow-800"
-      default:
-        return "bg-gray-100 text-gray-800"
-    }
-  }
-
-  async function handleUpdateStatus(_id: any, arg1: string): Promise<void> {
-    if (!window.confirm("Bạn có chắc chắn muốn chấp nhận yêu cầu hiến máu này?")) {
-      return
-    }
-
-    try {
-      const response = await api.put(`/donation-requests/donor-donation-request/approve/${_id}`)
-
-      // Cập nhật state local
-      setDonationRequests((prev: DonorDonationRequest[]) =>
-        prev.map((req: DonorDonationRequest) =>
-          req._id === _id
-            ? { ...req, status: "approved" }
-            : req
-        )
-      )
-
-      console.log(donationRequests)
-
-      setApproved((prev: number) => prev + 1)
-      setPending((prev: number) => prev - 1)
-
-      const response2 = await api.get(`/users/user-profile/${response.data.request.user_id._id}`)
-
-      await api.post(`/checkin`, {
-        user_id: response.data.request.user_id._id,
-        userprofile_id: response2.data.profile._id,
-        hospital_id: response.data.request.hospital._id,
-        donorDonationRequest_id: response.data.request._id
-      })
-
-      toast.success("Đã chấp nhận yêu cầu hiến máu thành công!")
-    } catch (error: any) {
-      console.error("Error cancelling request:", error)
-      const errorMessage = error.response?.data?.message || "Đã xảy ra lỗi khi hủy yêu cầu."
-      toast.error(errorMessage)
-    }
-  }
-
-  async function handleCancelStatus(_id: any, arg1: string): Promise<void> {
-    if (!window.confirm("Bạn có chắc chắn muốn hủy yêu cầu hiến máu này?")) {
-      return
-    }
-
-    try {
-      await api.put(`/donation-requests/donor-donation-request/reject/${_id}`)
-
-      // Cập nhật state local
-      setDonationRequests((prev: DonorDonationRequest[]) =>
-        prev.map((req: DonorDonationRequest) =>
-          req._id === _id
-            ? { ...req, status: "rejected" }
-            : req
-        )
-      )
-
-      console.log(donationRequests)
-
-      setRejected((prev: number) => prev + 1)
-      setPending((prev: number) => prev - 1)
-
-      toast.success("Đã hủy yêu cầu hiến máu thành công!")
-    } catch (error: any) {
-      console.error("Error cancelling request:", error)
-      const errorMessage = error.response?.data?.message || "Đã xảy ra lỗi khi hủy yêu cầu."
-      toast.error(errorMessage)
-    }
-  }
-
   async function handleUnverifiedStatus(_id: any, arg1: string): Promise<void> {
     if (!window.confirm("Bạn có chắc chắn muốn hủy xác minh thông tin này?")) {
       return
@@ -1091,15 +527,6 @@ export default function StaffDashboard() {
 
     try {
       await api.put(`/checkin/unverify/${_id}`)
-
-      // Cập nhật state local
-      setCheckIns((prev: any[]) =>
-        prev.map(req =>
-          req._id === _id
-            ? { ...req, status: "unverified" }
-            : req
-        )
-      )
 
       toast.success("Đã hủy xác minh thành công!")
     } catch (error: any) {
@@ -1117,15 +544,6 @@ export default function StaffDashboard() {
     try {
       const response = await api.put(`/checkin/checkins/${_id}/verify`)
 
-      // Cập nhật state local
-      setCheckIns((prev: any[]) =>
-        prev.map(req =>
-          req._id === _id
-            ? { ...req, status: "verified" }
-            : req
-        )
-      )
-
       await api.post("/health-check/create", {
         checkin_id: response.data.checkIn._id,
         hospital_id: staff.hospital._id
@@ -1137,22 +555,6 @@ export default function StaffDashboard() {
       const errorMessage = error.response?.data?.message || "Đã xảy ra lỗi khi hủy yêu cầu."
       toast.error(errorMessage)
     }
-  }
-
-  function setCheckinFilter(value: string): void {
-    throw new Error("Function not implemented.")
-  }
-
-  function handleCardClick(_id: any, name: string): void {
-    router.push(`/staff/edit/health-check/whole?healthCheck=${_id}&name=${name}`);
-  }
-
-  function handleBloodTestClick(_id: any, name: string): void {
-    router.push(`/staff/edit/blood-test/whole?bloodTestId=${_id}&name=${name}`);
-  }
-
-  function handleBloodUnit(_id: any): void {
-    router.push(`/staff/edit/blood-unit/whole?bloodUnitId=${_id}`);
   }
 
   return (
@@ -1225,7 +627,7 @@ export default function StaffDashboard() {
                 <Hospital className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-orange-600">{pending}</div>
+                <div className="text-2xl font-bold text-orange-600">-</div>
                 <p className="text-xs text-muted-foreground">đang chờ xử lý</p>
               </CardContent>
             </Card>
@@ -1266,456 +668,133 @@ export default function StaffDashboard() {
             </Card>
           </div>
 
-          <Tabs defaultValue="donation-requests" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-5">
-              <TabsTrigger value="donation-requests">Yêu cầu hiến máu</TabsTrigger>
-              <TabsTrigger value="check-in">Check In</TabsTrigger>
-              <TabsTrigger value="health-check">Khám</TabsTrigger>
-              <TabsTrigger value="blood-test">Xét nghiệm máu</TabsTrigger>
-              <TabsTrigger value="blood-unit">Đơn vị máu</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="donation-requests" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span>Quản lý yêu cầu hiến máu</span>
-                    <Select onValueChange={setRequestFilter} defaultValue="newest">
-                      <SelectTrigger className="w-48">
-                        <SelectValue placeholder="Sắp xếp theo" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="newest">Mới nhất</SelectItem>
-                        <SelectItem value="oldest">Cũ nhất</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </CardTitle>
-                  <CardDescription>Quản lý các yêu cầu hiến máu đã gửi bởi người dùng</CardDescription>
-                  <StatusSummary summary={{ pending: pending, approved: approved, rejected: rejected }} />
-                </CardHeader>
-
-                <CardContent>
-                  <div className="space-y-4">
-                    {donationRequests.map((request: any) => (
-                      <div
-                        key={request._id}
-                        className="p-4 border rounded-lg hover:bg-gray-50 transition space-y-2"
-                      >
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <p><strong>Email:</strong> {request.user_id.email}</p>
-                            <p><strong>Ngày hiến:</strong> {formatDate(request.donation_date)}</p>
-                            <p><strong>Khung giờ:</strong> {request.donation_time_range.from} - {request.donation_time_range.to}</p>
-                            <p><strong>Loại hiến:</strong> {translateDonationType(request.donation_type)}</p>
-                            <p><strong>Ghi chú:</strong> {request.notes || "Không có"}</p>
-                          </div>
-                          <div className="flex flex-col items-end gap-1">
-                            <Badge className={getStatusColor(request.status)}>
-                              {translateStatus(request.status)}
-                            </Badge>
-                            <p className="text-sm text-gray-600">Ngày tạo: {formatDate(request.createdAt)}</p>
-
-                            {/* Nút xử lý nếu còn trạng thái pending */}
-                            {request.status === "pending" && (
-                              <div className="flex gap-2 mt-2">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleUpdateStatus(request._id, "approved")}
-                                >
-                                  Chấp nhận
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="destructive"
-                                  onClick={() => handleCancelStatus(request._id, "rejected")}
-                                >
-                                  Từ chối
-                                </Button>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+          {/* Blood Management Dashboard Card */}
+          <Card className="mb-8 cursor-pointer hover:shadow-lg transition-shadow duration-200" onClick={() => router.push('/staff/dashboard/blood-management')}>
+            <CardHeader className="pb-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="p-3 bg-red-100 rounded-full">
+                    <Droplets className="h-6 w-6 text-red-600" />
                   </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="check-in" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span>Check in hiến máu</span>
-                    <Select onValueChange={setCheckinFilter} defaultValue="newest">
-                      <SelectTrigger className="w-48">
-                        <SelectValue placeholder="Sắp xếp theo" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="newest">Mới nhất</SelectItem>
-                        <SelectItem value="oldest">Cũ nhất</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </CardTitle>
-                  <CardDescription>
-                    Danh sách người dùng đến bệnh viện để check in
-                  </CardDescription>
-                </CardHeader>
-
-                <CardContent>
-                  <div className="space-y-4">
-                    {checkIns.map((checkIn: any) => (
-                      <div
-                        key={checkIn._id}
-                        className="p-4 border rounded-lg hover:bg-gray-50 transition space-y-2"
-                      >
-                        <div className="flex justify-between items-start">
-                          <div className="space-y-1">
-                            <p><strong>Họ tên:</strong> {checkIn.user_id.full_name}</p>
-                            <p><strong>Email:</strong> {checkIn.user_id.email}</p>
-                            <p><strong>CCCD:</strong> {checkIn.userprofile_id?.cccd || "Không có"}</p>
-                            <p><strong>Giới tính:</strong> {checkIn.user_id.gender}</p>
-                            <p><strong>SĐT:</strong> {checkIn.user_id.phone}</p>
-                            <p><strong>Ngày sinh:</strong> {formatDate(checkIn.user_id.date_of_birth)}</p>
-                            <p><strong>Bệnh viện:</strong> {checkIn.hospital_id.name}</p>
-                            <p><strong>Địa chỉ:</strong> {checkIn.hospital_id.address}</p>
-
-                            {/* Nếu có donorDonationRequest_id thì hiển thị */}
-                            {checkIn.donorDonationRequest_id && (
-                              <>
-                                <hr />
-                                <p><strong>Ngày đăng ký hiến:</strong> {formatDate(checkIn.donorDonationRequest_id.donation_date)}</p>
-                                <p><strong>Thời gian:</strong> {checkIn.donorDonationRequest_id.donation_time_range.from} - {checkIn.donorDonationRequest_id.donation_time_range.to}</p>
-                                <p><strong>Loại hiến máu:</strong> {checkIn.donorDonationRequest_id.donation_type === "whole" ? "Toàn phần" : "Tách thành phần"}</p>
-                                {checkIn.donorDonationRequest_id.separated_component && (
-                                  <p><strong>Thành phần:</strong> {checkIn.donorDonationRequest_id.separated_component}</p>
-                                )}
-                                <p><strong>Ghi chú:</strong> {checkIn.donorDonationRequest_id.notes || "Không có"}</p>
-                                <p><strong>Trạng thái yêu cầu:</strong> {translateStatus(checkIn.donorDonationRequest_id.status)}</p>
-                              </>
-                            )}
-                          </div>
-
-                          <div className="flex flex-col items-end gap-1">
-                            <Badge className={getStatusColor(checkIn.status)}>
-                              {translateStatus(checkIn.status)}
-                            </Badge>
-                            <p className="text-sm text-gray-600">
-                              Ngày điểm danh: {formatDate(checkIn.createdAt)}
-                            </p>
-
-                            {/* Nút xử lý trạng thái */}
-                            {checkIn.status === "in_progress" && (
-                              <div className="flex gap-2 mt-2">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleVerifiedStatus(checkIn._id, "verified")}
-                                >
-                                  Xác minh
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="destructive"
-                                  onClick={() => handleUnverifiedStatus(checkIn._id, "unverified")}
-                                >
-                                  Huỷ xác minh
-                                </Button>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+                  <div>
+                    <CardTitle className="text-xl font-bold text-gray-900">Hệ thống quản lý yêu cầu truyền máu</CardTitle>
+                    <CardDescription className="text-gray-600">
+                      Hệ thống quản lý tồn kho máu, yêu cầu, xét nghiệm và bệnh nhân
+                    </CardDescription>
                   </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="health-check" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span className="text-xl font-semibold text-gray-900">Quản lý khám hiến máu</span>
-                    <Select onValueChange={setCheckinFilter} defaultValue="newest">
-                      <SelectTrigger className="w-48 border rounded-md bg-gray-100 focus:ring-2 focus:ring-blue-500">
-                        <SelectValue placeholder="Sắp xếp theo" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-white shadow-md rounded-md">
-                        <SelectItem value="newest">Mới nhất</SelectItem>
-                        <SelectItem value="oldest">Cũ nhất</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </CardTitle>
-                  <CardDescription className="text-sm text-gray-500">
-                    Danh sách người dùng khám để hiến máu
-                  </CardDescription>
-                </CardHeader>
-
-                <CardContent className="space-y-4">
-                  {healthChecks.map((checkInData: any) => (
-                    <div
-                      key={checkInData.checkIn._id}
-                      className="p-4 border rounded-lg bg-white shadow-md hover:shadow-xl transition-all duration-200 space-y-4 cursor-pointer"
-                      onClick={() => handleCardClick(checkInData.healthCheck._id, checkInData.checkIn.user_id.full_name)}
-                    >
-                      {/* Thông tin Người Dùng và Bệnh Viện */}
-                      <div className="flex justify-between items-start space-x-6">
-                        <div className="space-y-2 flex-1">
-                          <p className="text-lg font-semibold text-gray-900">{checkInData.checkIn.user_id.full_name}</p>
-                          <p className="text-sm text-gray-600"><strong>Email:</strong> {checkInData.checkIn.user_id.email}</p>
-                          <p className="text-sm text-gray-600"><strong>CCCD:</strong> {checkInData.checkIn.userprofile_id?.cccd || "Không có"}</p>
-                          <p className="text-sm text-gray-600"><strong>Giới tính:</strong> {checkInData.checkIn.user_id.gender}</p>
-                          <p className="text-sm text-gray-600"><strong>SĐT:</strong> {checkInData.checkIn.user_id.phone}</p>
-                          <p className="text-sm text-gray-600"><strong>Ngày sinh:</strong> {formatDate(checkInData.checkIn.user_id.date_of_birth)}</p>
-                          <p className="text-sm text-gray-600"><strong>Bệnh viện:</strong> {checkInData.checkIn.hospital_id.name}</p>
-                          <p className="text-sm text-gray-600"><strong>Địa chỉ:</strong> {checkInData.checkIn.hospital_id.address}</p>
-
-                          {/* Hiển thị thông tin đăng ký hiến máu */}
-                          {checkInData.checkIn.donorDonationRequest_id && (
-                            <div className="mt-4 space-y-2">
-                              <hr />
-                              <p className="text-sm"><strong>Ngày đăng ký hiến:</strong> {formatDate(checkInData.checkIn.donorDonationRequest_id.donation_date)}</p>
-                              <p className="text-sm"><strong>Thời gian:</strong> {checkInData.checkIn.donorDonationRequest_id.donation_time_range.from} - {checkInData.checkIn.donorDonationRequest_id.donation_time_range.to}</p>
-                              <p className="text-sm"><strong>Loại hiến máu:</strong> {checkInData.checkIn.donorDonationRequest_id.donation_type === "whole" ? "Toàn phần" : "Tách thành phần"}</p>
-                              {checkInData.checkIn.donorDonationRequest_id.separated_component && (
-                                <p className="text-sm"><strong>Thành phần:</strong> {checkInData.checkIn.donorDonationRequest_id.separated_component}</p>
-                              )}
-                              <p className="text-sm"><strong>Ghi chú:</strong> {checkInData.checkIn.donorDonationRequest_id.notes || "Không có"}</p>
-                              <p className="text-sm"><strong>Trạng thái yêu cầu:</strong> {translateStatus(checkInData.checkIn.donorDonationRequest_id.status)}</p>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Thông tin trạng thái và các hành động */}
-                        <div className="flex flex-col items-end gap-1">
-                          <Badge className={getStatusColor(checkInData.status)}>{translateStatus(checkInData.status)}</Badge>
-                          {/* Nút xử lý trạng thái */}
-                          {checkInData.status === "in_progress" && (
-                            <div className="flex gap-2 mt-2">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleVerifiedStatus(checkInData.checkIn._id, "verified")}
-                                className="bg-green-500 text-white hover:bg-green-600"
-                              >
-                                Xác minh
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="destructive"
-                                onClick={() => handleUnverifiedStatus(checkInData.checkIn._id, "unverified")}
-                                className="bg-red-500 text-white hover:bg-red-600"
-                              >
-                                Huỷ xác minh
-                              </Button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Thông tin HealthCheck */}
-                      <div className="mt-4 space-y-2">
-                        <div className="text-sm">
-                          <strong>Trạng thái sức khỏe:</strong> {translateStatus(checkInData.healthCheck.status)}
-                        </div>
-                        <div className="text-sm">
-                          <strong>Health Check ID:</strong> {checkInData.healthCheck._id}
-                        </div>
-                      </div>
-
-                      {/* Trạng thái tổng của check-in */}
-                      <div className="mt-4 space-y-2">
-                        <div className="text-sm">
-                          <strong>Trạng thái tổng:</strong> {translateStatus(checkInData.status)}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-
-            <TabsContent value="blood-test" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span className="text-xl font-semibold text-gray-900">Xét nghiệm máu</span>
-                    <Select onValueChange={setCheckinFilter} defaultValue="newest">
-                      <SelectTrigger className="w-48 border rounded-md bg-gray-100 focus:ring-2 focus:ring-blue-500">
-                        <SelectValue placeholder="Sắp xếp theo" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-white shadow-md rounded-md">
-                        <SelectItem value="newest">Mới nhất</SelectItem>
-                        <SelectItem value="oldest">Cũ nhất</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </CardTitle>
-                  <CardDescription className="text-sm text-gray-500">
-                    Danh sách người dùng xét nghiệm máu
-                  </CardDescription>
-                </CardHeader>
-
-                <CardContent className="space-y-4">
-                  {bloodTests.map((bloodTestData: any) => (
-                    <div
-                      key={bloodTestData._id}
-                      className="p-4 border rounded-lg bg-white shadow-md hover:shadow-xl transition-all duration-200 space-y-4 cursor-pointer"
-                      onClick={() => handleBloodTestClick(bloodTestData._id, bloodTestData.user_id.full_name)}
-                    >
-                      {/* Thông tin Người Dùng và Bệnh Viện */}
-                      <div className="flex justify-between items-start space-x-6">
-                        <div className="space-y-2 flex-1">
-                          <p className="text-lg font-semibold text-gray-900">{bloodTestData.user_id.full_name}</p>
-                          <p className="text-sm text-gray-600"><strong>Email:</strong> {bloodTestData.user_id.email}</p>
-                          <p className="text-sm text-gray-600"><strong>CCCD:</strong> {bloodTestData.userprofile_id?.cccd || "Không có"}</p>
-                          <p className="text-sm text-gray-600"><strong>Giới tính:</strong> {bloodTestData.user_id.gender}</p>
-                          <p className="text-sm text-gray-600"><strong>SĐT:</strong> {bloodTestData.user_id.phone}</p>
-                          <p className="text-sm text-gray-600"><strong>Ngày sinh:</strong> {formatDate(bloodTestData.user_id.date_of_birth)}</p>
-                          <p className="text-sm text-gray-600"><strong>Bệnh viện:</strong> {bloodTestData.hospital_id.name}</p>
-                          <p className="text-sm text-gray-600"><strong>Địa chỉ:</strong> {bloodTestData.hospital_id.address}</p>
-                        </div>
-                      </div>
-
-                      {/* Thông tin trạng thái và các hành động */}
-                      <div className="flex flex-col items-end gap-1">
-                        <Badge className={getStatusColor(bloodTestData.status)}>{translateStatus(bloodTestData.status)}</Badge>
-                      </div>
-
-                      {/* Thông tin HealthCheck */}
-                      <div className="mt-4 space-y-2">
-                        <div className="text-sm">
-                          <strong>Trạng thái sức khỏe:</strong> {translateStatus(bloodTestData.status)}
-                        </div>
-                        <div className="text-sm">
-                          <strong>Test HBsAg:</strong> {bloodTestData.HBsAg ? "Dương tính" : "Âm tính"}
-                        </div>
-                        <div className="text-sm">
-                          <strong>Huyết sắc tố (g/l):</strong> {bloodTestData.hemoglobin}
-                        </div>
-                      </div>
-
-                      {/* Trạng thái tổng của check-in */}
-                      <div className="mt-4 space-y-2">
-                        <div className="text-sm">
-                          <strong>Trạng thái tổng:</strong> {translateStatus(bloodTestData.status)}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-
-            <TabsContent value="blood-unit" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span className="flex items-center">
-                      <Package className="w-5 h-5 mr-2" />
-                      Đơn vị máu
-                    </span>
-                  </CardTitle>
-                  <CardDescription>Theo dõi đơn vị máu của người hiến</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                    {bloodUnits.map((blood: any) => (
-                      <Card key={blood._id} className="relative cursor-pointer" onClick={() => handleBloodUnit(blood._id)}>
-                        <CardHeader className="pb-2">
-                          <div className="flex items-center justify-between">
-                            <CardTitle className="text-lg font-bold text-black-600">{"#" + blood._id}</CardTitle>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <CardTitle className="text-lg font-bold text-red-600">{(blood.bloodGroupABO) ? (blood.bloodGroupABO + blood.bloodGroupRh) : "Chưa biết nhóm máu"}</CardTitle>
-                            <Badge className={getStatusColor(blood.status)}>{translateStatus(blood.status)}</Badge>
-                          </div>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="space-y-2">
-                            <div className="flex justify-between text-sm">
-                              <span>Tên người hiến máu:</span>
-                              <span className="font-semibold">{blood.user_id.full_name}</span>
-                            </div>
-                            <div className="flex justify-between text-sm">
-                              <span>Ngày hiến:</span>
-                              <span className="font-semibold">{blood.collectionDate ? formatDate(blood.collectionDate) : "Chưa có"}</span>
-                            </div>
-                            <div className="flex justify-between text-sm">
-                              <span>Tổng khổi lượng:</span>
-                              <span className="font-semibold text-orange-600">{blood.volumeOrWeight} ml</span>
-                            </div>
-                            <div className="flex justify-between text-sm">
-                              <span>Ghi chú:</span>
-                              <span className="font-semibold">{blood.notes ? blood.notes : ""}</span>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+                </div>
+                <div className="flex items-center text-red-600">
+                  <span className="text-sm font-medium mr-2">Truy cập</span>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="text-center p-3 bg-blue-50 rounded-lg">
+                  <div className="flex items-center justify-center mb-2">
+                    <Package className="h-5 w-5 text-blue-600" />
                   </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-
-
-
-            <TabsContent value="inventory" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span className="flex items-center">
-                      <Package className="w-5 h-5 mr-2" />
-                      Quản lý kho máu
-                    </span>
-                  </CardTitle>
-                  <CardDescription>Theo dõi tồn kho và tình trạng máu theo từng nhóm</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                    {bloodInven.map((blood: any) => (
-                      <Card key={blood.blood_type} className="relative">
-                        <CardHeader className="pb-2">
-                          <div className="flex items-center justify-between">
-                            <CardTitle className="text-lg font-bold text-red-600">{blood.blood_type}</CardTitle>
-                            <Badge className={getBloodStatusColor(blood.quantity)}>
-                              {blood.quantity < 30
-                                ? "Rất thấp"
-                                : blood.quantity < 150
-                                  ? "Thấp"
-                                  : "Tốt"}
-                            </Badge>
-                          </div>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="space-y-2">
-                            <div className="flex justify-between text-sm">
-                              <span>Có sẵn:</span>
-                              <span className="font-semibold">{blood.quantity} ml</span>
-                            </div>
-                            <div className="flex justify-between text-sm">
-                              <span>Ghi chú:</span>
-                              <span className="font-semibold">{blood.notes ? blood.notes : ""}</span>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+                  <div className="text-lg font-bold text-blue-600">{staffStats.totalBloodUnits}</div>
+                  <div className="text-xs text-blue-600">Tồn kho máu (ml)</div>
+                </div>
+                <div className="text-center p-3 bg-yellow-50 rounded-lg">
+                  <div className="flex items-center justify-center mb-2">
+                    <FileText className="h-5 w-5 text-yellow-600" />
                   </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
+                  <div className="text-lg font-bold text-yellow-600">-</div>
+                  <div className="text-xs text-yellow-600">Yêu cầu chờ xử lý</div>
+                </div>
+                <div className="text-center p-3 bg-green-50 rounded-lg">
+                  <div className="flex items-center justify-center mb-2">
+                    <TestTube className="h-5 w-5 text-green-600" />
+                  </div>
+                  <div className="text-lg font-bold text-green-600">-</div>
+                  <div className="text-xs text-green-600">Xét nghiệm máu</div>
+                </div>
+                <div className="text-center p-3 bg-purple-50 rounded-lg">
+                  <div className="flex items-center justify-center mb-2">
+                    <User className="h-5 w-5 text-purple-600" />
+                  </div>
+                  <div className="text-lg font-bold text-purple-600">-</div>
+                  <div className="text-xs text-purple-600">Bệnh nhân</div>
+                </div>
+              </div>
+              <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600">Tính năng bao gồm:</span>
+                  <span className="text-gray-500">Tồn kho • Yêu cầu • Xét nghiệm • Bệnh nhân</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-            <TabsContent value="requests" className="space-y-6">
-            </TabsContent>
+          {/* Donation Request Management Dashboard Card */}
+          <Card className="mb-8 cursor-pointer hover:shadow-lg transition-shadow duration-200" onClick={() => router.push('/staff/dashboard/donation-requests')}>
+            <CardHeader className="pb-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="p-3 bg-orange-100 rounded-full">
+                    <Heart className="h-6 w-6 text-orange-600" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-xl font-bold text-gray-900">Hệ thống quản lý yêu cầu hiến máu</CardTitle>
+                    <CardDescription className="text-gray-600">
+                      Quản lý và xử lý các yêu cầu hiến máu từ người dùng
+                    </CardDescription>
+                  </div>
+                </div>
+                <div className="flex items-center text-orange-600">
+                  <span className="text-sm font-medium mr-2">Quản lý</span>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="text-center p-3 bg-yellow-50 rounded-lg">
+                  <div className="flex items-center justify-center mb-2">
+                    <Clock className="h-5 w-5 text-yellow-600" />
+                  </div>
+                  <div className="text-lg font-bold text-yellow-600">-</div>
+                  <div className="text-xs text-yellow-600">Chờ xử lý</div>
+                </div>
+                <div className="text-center p-3 bg-green-50 rounded-lg">
+                  <div className="flex items-center justify-center mb-2">
+                    <CheckCircle className="h-5 w-5 text-green-600" />
+                  </div>
+                  <div className="text-lg font-bold text-green-600">-</div>
+                  <div className="text-xs text-green-600">Đã chấp nhận</div>
+                </div>
+                <div className="text-center p-3 bg-red-50 rounded-lg">
+                  <div className="flex items-center justify-center mb-2">
+                    <X className="h-5 w-5 text-red-600" />
+                  </div>
+                  <div className="text-lg font-bold text-red-600">-</div>
+                  <div className="text-xs text-red-600">Đã từ chối</div>
+                </div>
+                <div className="text-center p-3 bg-blue-50 rounded-lg">
+                  <div className="flex items-center justify-center mb-2">
+                    <Users className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <div className="text-lg font-bold text-blue-600">-</div>
+                  <div className="text-xs text-blue-600">Tổng yêu cầu</div>
+                </div>
+              </div>
+              <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600">Chức năng:</span>
+                  <span className="text-gray-500">Duyệt • Từ chối • Theo dõi • Thống kê</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-            <TabsContent value="reports" className="space-y-6">
-            </TabsContent>
-          </Tabs>
+
         </div>
         <Toaster position="top-center" containerStyle={{
           top: 80,
