@@ -31,13 +31,13 @@ const donorDonationRequestSchema = new mongoose.Schema(
       enum: ["whole", "separated"], // "whole" = whole blood, "separated" = apheresis
       required: true,
     },
-    separated_component: {
+    separated_component: [{
       type: String,
       enum: ["RBC", "plasma", "platelet"], // In English
       required: function () {
         return this.donation_type === "separated";
       },
-    },
+    }],
     notes: {
       type: String,
       default: "",
