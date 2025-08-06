@@ -89,6 +89,7 @@ interface BloodRequest {
   doctorName: string
   reason: string
   notes?: string
+  selectedBags?: string[] // Lưu trữ ID của các túi máu đã chọn
 }
 
 interface BloodTest {
@@ -1142,7 +1143,7 @@ export default function BloodManagementPage() {
       setBloodRequests(prevRequests =>
         prevRequests.map(request =>
           request.id === selectedRequestForBloodSelection
-            ? { ...request, status: 'approved' as const }
+            ? { ...request, status: 'approved' as const, selectedBags: [...selectedBloodBags] }
             : request
         )
       )
@@ -1177,6 +1178,8 @@ export default function BloodManagementPage() {
   }, [])
 
   const handleStartTransfusion = useCallback((requestId: string) => {
+    const request = bloodRequests.find(req => req.id === requestId)
+    
     setBloodRequests(prevRequests =>
       prevRequests.map(request =>
         request.id === requestId
@@ -1184,8 +1187,24 @@ export default function BloodManagementPage() {
           : request
       )
     )
+    
+    // Update selected bags status to 'in_progress' to indicate they are being prepared
+    if (request && request.selectedBags) {
+      setBloodBags(prevBags =>
+        prevBags.map(bag => {
+          if (request.selectedBags!.includes(bag.id)) {
+            return {
+              ...bag,
+              notes: `Đang chuẩn bị truyền cho ${request.patientName}`
+            }
+          }
+          return bag
+        })
+      )
+    }
+    
     console.log(`Đã bắt đầu truyền máu cho yêu cầu ID: ${requestId}`)
-  }, [])
+  }, [bloodRequests])
 
   const handleCompleteTransfusion = useCallback((requestId: string) => {
     // Find the request to get blood type and units needed
@@ -1201,47 +1220,91 @@ export default function BloodManagementPage() {
         )
       )
       
-      // Update blood stock by reducing units
-      setBloodStock(prevStock =>
-        prevStock.map(stock => {
-          if (stock.bloodType === request.bloodType) {
-            const newUnits = Math.max(0, stock.units - request.unitsNeeded)
-            return {
-              ...stock,
-              units: newUnits,
-              status: newUnits === 0 ? 'expired' as const : stock.status // Mark as expired if no units left
+      // If request has selected bags, mark those specific bags as used
+      if (request.selectedBags && request.selectedBags.length > 0) {
+        setBloodBags(prevBags =>
+          prevBags.map(bag => {
+            if (request.selectedBags!.includes(bag.id)) {
+              return {
+                ...bag,
+                status: 'used' as const,
+                notes: `Đã sử dụng cho yêu cầu ${requestId} - ${request.patientName}`
+              }
             }
-          }
-          return stock
-        })
-      )
-      
-      // Also mark corresponding blood bags as used
-      setBloodBags(prevBags => {
-        const stockForBloodType = bloodStock.find(s => s.bloodType === request.bloodType)
-        if (!stockForBloodType) return prevBags
+            return bag
+          })
+        )
+
+        // Update blood stock by reducing units based on selected bags
+        const stockUpdates = new Map<string, number>()
         
-        let unitsToMark = request.unitsNeeded
-        return prevBags.map(bag => {
-          if (bag.stockId === stockForBloodType.id && 
-              bag.status === 'available' && 
-              unitsToMark > 0) {
-            unitsToMark--
-            return {
-              ...bag,
-              status: 'used' as const,
-              notes: `Đã sử dụng cho yêu cầu ${requestId} - ${request.patientName}`
-            }
+        // Count bags per stock
+        request.selectedBags.forEach(bagId => {
+          const bag = bloodBags.find(b => b.id === bagId)
+          if (bag) {
+            const currentCount = stockUpdates.get(bag.stockId) || 0
+            stockUpdates.set(bag.stockId, currentCount + 1)
           }
-          return bag
         })
-      })
-      
-      console.log(`Đã hoàn tất truyền máu cho yêu cầu ID: ${requestId}. Đã trừ ${request.unitsNeeded} đơn vị máu ${request.bloodType} từ kho.`)
+
+        setBloodStock(prevStock =>
+          prevStock.map(stock => {
+            const unitsToReduce = stockUpdates.get(stock.id) || 0
+            if (unitsToReduce > 0) {
+              const newUnits = Math.max(0, stock.units - unitsToReduce)
+              return {
+                ...stock,
+                units: newUnits,
+                status: newUnits === 0 ? 'expired' as const : stock.status
+              }
+            }
+            return stock
+          })
+        )
+
+        console.log(`Đã hoàn tất truyền máu cho yêu cầu ID: ${requestId}. Đã sử dụng ${request.selectedBags.length} túi máu đã chọn trước đó.`)
+      } else {
+        // Fallback: Old logic for requests without selected bags
+        setBloodStock(prevStock =>
+          prevStock.map(stock => {
+            if (stock.bloodType === request.bloodType) {
+              const newUnits = Math.max(0, stock.units - request.unitsNeeded)
+              return {
+                ...stock,
+                units: newUnits,
+                status: newUnits === 0 ? 'expired' as const : stock.status
+              }
+            }
+            return stock
+          })
+        )
+
+        setBloodBags(prevBags => {
+          const stockForBloodType = bloodStock.find(s => s.bloodType === request.bloodType)
+          if (!stockForBloodType) return prevBags
+          
+          let unitsToMark = request.unitsNeeded
+          return prevBags.map(bag => {
+            if (bag.stockId === stockForBloodType.id && 
+                bag.status === 'available' && 
+                unitsToMark > 0) {
+              unitsToMark--
+              return {
+                ...bag,
+                status: 'used' as const,
+                notes: `Đã sử dụng cho yêu cầu ${requestId} - ${request.patientName}`
+              }
+            }
+            return bag
+          })
+        })
+
+        console.log(`Đã hoàn tất truyền máu cho yêu cầu ID: ${requestId}. Đã trừ ${request.unitsNeeded} đơn vị máu ${request.bloodType} từ kho (fallback logic).`)
+      }
     } else {
       console.error(`Không tìm thấy yêu cầu máu với ID: ${requestId}`)
     }
-  }, [bloodRequests, bloodStock, setBloodStock, setBloodBags])
+  }, [bloodRequests, bloodStock, bloodBags, setBloodStock, setBloodBags])
 
   // Handle test result update
   const handleUpdateTestResult = useCallback((test: BloodTest) => {
@@ -1342,7 +1405,8 @@ export default function BloodManagementPage() {
         status: 'pending' as const,
         hospital: 'Trung tâm máu',
         doctorName: 'BS. Tự động tạo',
-        reason: `Yêu cầu ${bloodUnits} đơn vị máu sau xét nghiệm xác nhận cho bệnh nhân ${patientInfo.name}`
+        reason: `Yêu cầu ${bloodUnits} đơn vị máu sau xét nghiệm xác nhận cho bệnh nhân ${patientInfo.name}`,
+        selectedBags: [] // Khởi tạo mảng rỗng cho túi máu đã chọn
       }
       
       // Add to blood requests
