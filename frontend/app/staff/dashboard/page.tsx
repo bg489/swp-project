@@ -659,8 +659,8 @@ export default function StaffDashboard() {
                   <div className="flex items-center justify-center mb-2">
                     <Package className="h-5 w-5 text-blue-600" />
                   </div>
-                  <div className="text-lg font-bold text-blue-600">{staffStats.totalBloodUnits}</div>
-                  <div className="text-xs text-blue-600">Tồn kho máu</div>
+                  <div className="text-lg font-bold text-blue-600">-</div>
+                  <div className="text-xs text-blue-600">Tổng đơn vị</div>
                 </div>
                 <div className="text-center p-3 bg-yellow-50 rounded-lg">
                   <div className="flex items-center justify-center mb-2">
