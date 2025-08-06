@@ -515,7 +515,7 @@ export default function BloodManagementPage() {
               id: unit._id,
               stockId,
               bagNumber: unit._id,
-              volume: Number(unit.volumeOrWeight).toFixed(2),
+              volume: unit.volumeOrWeight,
               donorId: unit.user_id?._id || 'N/A',
               donorName: unit.user_id?.full_name || 'Không rõ',
               collectionDate: unit.collectionDate?.split('T')[0] || '',
@@ -536,7 +536,7 @@ export default function BloodManagementPage() {
               id: unit._id,
               stockId,
               bagNumber: unit._id,
-              volume: Number(unit.volumeOrWeight).toFixed(2),
+              volume: unit.volumeOrWeight,
               donorId: unit.user_id?._id || 'N/A',
               donorName: unit.user_id?.full_name || 'Không rõ',
               collectionDate: unit.collectionDate?.split('T')[0] || '',
@@ -548,10 +548,52 @@ export default function BloodManagementPage() {
             };
           });
 
+          const plasUnits = await api.get(`/whole-blood/hospital/${staffData.hospital._id}/plasmas`);
+          const mappedPlasmaUnits = plasUnits.data.units.map((unit: any, index: number) => {
+            const stockId = getStockIdFromBloodGroup(unit.bloodGroupABO, unit.bloodGroupRh);
+
+            return {
+              id: unit._id,
+              stockId,
+              bagNumber: unit._id,
+              volume: unit.volumeOrWeight,
+              donorId: unit.user_id?._id || 'N/A',
+              donorName: unit.user_id?.full_name || 'Không rõ',
+              collectionDate: unit.collectionDate?.split('T')[0] || '',
+              expiryDate: unit.expiryDate?.split('T')[0] || '',
+              status: unit.status === 'donated' ? 'available' : 'used',
+              location: `Kho A - Tủ 1 - Ngăn ${index + 1}`,
+              component: 'plasma',
+              notes: unit.notes || ''
+            };
+          });
+
+          const platUnits = await api.get(`/whole-blood/hospital/${staffData.hospital._id}/platelets`);
+          const mappedPlateletUnits = plasUnits.data.units.map((unit: any, index: number) => {
+            const stockId = getStockIdFromBloodGroup(unit.bloodGroupABO, unit.bloodGroupRh);
+
+            return {
+              id: unit._id,
+              stockId,
+              bagNumber: unit._id,
+              volume: unit.volumeOrWeight,
+              donorId: unit.user_id?._id || 'N/A',
+              donorName: unit.user_id?.full_name || 'Không rõ',
+              collectionDate: unit.collectionDate?.split('T')[0] || '',
+              expiryDate: unit.expiryDate?.split('T')[0] || '',
+              status: unit.status === 'donated' ? 'available' : 'used',
+              location: `Kho A - Tủ 1 - Ngăn ${index + 1}`,
+              component: 'platelets',
+              notes: unit.notes || ''
+            };
+          });
+
 
           setBloodBags([
             ...mappedBloodUnits,
             ...mappedRedCellUnits,
+            ...mappedPlasmaUnits,
+            ...mappedPlateletUnits
           ]);
 
 
@@ -1803,7 +1845,7 @@ export default function BloodManagementPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-red-600">
-                  {bloodStock.reduce((sum, stock) => sum + stock.units, 0)}
+                  {bloodBags.length}
                 </div>
                 <p className="text-xs text-muted-foreground">Tất cả nhóm máu</p>
               </CardContent>
@@ -1815,7 +1857,9 @@ export default function BloodManagementPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-green-600">
-                  {bloodStock.filter(stock => stock.units > 0).reduce((sum, stock) => sum + stock.units, 0)}
+                  {bloodBags.filter((value) => {
+                    return value.status === "available"
+                  }).length}
                 </div>
                 <p className="text-xs text-muted-foreground">Đơn vị sẵn sàng</p>
               </CardContent>
@@ -1857,10 +1901,16 @@ export default function BloodManagementPage() {
                           {stock.bloodType}
                         </Badge>
                       </TableCell>
-                      <TableCell>{stock.units}</TableCell>
+                      <TableCell>{bloodBags.filter((value) => {
+                        return value.stockId === stock.id && value.status === "available"
+                      }).length}</TableCell>
                       <TableCell>
-                        <Badge className={stock.units > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
-                          {stock.units > 0 ? 'Có sẵn' : 'Đã hết'}
+                        <Badge className={bloodBags.filter((value) => {
+                          return value.stockId === stock.id && value.status === "available"
+                        }).length > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+                          {bloodBags.filter((value) => {
+                            return value.stockId === stock.id
+                          }).length > 0 ? 'Có sẵn' : 'Đã hết'}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -1964,7 +2014,7 @@ export default function BloodManagementPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-red-600">
-                586 ml
+                {filteredBags.reduce((sum, bag) => sum + bag.volume, 0)} ml
               </div>
               <p className="text-xs text-muted-foreground">Tổng lượng máu</p>
             </CardContent>
