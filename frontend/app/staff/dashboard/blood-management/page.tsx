@@ -199,6 +199,8 @@ export default function BloodManagementPage() {
   }
 
 
+
+
   // Optimized input handlers - no re-render, direct DOM manipulation
   const handlePhoneInput = useCallback((e: React.FormEvent<HTMLInputElement>) => {
     const target = e.target as HTMLInputElement

@@ -36,7 +36,13 @@ export default function DonatePage() {
 
   // Sử dụng ngày địa phương thay vì UTC để tránh bị lùi ngày
   const today = new Date();
+
+  // Cộng thêm 1 ngày
+  today.setDate(today.getDate() + 1);
+
+  // Format thành chuỗi yyyy-mm-dd
   const todayString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
 
   // Tính toán ngày tối đa (3 tháng từ hôm nay)
   const maxDate = new Date();

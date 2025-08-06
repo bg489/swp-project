@@ -335,7 +335,7 @@ export default function DonationRequestsManagement() {
       return req.status === filter
     })
     .filter(req =>
-      (req.user_id.full_name || req.user_id.email || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (req?.user_id.full_name || req.user_id.email || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
       req.user_id.email.toLowerCase().includes(searchTerm.toLowerCase())
     )
     .sort((a, b) => {
