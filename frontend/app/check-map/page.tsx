@@ -219,7 +219,7 @@ export default function CheckMapPage() {
           {/* Distance Search Section */}
           <Card className="mb-8">
             <CardContent className="p-6">
-              <div className="grid md:grid-cols-4 gap-4">
+              <div className="grid md:grid-cols-2 gap-4">
                 <div>
                   <Label>Vị trí hiện tại</Label>
                   <Button 
@@ -233,20 +233,7 @@ export default function CheckMapPage() {
                   </Button>
                 </div>
 
-                <div>
-                  <Label htmlFor="search">Tìm kiếm địa điểm</Label>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                    <Input
-                      id="search"
-                      placeholder="Lọc kết quả..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10"
-                      disabled={!userLocation}
-                    />
-                  </div>
-                </div>
+
                 
                 <div>
                   <Label>Khoảng cách tìm kiếm</Label>
@@ -275,40 +262,18 @@ export default function CheckMapPage() {
                     >
                       10km
                     </Button>
+                    <Button
+                      variant={selectedDistance === "50km" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => handleDistanceChange("50km")}
+                      disabled={!userLocation}
+                    >
+                      50km
+                    </Button>
                   </div>
                 </div>
 
-                <div>
-                  <Label>Lọc theo loại</Label>
-                  <div className="flex gap-1 mt-1">
-                    <Button
-                      variant={selectedFilter === "all" ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setSelectedFilter("all")}
-                      disabled={!userLocation}
-                    >
-                      Tất cả
-                    </Button>
-                    <Button
-                      variant={selectedFilter === "hospital" ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setSelectedFilter("hospital")}
-                      disabled={!userLocation}
-                    >
-                      <Building className="w-4 h-4 mr-1" />
-                      Bệnh viện
-                    </Button>
-                    <Button
-                      variant={selectedFilter === "urgent" ? "destructive" : "outline"}
-                      size="sm"
-                      onClick={() => setSelectedFilter("urgent")}
-                      disabled={!userLocation}
-                    >
-                      <Activity className="w-4 h-4 mr-1" />
-                      Cần gấp
-                    </Button>
-                  </div>
-                </div>
+
               </div>
               
               {error && (

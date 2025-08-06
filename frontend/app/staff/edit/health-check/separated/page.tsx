@@ -71,7 +71,8 @@ export default function HealthCheckFormPage() {
     declaration_feels_healthy: false,
     declaration_voluntary: false,
     declaration_will_report_if_risk_found: false,
-    has_taken_medicine_last_week: false
+    has_taken_medicine_last_week: false,
+    separated_component: []
   });
 
   useEffect(() => {
@@ -127,6 +128,7 @@ export default function HealthCheckFormPage() {
           declaration_voluntary: data.healthCheck?.declaration_voluntary || false,
           declaration_will_report_if_risk_found: data.healthCheck?.declaration_will_report_if_risk_found || false,
           has_taken_medicine_last_week: data.healthCheck?.has_taken_medicine_last_week || false,
+          separated_component: data.checkIn.donorDonationRequest_id.separated_component || []
         });
       } catch (error) {
         toast.error("Có lỗi khi fetch data")
@@ -138,16 +140,18 @@ export default function HealthCheckFormPage() {
   // Tính thể tích máu được hiến dựa vào cân nặng
   useEffect(() => {
     let volume = 0;
-    if (form.weight >= 42 && form.weight < 45) {
-      volume = 250;
-    } else if (form.weight >= 45) {
-      volume = Math.min(form.weight * 9, 500);
+
+    if (form.weight >= 60) {
+      volume = 650;
+    } else if (form.weight >= 50) {
+      volume = 500;
     } else {
-      volume = 0; // Dưới 42kg không đủ điều kiện hiến
+      volume = 0; // Dưới 50kg không đủ điều kiện hiến thành phần máu bằng gạn tách
     }
 
     setForm((prev) => ({ ...prev, blood_volume_allowed: volume }));
   }, [form.weight]);
+
 
   const symptoms = [
     { value: "none", label: "Không có" },
@@ -254,7 +258,7 @@ export default function HealthCheckFormPage() {
 
     try {
       const response = await api.put(`/health-check/health-check/${healthCheck}/pass`);
-      await api.post(`/blood-test/create`, {
+      const response2 = await api.post(`/blood-test/create`, {
         user_id: response.data.checkIn.user_id._id,
         user_profile_id: response.data.checkIn.userprofile_id._id,
         hospital_id: response.data.checkIn.hospital_id._id,
@@ -262,6 +266,13 @@ export default function HealthCheckFormPage() {
         HBsAg: false,
         hemoglobin: 0
       })
+
+      console.log(response2.data.bloodTest._id)
+
+      await api.put(`/blood-test/blood-tests/${response2.data.bloodTest._id}/separation`, {
+        is_seperated: true,
+        separated_component: form.separated_component
+      });
 
       toast.success("Chấp nhận thành công!")
       router.push("/staff/dashboard");
@@ -284,7 +295,7 @@ export default function HealthCheckFormPage() {
               <div>
                 <div className="flex items-end gap-2">
                   <div className="flex-1">
-                    <Label htmlFor="weight">Cân nặng (kg). Lớn hơn 42 kg đối với phụ nữ, 45 kg đối với nam giới</Label>
+                    <Label htmlFor="weight">Cân nặng (kg). Lớn hơn 50 kg</Label>
                     <Input name="weight" type="number" value={form.weight} onChange={handleChange} />
                   </div>
                   <Button type="button" onClick={() => saveField()} className="mt-6">

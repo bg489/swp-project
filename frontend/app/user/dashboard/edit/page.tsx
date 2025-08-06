@@ -86,43 +86,10 @@ export default function EditProfilePage() {
 
 
 
-  const handleChange = (e: { target: { value: React.SetStateAction<string> } }) => {
-    setSearchTerm(e.target.value);    // update giá trị gõ thực tế
-    setHospitalInput(e.target.value); // input hiển thị đồng bộ giá trị gõ
-    setShowSuggestions(true);
-    setHighlightIndex(-1);
-  };
-
-
-  const handleKeyDown = (e: { key: string; preventDefault: () => void }) => {
-    if (!showSuggestions) return;
-    if (e.key === "ArrowDown") {
-      const newIndex = (highlightIndex + 1) % filteredHospitals.length;
-      setHighlightIndex(newIndex);
-      setHospitalInput(filteredHospitals[newIndex].name); // chỉ thay đổi hiển thị, searchTerm vẫn giữ nguyên
-      e.preventDefault();
-    } else if (e.key === "ArrowUp") {
-      const newIndex =
-        (highlightIndex - 1 + filteredHospitals.length) % filteredHospitals.length;
-      setHighlightIndex(newIndex);
-      setHospitalInput(filteredHospitals[newIndex].name);
-      e.preventDefault();
-    } else if (e.key === "Enter" && highlightIndex >= 0) {
-      handleSelect(filteredHospitals[highlightIndex]);
-      e.preventDefault();
-    }
-  };
 
 
 
 
-  const handleSelect = (hospital: { _id: string; name: any; address?: string; phone?: string }) => {
-    setFormData((prev) => ({ ...prev, hospitalId: hospital._id }));
-    setHospitalInput(hospital.name);
-    setSearchTerm(hospital.name);
-    setShowSuggestions(false);
-    setHighlightIndex(-1);
-  };
 
   const normalizeVietnamese = (str: string) => str
     .normalize("NFD")
@@ -140,258 +107,27 @@ export default function EditProfilePage() {
 
 
 
-  const checkLocationPermissionAndUpdateState = () => {
-    if (!navigator.geolocation) {
-      toast.error("Trình duyệt không hỗ trợ định vị!");
-      setLocationAllowed(false);
-      return;
-    }
 
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setLocationAllowed(true);
-        toast.success("Đã cho phép định vị!");
-      },
-      (error) => {
-        console.error("Từ chối định vị:", error);
-        setLocationAllowed(false);
-        toast.error("Bạn đã từ chối quyền định vị, tính năng tìm kiếm sẽ bị khoá.");
-      }
-    );
-  };
-
-
-  useEffect(() => {
-    // Lấy vị trí người dùng
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const { latitude, longitude } = position.coords;
-        setUserLocation({ lat: latitude, lng: longitude });
-
-        try {
-          const response = await api.get("/hospital/");
-          const hospitals = response.data.hospitals;
-
-          const getDistanceKm = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-            const R = 6371;
-            const dLat = ((lat2 - lat1) * Math.PI) / 180;
-            const dLon = ((lon2 - lon1) * Math.PI) / 180;
-            const a = Math.sin(dLat / 2) ** 2 +
-              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-              Math.sin(dLon / 2) ** 2;
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-            return R * c;
-          };
-
-          const filtered = hospitals.filter((h: any) => {
-            const dist = getDistanceKm(latitude, longitude, h.latitude, h.longitude);
-            return dist <= 30; // chỉ bệnh viện trong bán kính 30km
-          }).map((h: any) => ({
-            _id: h._id,
-            name: h.name,
-            address: h.address,
-            phone: h.phone,
-          }));
-
-          setNearbyHospitals(filtered);
-        } catch (error) {
-          console.error("Lỗi khi lấy danh sách bệnh viện:", error);
-        }
-      },
-      (error) => {
-        console.error("Lỗi lấy vị trí:", error);
-        alert("Không thể lấy vị trí của bạn. Vui lòng bật định vị.");
-      }
-    );
-  }, []);
-
-  useEffect(() => {
-    checkLocationPermissionAndUpdateState();
-  }, []);
-
-
-  const handleFindHospitalsNearby = () => {
-    if (!navigator.geolocation) {
-      toast.error("Trình duyệt không hỗ trợ định vị!");
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const { latitude, longitude } = position.coords;
-
-        try {
-          const response = await api.get("/hospital/");
-          const hospitals = response.data.hospitals;
-
-          const getDistanceKm = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-            const R = 6371;
-            const dLat = ((lat2 - lat1) * Math.PI) / 180;
-            const dLon = ((lon2 - lon1) * Math.PI) / 180;
-            const a =
-              Math.sin(dLat / 2) ** 2 +
-              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-              Math.sin(dLon / 2) ** 2;
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-            return R * c;
-          };
-
-          const filtered = hospitals.filter((h: any) => {
-            const dist = getDistanceKm(latitude, longitude, h.latitude, h.longitude);
-            return dist <= radiusKm; // dùng bán kính người nhập
-          }).map((h: any) => ({
-            _id: h._id,
-            name: h.name,
-            address: h.address,
-            phone: h.phone,
-          }));
-
-          setNearbyHospitals(filtered);
-
-          if (filtered.length > 0) {
-            toast.success(`Tìm thấy ${filtered.length} bệnh viện trong ${radiusKm} km!`);
-          } else {
-            toast.error(`Không tìm thấy bệnh viện nào trong ${radiusKm} km.`);
-          }
-        } catch (error) {
-          console.error("Lỗi lấy danh sách bệnh viện:", error);
-          toast.error("Đã xảy ra lỗi khi tìm bệnh viện!");
-        }
-      },
-      (error) => {
-        console.error("Người dùng từ chối chia sẻ vị trí:", error);
-        toast.error("Bạn đã từ chối chia sẻ vị trí, không thể tìm kiếm bệnh viện gần bạn.");
-      }
-    );
-  };
 
 
   const router = useRouter()
 
   const bloodTypes = ["O-", "O+", "A-", "A+", "B-", "B+", "AB-", "AB+"]
 
-  useEffect(() => {
-    async function fetchProfile() {
-      if (!user?._id || !formData.role) return; // đợi user sẵn sàng và role đã chọn
-
-      try {
-        if (formData.role === "donor") {
-          const response = await api.get(`/users/donor-profile/active/${user._id}`);
-          const profile = response.data.profile;
-          setDonor(profile);
-
-          if (profile?.hospital) {
-            const hospitalRes = await api.get(`/hospital/${profile.hospital}`);
-            const hospitalName = hospitalRes.data.hospital.name;
-            setFormData((prev) => ({ ...prev, hospitalId: profile.hospital }));
-            setHospitalInput(hospitalName);
-            setSearchTerm(hospitalName);
-            setShowSuggestions(false);
-            setHighlightIndex(-1);
-          }
-
-          setFormData((prev) => ({
-            ...prev,
-            bloodType: profile.blood_type || "",
-            availability_date: profile.availability_date ? formatDate(profile.availability_date) : "",
-            certificateDonor: profile.health_cert_url || "",
-          }));
-        } else if (formData.role === "recipient") {
-          const response = await api.get(`/users/recipient-profile/active/${user._id}`);
-          const profile = response.data.profile;
-          setRecipient(profile);
-
-          if (profile?.hospital) {
-            const hospitalRes = await api.get(`/hospital/${profile.hospital}`);
-            const hospitalName = hospitalRes.data.hospital.name;
-            setFormData((prev) => ({ ...prev, hospitalId: profile.hospital }));
-            setHospitalInput(hospitalName);
-            setSearchTerm(hospitalName);
-            setShowSuggestions(false);
-            setHighlightIndex(-1);
-          }
-
-          setFormData((prev) => ({
-            ...prev,
-            hospital_name: profile.hospital_name || "",
-            certificateRecipient: profile.medical_doc_url || "",
-          }));
-        }
-      } catch (error) {
-        console.warn("Không tìm thấy profile:", error);
-      }
-    }
-
-    fetchProfile();
-  }, [formData.role]); // thay user?.role bằng formData.role
-
 
   useEffect(() => {
     async function fetchProfile() {
       if (!user?._id) return; // Only check for user._id since it's required
 
-      console.log(user._id);
-
-      // ✅ Donor profile
       try {
-        const response1 = await api.get(`/users/donor-profile/active/${user._id}`);
-        const profile1 = response1.data.profile;
-        setDonor(profile1);
-
-        const hospitalId = response1.data.profile?.hospital; // lưu ý: hospital_name phải là ID
-        if (hospitalId && user?.role === "donor") {
-          const hospitalRes = await api.get(`/hospital/${hospitalId}`);
-          setFormData((prev) => ({ ...prev, hospitalId: profile1.hospital }));
-          setHospitalInput(hospitalRes.data.hospital.name);
-          setSearchTerm(hospitalRes.data.hospital.name);
-          setShowSuggestions(false);
-          setHighlightIndex(-1);
-        }
-
         setFormData((prev) => ({
           ...prev,
-          bloodType: profile1.blood_type || "",
-          availability_date: profile1.availability_date ? formatDate(profile1.availability_date) : "",
-          certificateDonor: profile1.health_cert_url || "",
           name: user?.full_name || "",
           email: user?.email || "",
           phone: user?.phone || "",
           address: user?.address || "",
           gender: (user?.gender as "male" | "female" | "other") || "male",
           date_of_birth: user?.date_of_birth ? formatDate(user.date_of_birth) : "",
-          role: (user?.role as "donor" | "recipient" | "staff" | "admin") || "donor",
-        }));
-      } catch (error) {
-        console.warn("Không tìm thấy donor profile:", error);
-      }
-
-      // ✅ Recipient profile
-      try {
-        const response2 = await api.get(`/users/recipient-profile/active/${user._id}`);
-        const profile2 = response2.data.profile;
-        setRecipient(profile2);
-
-
-        const hospitalId = response2.data.profile?.hospital; // lưu ý: hospital_name phải là ID
-        if (hospitalId && user?.role === "recipient") {
-          const hospitalRes = await api.get(`/hospital/${hospitalId}`);
-          setFormData((prev) => ({ ...prev, hospitalId: profile2.hospital }));
-          setHospitalInput(hospitalRes.data.hospital.name);
-          setSearchTerm(hospitalRes.data.hospital.name);
-          setShowSuggestions(false);
-          setHighlightIndex(-1);
-        }
-
-        setFormData((prev) => ({
-          ...prev,
-          hospital_name: profile2.hospital_name || "",
-          certificateRecipient: profile2.medical_doc_url || "",
-          name: user?.full_name || "",
-          email: user?.email || "",
-          phone: user?.phone || "",
-          address: user?.address || "",
-          gender: (user?.gender as "male" | "female" | "other") || "male",
-          date_of_birth: user?.date_of_birth ? formatDate(user.date_of_birth) : "",
-          role: (user?.role as "donor" | "recipient" | "staff" | "admin") || "recipient",
         }));
 
       } catch (error) {
@@ -427,6 +163,11 @@ export default function EditProfilePage() {
       return;
     }
 
+    if (formData.phone.length < 10) {
+      setError("Vui lòng nhập đúng số điện thoại");
+      setIsLoading(false);
+    }
+
     try {
       // Update user base info
       const response = await api.put(`/users/edit/${user._id}`, {
@@ -441,29 +182,6 @@ export default function EditProfilePage() {
       const result = response.data;
 
       if (result.message) {
-        // Update donor/recipient profile
-        if (formData.role === "donor") {
-          await api.put(`/users/${user._id}/role`, {
-            newRole: "donor"
-          })
-          await api.post(`/users/donor-profile`, {
-            user_id: user._id,
-            blood_type: formData.bloodType,
-            availability_date: formData.availability_date,
-            health_cert_url: formData.certificateDonor,
-            hospital: formData.hospitalId
-          });
-        } else if (formData.role === "recipient") {
-          await api.put(`/users/${user._id}/role`, {
-            newRole: "recipient"
-          })
-          await api.post(`/users/recipient-profile`, {
-            user_id: user._id,
-            medical_doc_url: formData.certificateRecipient,
-            hospital: formData.hospitalId,
-          });
-        }
-
         setUser({
           ...user!,
           full_name: formData.name,
@@ -472,7 +190,7 @@ export default function EditProfilePage() {
           gender: formData.gender as "male" | "female" | "other",
           date_of_birth: formData.date_of_birth,
           address: formData.address,
-          role: formData.role as "donor" | "recipient" | "staff" | "admin"
+          role: "user"
         });
 
         toast.success("Cập nhật thông tin thành công!")
@@ -729,91 +447,6 @@ export default function EditProfilePage() {
                   </div>
                 </div>
 
-                {/* Section 4: Role and Hospital */}
-                <div className="space-y-6">
-                  <div className="flex items-center space-x-3 mb-6">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-indigo-500 flex items-center justify-center">
-                      <MapPin className="h-4 w-4 text-white" />
-                    </div>
-                    <h3 className="text-lg font-semibold text-gray-800">Vai trò và Bệnh viện</h3>
-                    <div className="flex-1 h-px bg-gradient-to-r from-purple-200 to-transparent"></div>
-                  </div>
-
-                  <div className="grid lg:grid-cols-2 gap-6">
-                    <div className="space-y-3 group">
-                      <Label htmlFor="role" className="text-sm font-medium text-gray-700 flex items-center">
-                        Vai trò <span className="text-red-500 ml-1">*</span>
-                      </Label>
-                      <Select
-                        value={formData.role}
-                        onValueChange={(value: "donor" | "recipient") => setFormData((prev) => ({ ...prev, role: value }))}
-                      >
-                        <SelectTrigger className="h-12 border-gray-200 focus:border-purple-500 focus:ring-purple-500 transition-all duration-300 hover:border-gray-300">
-                          <SelectValue placeholder="Chọn vai trò" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-white/95 backdrop-blur-sm">
-                          <SelectItem value="donor">
-                            <div className="flex items-center">
-                              <Droplets className="w-4 h-4 mr-2 text-red-500" />
-                              Người hiến máu (Donor)
-                            </div>
-                          </SelectItem>
-                          <SelectItem value="recipient">
-                            <div className="flex items-center">
-                              <User className="w-4 h-4 mr-2 text-blue-500" />
-                              Người nhận máu (Recipient)
-                            </div>
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-3 relative group">
-                      <Label htmlFor="hospital_name" className="text-sm font-medium text-gray-700 flex items-center">
-                        Tên bệnh viện <span className="text-red-500 ml-1">*</span>
-                      </Label>
-                      <div className="relative">
-                        <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-purple-500 transition-colors" />
-                        <Input
-                          id="hospital_name"
-                          placeholder="ex: Bệnh viện Hùng Vương"
-                          value={hospitalInput}
-                          onChange={handleChange}
-                          onKeyDown={handleKeyDown}
-                          className="pl-10 h-12 border-gray-200 focus:border-purple-500 focus:ring-purple-500 transition-all duration-300 hover:border-gray-300"
-                          required
-                          disabled={locationAllowed === false}
-                        />
-                      </div>
-                      {showSuggestions && filteredHospitals.length > 0 && (
-                        <ul className="absolute z-20 bg-white/95 backdrop-blur-sm border border-gray-200 w-full max-h-60 overflow-y-auto shadow-xl rounded-lg mt-1 custom-scrollbar">
-                          {filteredHospitals.map((h, idx) => (
-                            <li
-                              key={idx}
-                              ref={highlightIndex === idx ? (el) => el?.scrollIntoView({ block: "nearest" }) : null}
-                              className={`px-4 py-3 hover:bg-purple-50 cursor-pointer transition-all duration-200 border-l-4 ${highlightIndex === idx
-                                ? "bg-purple-100 border-purple-500 shadow-md transform translate-x-1"
-                                : "border-transparent hover:border-purple-300"
-                                }`}
-                              onClick={() => handleSelect(h)}
-                            >
-                              <div className="flex items-start space-x-3">
-                                <MapPin className="w-4 h-4 text-purple-500 mt-0.5 flex-shrink-0" />
-                                <div className="flex-1 min-w-0">
-                                  <strong className="text-gray-800 block truncate">{h.name}</strong>
-                                  {h.address && (
-                                    <div className="text-sm text-gray-500 mt-1 line-clamp-2">{h.address}</div>
-                                  )}
-                                </div>
-                              </div>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
                 {/* Section 5: Birth and Gender */}
                 <div className="space-y-6">
                   <div className="flex items-center space-x-3 mb-6">
@@ -847,6 +480,7 @@ export default function EditProfilePage() {
                         Giới tính <span className="text-red-500 ml-1">*</span>
                       </Label>
                       <Select
+                        key={formData.gender}
                         value={formData.gender}
                         onValueChange={(value: "male" | "female" | "other") => setFormData((prev) => ({ ...prev, gender: value }))}
                       >
@@ -892,31 +526,6 @@ export default function EditProfilePage() {
                           />
                         </div>
                       </div>
-                    </div>
-
-                    <div className="space-y-3">
-                      <Label htmlFor="radiusKm" className="text-sm font-medium text-gray-700 flex items-center">
-                        Khoảng cách tìm bệnh viện (km) <span className="text-red-500 ml-1">*</span>
-                      </Label>
-                      <Input
-                        id="radiusKm"
-                        type="number"
-                        placeholder="VD: 30"
-                        value={radiusKm}
-                        onChange={(e) => setRadiusKm(Number(e.target.value))}
-                        className="h-12 border-gray-200 focus:border-teal-500 focus:ring-teal-500 transition-all duration-300 hover:border-gray-300"
-                        required
-                        disabled={locationAllowed === false}
-                      />
-                      <Button
-                        type="button"
-                        onClick={handleFindHospitalsNearby}
-                        className="w-full h-12 bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white font-medium transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
-                        disabled={locationAllowed === false}
-                      >
-                        <MapPin className="w-4 h-4 mr-2" />
-                        Tìm bệnh viện gần bạn
-                      </Button>
                     </div>
                   </div>
                 </div>
