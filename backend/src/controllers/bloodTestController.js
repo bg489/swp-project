@@ -43,6 +43,8 @@ export async function createBloodTest(req, res) {
             healthcheck_id,
             HBsAg,
             hemoglobin,
+            total_protein: 0,
+            platelet_count: "",
             status,
         });
 
@@ -179,6 +181,108 @@ export async function getBloodTestsByHospital(req, res) {
         return res.status(200).json(bloodTests);
     } catch (error) {
         console.error("Error retrieving blood tests by hospital:", error);
+        return res.status(500).json({ message: "Internal server error." });
+    }
+}
+
+export async function updateSeparationInfo(req, res) {
+    try {
+        const { id } = req.params;
+        const { is_seperated, separated_component } = req.body;
+
+        // Kiểm tra đầu vào
+        if (typeof is_seperated !== "boolean") {
+            return res.status(400).json({
+                message: "`is_seperated` must be a boolean.",
+            });
+        }
+
+        if (is_seperated) {
+            if (!Array.isArray(separated_component) || separated_component.length === 0) {
+                return res.status(400).json({
+                    message: "`separated_component` must be a non-empty array if `is_seperated` is true.",
+                });
+            }
+
+            const allowedComponents = ["RBC", "plasma", "platelet"];
+            const invalid = separated_component.filter((c) => !allowedComponents.includes(c));
+            if (invalid.length > 0) {
+                return res.status(400).json({
+                    message: `Invalid separated_component values: ${invalid.join(", ")}`,
+                });
+            }
+        }
+
+        // Tìm bản ghi
+        const bloodTest = await BloodTest.findById(id);
+        if (!bloodTest) {
+            return res.status(404).json({ message: "Blood test not found." });
+        }
+
+        // Cập nhật giá trị
+        bloodTest.is_seperated = is_seperated;
+        bloodTest.separated_component = is_seperated ? separated_component : [];
+
+        await bloodTest.save();
+
+        return res.status(200).json({
+            message: "Separation info updated successfully.",
+            bloodTest,
+        });
+    } catch (error) {
+        console.error("Error updating separation info:", error);
+        return res.status(500).json({ message: "Internal server error." });
+    }
+}
+
+export async function getSeparationInfoById(req, res) {
+    try {
+        const { id } = req.params;
+
+        const bloodTest = await BloodTest.findById(id);
+        if (!bloodTest) {
+            return res.status(404).json({ message: "Blood test not found." });
+        }
+
+        return res.status(200).json({
+            message: "Separation info retrieved successfully.",
+            is_seperated: bloodTest.is_seperated,
+            separated_component: bloodTest.separated_component,
+        });
+    } catch (error) {
+        console.error("Error retrieving separation info:", error);
+        return res.status(500).json({ message: "Internal server error." });
+    }
+}
+
+export async function updateBloodTestValues(req, res) {
+    try {
+        const { id } = req.params;
+        const { total_protein, platelet_count } = req.body;
+
+        // Tìm bản ghi xét nghiệm máu
+        const bloodTest = await BloodTest.findById(id);
+        if (!bloodTest) {
+            return res.status(404).json({ message: "Blood test not found." });
+        }
+
+        // Cập nhật giá trị nếu có
+        if (typeof total_protein === "number") {
+            bloodTest.total_protein = total_protein;
+        }
+
+        if (typeof platelet_count === "string") {
+            bloodTest.platelet_count = platelet_count;
+        }
+
+        await bloodTest.save();
+
+        return res.status(200).json({
+            message: "Blood test values updated successfully.",
+            bloodTest,
+        });
+    } catch (error) {
+        console.error("Error updating blood test values:", error);
         return res.status(500).json({ message: "Internal server error." });
     }
 }

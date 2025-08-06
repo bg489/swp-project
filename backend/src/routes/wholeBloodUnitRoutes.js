@@ -12,33 +12,81 @@ import {
     markWholeBloodUnitAsTransfused
 } from "../controllers/wholeBloodUnitController.js";
 
+import {
+    createRedBloodCellUnit,
+    updateRedBloodCellUnitById,
+    markRedBloodCellUnitAsExpired,
+    markRedBloodCellUnitAsDonated,
+    getRedBloodCellUnitById,
+    getRedBloodCellUnitsByHospitalId,
+    markRedBloodCellUnitAsNotEligible,
+    markRedBloodCellUnitAsTransfused
+} from "../controllers/redBloodCellController.js";
+
+import {
+    createPlasmaUnit,
+    updatePlasmaUnitById,
+    markPlasmaUnitAsExpired,
+    markPlasmaUnitAsDonated,
+    getPlasmaUnitById,
+    getPlasmaUnitsByHospitalId,
+    markPlasmaUnitAsNotEligible,
+    markPlasmaUnitAsTransfused
+} from "../controllers/plasmaUnitController.js";
+
+import {
+    createPlateletUnit,
+    updatePlateletUnitById,
+    markPlateletUnitAsExpired,
+    markPlateletUnitAsDonated,
+    getPlateletUnitById,
+    getPlateletUnitsByHospitalId,
+    markPlateletUnitAsNotEligible,
+    markPlateletUnitAsTransfused
+} from "../controllers/plateletUnitController.js";
+
 const router = express.Router();
 
-// Tạo đơn vị máu toàn phần
+// === WHOLE BLOOD ===
 router.post("/create", createWholeBloodUnit);
-
-// Cập nhật thông tin đơn vị máu toàn phần (không đổi status)
 router.put("/whole-blood-unit/:id", updateWholeBloodUnitById);
-
-// Đánh dấu là đã hết hạn
 router.put("/whole-blood-unit/:id/expire", markWholeBloodUnitAsExpired);
-
-// Đánh dấu là đã hiến
 router.put("/whole-blood-unit/:id/donate", markWholeBloodUnitAsDonated);
-
-// Lấy thông tin một đơn vị máu theo ID
+router.put("/whole-blood-unit/:id/not-eligible", markWholeBloodUnitAsNotEligible);
+router.put("/whole-blood-unit/:id/transfused", markWholeBloodUnitAsTransfused);
 router.get("/whole-blood-unit/:id", getWholeBloodUnitById);
-
-// Lấy tất cả đơn vị máu theo bệnh viện
 router.get("/hospital/:hospital_id/whole-blood-units", getWholeBloodUnitsByHospitalId);
-
 router.get("/whole-blood-unit/:id/check-blood-type", isBloodGroupComplete);
-
 router.get("/whole-blood-unit/:id/email-blood-type", getBloodTypeStringById);
 
-router.put("/whole-blood-unit/:id/not-eligible", markWholeBloodUnitAsNotEligible);
+// === RED BLOOD CELLS ===
+router.post("/red-blood-cell/create", createRedBloodCellUnit);
+router.put("/red-blood-cell/:id", updateRedBloodCellUnitById);
+router.put("/red-blood-cell/:id/expire", markRedBloodCellUnitAsExpired);
+router.put("/red-blood-cell/:id/donate", markRedBloodCellUnitAsDonated);
+router.put("/red-blood-cell/:id/not-eligible", markRedBloodCellUnitAsNotEligible);
+router.put("/red-blood-cell/:id/transfused", markRedBloodCellUnitAsTransfused);
+router.get("/red-blood-cell/:id", getRedBloodCellUnitById);
+router.get("/hospital/:hospital_id/red-blood-cells", getRedBloodCellUnitsByHospitalId);
 
-router.put("/whole-blood-unit/:id/transfused", markWholeBloodUnitAsTransfused);
+// === PLASMA ===
+router.post("/plasma/create", createPlasmaUnit);
+router.put("/plasma/:id", updatePlasmaUnitById);
+router.put("/plasma/:id/expire", markPlasmaUnitAsExpired);
+router.put("/plasma/:id/donate", markPlasmaUnitAsDonated);
+router.put("/plasma/:id/not-eligible", markPlasmaUnitAsNotEligible);
+router.put("/plasma/:id/transfused", markPlasmaUnitAsTransfused);
+router.get("/plasma/:id", getPlasmaUnitById);
+router.get("/hospital/:hospital_id/plasmas", getPlasmaUnitsByHospitalId);
 
+// === PLATELETS ===
+router.post("/platelet/create", createPlateletUnit);
+router.put("/platelet/:id", updatePlateletUnitById);
+router.put("/platelet/:id/expire", markPlateletUnitAsExpired);
+router.put("/platelet/:id/donate", markPlateletUnitAsDonated);
+router.put("/platelet/:id/not-eligible", markPlateletUnitAsNotEligible);
+router.put("/platelet/:id/transfused", markPlateletUnitAsTransfused);
+router.get("/platelet/:id", getPlateletUnitById);
+router.get("/hospital/:hospital_id/platelets", getPlateletUnitsByHospitalId);
 
 export default router;

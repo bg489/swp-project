@@ -103,10 +103,14 @@ export default function DonationRequestsManagement() {
   const [healthChecks, setHealthChecks] = useState<any>([])
   const [bloodTests, setBloodTests] = useState<any>([])
   const [bloodUnits, setBloodUnits] = useState<any>([])
+  const [rbcUnits, setRbcUnits] = useState<any>([])
+  const [plasmaUnits, setPlasmaUnits] = useState<any>([])
+  const [platelet, setPlateletUnits] = useState<any>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState("all")
   const [searchTerm, setSearchTerm] = useState("")
   const [sortBy, setSortBy] = useState("newest")
+  const [bloodSeperated, setBloodSeperated] = useState("whole")
   const [requestFilter, setRequestFilter] = useState("newest")
 
   // Stats states
@@ -239,6 +243,15 @@ export default function DonationRequestsManagement() {
 
           const bUnits = await api.get(`/whole-blood/hospital/${staffData.hospital._id}/whole-blood-units`);
           setBloodUnits(bUnits.data.units);
+
+          const rbcUnits = await api.get(`/whole-blood/hospital/${staffData.hospital._id}/red-blood-cells`);
+          setRbcUnits(rbcUnits.data.units);
+
+          const plasUnits = await api.get(`/whole-blood/hospital/${staffData.hospital._id}/plasmas`);
+          setPlasmaUnits(plasUnits.data.units);
+
+          const platUnits = await api.get(`/whole-blood/hospital/${staffData.hospital._id}/platelets`);
+          setPlateletUnits(platUnits.data.units);
         }
       } catch (error) {
         console.error("Failed to fetch data:", error);
@@ -392,16 +405,32 @@ export default function DonationRequestsManagement() {
     }
   }
 
-  function handleCardClick(_id: any, name: string): void {
-    router.push(`/staff/edit/health-check/whole?healthCheck=${_id}&name=${name}`);
+  function handleCardClick(_id: any, name: string, donation_type: string): void {
+    if (donation_type === "whole") {
+      router.push(`/staff/edit/health-check/whole?healthCheck=${_id}&name=${name}`);
+    } else {
+      router.push(`/staff/edit/health-check/separated?healthCheck=${_id}&name=${name}`);
+    }
   }
 
-  function handleBloodTestClick(_id: any, name: string): void {
-    router.push(`/staff/edit/blood-test/whole?bloodTestId=${_id}&name=${name}`);
+  function handleBloodTestClick(_id: any, name: string, is_seperated: boolean, separated_component: any): void {
+    if (is_seperated) {
+      router.push(`/staff/edit/blood-test/separated?bloodTestId=${_id}&name=${name}&separated_component=${separated_component}`);
+    } else {
+      router.push(`/staff/edit/blood-test/whole?bloodTestId=${_id}&name=${name}`);
+    }
   }
 
   function handleBloodUnit(_id: any): void {
-    router.push(`/staff/edit/blood-unit/whole?bloodUnitId=${_id}`);
+    if (bloodSeperated === "whole") {
+      router.push(`/staff/edit/blood-unit/whole?bloodUnitId=${_id}`);
+    } else if (bloodSeperated === "RBC") {
+      router.push(`/staff/edit/blood-unit/rbc?bloodUnitId=${_id}`);
+    } else if (bloodSeperated === "plasma") {
+      router.push(`/staff/edit/blood-unit/plasma?bloodUnitId=${_id}`);
+    } else if (bloodSeperated === "platelet") {
+      router.push(`/staff/edit/blood-unit/platelet?bloodUnitId=${_id}`);
+    }
   }
 
   return (
@@ -701,8 +730,8 @@ export default function DonationRequestsManagement() {
                               <p><strong>Ngày đăng ký hiến:</strong> {formatDate(checkIn.donorDonationRequest_id.donation_date)}</p>
                               <p><strong>Thời gian:</strong> {checkIn.donorDonationRequest_id.donation_time_range.from} - {checkIn.donorDonationRequest_id.donation_time_range.to}</p>
                               <p><strong>Loại hiến máu:</strong> {checkIn.donorDonationRequest_id.donation_type === "whole" ? "Toàn phần" : "Tách thành phần"}</p>
-                              {checkIn.donorDonationRequest_id.separated_component && (
-                                <p><strong>Thành phần:</strong> {checkIn.donorDonationRequest_id.separated_component}</p>
+                              {checkIn.donorDonationRequest_id.donation_type === "separated" && (
+                                <p><strong>Thành phần:</strong> {checkIn.donorDonationRequest_id.separated_component.map(translateBloodComponent).join(", ")}</p>
                               )}
                               <p><strong>Ghi chú:</strong> {checkIn.donorDonationRequest_id.notes || "Không có"}</p>
                               <p><strong>Trạng thái yêu cầu:</strong> {translateStatus(checkIn.donorDonationRequest_id.status)}</p>
@@ -771,7 +800,7 @@ export default function DonationRequestsManagement() {
                   <div
                     key={checkInData.checkIn._id}
                     className="p-4 border rounded-lg bg-white shadow-md hover:shadow-xl transition-all duration-200 space-y-4 cursor-pointer"
-                    onClick={() => handleCardClick(checkInData.healthCheck._id, checkInData.checkIn.user_id.full_name)}
+                    onClick={() => handleCardClick(checkInData.healthCheck._id, checkInData.checkIn.user_id.full_name, checkInData.checkIn.donorDonationRequest_id.donation_type)}
                   >
                     {/* Thông tin Người Dùng và Bệnh Viện */}
                     <div className="flex justify-between items-start space-x-6">
@@ -792,8 +821,8 @@ export default function DonationRequestsManagement() {
                             <p className="text-sm"><strong>Ngày đăng ký hiến:</strong> {formatDate(checkInData.checkIn.donorDonationRequest_id.donation_date)}</p>
                             <p className="text-sm"><strong>Thời gian:</strong> {checkInData.checkIn.donorDonationRequest_id.donation_time_range.from} - {checkInData.checkIn.donorDonationRequest_id.donation_time_range.to}</p>
                             <p className="text-sm"><strong>Loại hiến máu:</strong> {checkInData.checkIn.donorDonationRequest_id.donation_type === "whole" ? "Toàn phần" : "Tách thành phần"}</p>
-                            {checkInData.checkIn.donorDonationRequest_id.separated_component && (
-                              <p className="text-sm"><strong>Thành phần:</strong> {checkInData.checkIn.donorDonationRequest_id.separated_component}</p>
+                            {checkInData.checkIn.donorDonationRequest_id.donation_type === "separated" && (
+                              <p className="text-sm"><strong>Thành phần:</strong> {checkInData.checkIn.donorDonationRequest_id.separated_component.map(translateBloodComponent).join(", ")}</p>
                             )}
                             <p className="text-sm"><strong>Ghi chú:</strong> {checkInData.checkIn.donorDonationRequest_id.notes || "Không có"}</p>
                             <p className="text-sm"><strong>Trạng thái yêu cầu:</strong> {translateStatus(checkInData.checkIn.donorDonationRequest_id.status)}</p>
@@ -875,7 +904,7 @@ export default function DonationRequestsManagement() {
                   <div
                     key={bloodTestData._id}
                     className="p-4 border rounded-lg bg-white shadow-md hover:shadow-xl transition-all duration-200 space-y-4 cursor-pointer"
-                    onClick={() => handleBloodTestClick(bloodTestData._id, bloodTestData.user_id.full_name)}
+                    onClick={() => handleBloodTestClick(bloodTestData._id, bloodTestData.user_id.full_name, bloodTestData.is_seperated, bloodTestData.separated_component)}
                   >
                     {/* Thông tin Người Dùng và Bệnh Viện */}
                     <div className="flex justify-between items-start space-x-6">
@@ -898,6 +927,9 @@ export default function DonationRequestsManagement() {
 
                     {/* Thông tin HealthCheck */}
                     <div className="mt-4 space-y-2">
+                      {bloodTestData.is_seperated ? <div className="text-sm">
+                        <strong>Thành phần máu:</strong> {bloodTestData.separated_component.map(translateBloodComponent).join(", ")}
+                      </div> : ""}
                       <div className="text-sm">
                         <strong>Trạng thái sức khỏe:</strong> {translateStatus(bloodTestData.status)}
                       </div>
@@ -931,10 +963,21 @@ export default function DonationRequestsManagement() {
                   </span>
                 </CardTitle>
                 <CardDescription>Theo dõi đơn vị máu của người hiến</CardDescription>
+                <Select value={bloodSeperated} onValueChange={setBloodSeperated}>
+                  <SelectTrigger className="w-48">
+                    <SelectValue placeholder="Sắp xếp theo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="whole">Máu Toàn Phần</SelectItem>
+                    <SelectItem value="RBC">Hồng Cầu</SelectItem>
+                    <SelectItem value="plasma">Huyết Tương</SelectItem>
+                    <SelectItem value="platelet">Tiểu cầu</SelectItem>
+                  </SelectContent>
+                </Select>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                  {bloodUnits.map((blood: any) => (
+                  {bloodSeperated === "whole" && bloodUnits.map((blood: any) => (
                     <Card key={blood._id} className="relative cursor-pointer" onClick={() => handleBloodUnit(blood._id)}>
                       <CardHeader className="pb-2">
                         <div className="flex items-center justify-between">
@@ -958,6 +1001,108 @@ export default function DonationRequestsManagement() {
                           <div className="flex justify-between text-sm">
                             <span>Tổng khổi lượng:</span>
                             <span className="font-semibold text-orange-600">{blood.volumeOrWeight} ml</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span>Ghi chú:</span>
+                            <span className="font-semibold">{blood.notes ? blood.notes : ""}</span>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+
+                  {bloodSeperated === "RBC" && rbcUnits.map((blood: any) => (
+                    <Card key={blood._id} className="relative cursor-pointer" onClick={() => handleBloodUnit(blood._id)}>
+                      <CardHeader className="pb-2">
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-lg font-bold text-black-600">{"#" + blood._id}</CardTitle>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-lg font-bold text-red-600">{(blood.bloodGroupABO) ? (blood.bloodGroupABO + blood.bloodGroupRh) : "Chưa biết nhóm máu"}</CardTitle>
+                          <Badge className={getStatusColor(blood.status)}>{translateStatus(blood.status)}</Badge>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span>Tên người hiến máu:</span>
+                            <span className="font-semibold">{blood.user_id.full_name}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span>Ngày hiến:</span>
+                            <span className="font-semibold">{blood.collectionDate ? formatDate(blood.collectionDate) : "Chưa có"}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span>Tổng khổi lượng:</span>
+                            <span className="font-semibold text-orange-600">{Number(blood.volumeOrWeight).toFixed(2)} ml</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span>Ghi chú:</span>
+                            <span className="font-semibold">{blood.notes ? blood.notes : ""}</span>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+
+                  {bloodSeperated === "plasma" && plasmaUnits.map((blood: any) => (
+                    <Card key={blood._id} className="relative cursor-pointer" onClick={() => handleBloodUnit(blood._id)}>
+                      <CardHeader className="pb-2">
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-lg font-bold text-black-600">{"#" + blood._id}</CardTitle>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-lg font-bold text-red-600">{(blood.bloodGroupABO) ? (blood.bloodGroupABO + blood.bloodGroupRh) : "Chưa biết nhóm máu"}</CardTitle>
+                          <Badge className={getStatusColor(blood.status)}>{translateStatus(blood.status)}</Badge>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span>Tên người hiến máu:</span>
+                            <span className="font-semibold">{blood.user_id.full_name}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span>Ngày hiến:</span>
+                            <span className="font-semibold">{blood.collectionDate ? formatDate(blood.collectionDate) : "Chưa có"}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span>Tổng khổi lượng:</span>
+                            <span className="font-semibold text-orange-600">{Number(blood.volumeOrWeight).toFixed(2)} ml</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span>Ghi chú:</span>
+                            <span className="font-semibold">{blood.notes ? blood.notes : ""}</span>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+
+                  {bloodSeperated === "platelet" && platelet.map((blood: any) => (
+                    <Card key={blood._id} className="relative cursor-pointer" onClick={() => handleBloodUnit(blood._id)}>
+                      <CardHeader className="pb-2">
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-lg font-bold text-black-600">{"#" + blood._id}</CardTitle>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-lg font-bold text-red-600">{(blood.bloodGroupABO) ? (blood.bloodGroupABO + blood.bloodGroupRh) : "Chưa biết nhóm máu"}</CardTitle>
+                          <Badge className={getStatusColor(blood.status)}>{translateStatus(blood.status)}</Badge>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span>Tên người hiến máu:</span>
+                            <span className="font-semibold">{blood.user_id.full_name}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span>Ngày hiến:</span>
+                            <span className="font-semibold">{blood.collectionDate ? formatDate(blood.collectionDate) : "Chưa có"}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span>Tổng khổi lượng:</span>
+                            <span className="font-semibold text-orange-600">{Number(blood.volumeOrWeight).toFixed(2)} ml</span>
                           </div>
                           <div className="flex justify-between text-sm">
                             <span>Ghi chú:</span>
