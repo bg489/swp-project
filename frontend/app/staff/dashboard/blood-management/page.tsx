@@ -2016,7 +2016,7 @@ export default function BloodManagementPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-red-600">
-                {filteredBags.reduce((sum, bag) => sum + bag.volume, 0)} ml
+                {Number(filteredBags.reduce((sum, bag) => sum + bag.volume, 0)).toFixed(2)} ml
               </div>
               <p className="text-xs text-muted-foreground">Tổng lượng máu</p>
             </CardContent>
@@ -2054,7 +2054,7 @@ export default function BloodManagementPage() {
                         <div className="text-sm text-gray-500">{bag.donorId}</div>
                       </div>
                     </TableCell>
-                    <TableCell>{bag.volume}</TableCell>
+                    <TableCell>{Number(bag.volume).toFixed(2)}</TableCell>
                     <TableCell>{formatDate(bag.collectionDate)}</TableCell>
                     <TableCell>{formatDate(bag.expiryDate)}</TableCell>
                     <TableCell>
