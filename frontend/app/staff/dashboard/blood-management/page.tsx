@@ -2463,6 +2463,31 @@ const availableBags = useMemo(() =>
           <DialogContent className="max-w-7xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-xl font-bold">Chọn túi máu từ kho</DialogTitle>
+                {selectedRequest && (
+                  <div className="mt-2">
+                    <div className="font-semibold text-blue-700 mb-1">Thành phần máu có thể truyền:</div>
+                    <div className="flex flex-wrap gap-2">
+                      {(() => {
+                        // Hàm xác định các nhóm máu có thể truyền cho bệnh nhân này
+                        function getCompatibleBloodTypes(recipient: string, component: string) {
+                          // Quy tắc giống như isCompatible nhưng trả về danh sách nhóm máu phù hợp
+                          const [aboR, rhR] = recipient.match(/(A|B|AB|O)([+-])/).slice(1)
+                          const allTypes = [
+                            'O-', 'O+', 'A-', 'A+', 'B-', 'B+', 'AB-', 'AB+'
+                          ]
+                          // Lọc các nhóm máu phù hợp
+                          return allTypes.filter(donor =>
+                            isCompatible(recipient, donor, component)
+                          )
+                        }
+                        const compatibleTypes = getCompatibleBloodTypes(selectedRequest.bloodType, selectedRequest.component)
+                        return compatibleTypes.map(type => (
+                          <Badge key={type} variant="outline" className="border-blue-600 text-blue-700">{type}</Badge>
+                        ))
+                      })()}
+                    </div>
+                  </div>
+                )}
               {selectedRequest && (
                 <div className="text-sm text-gray-600 space-y-2">
                   <div className="flex flex-wrap items-center gap-2">
