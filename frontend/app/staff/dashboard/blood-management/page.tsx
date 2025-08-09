@@ -1452,6 +1452,9 @@ export default function BloodManagementPage() {
     setSelectedTestForUpdate(test)
     setShowUpdateResultDialog(true)
   }, [])
+  
+
+  
 
   const handleSaveTestResult = useCallback((e: React.FormEvent) => {
     e.preventDefault()
@@ -1459,6 +1462,18 @@ export default function BloodManagementPage() {
     if (!selectedTestForUpdate) return
 
     const form = e.target as HTMLFormElement
+
+    // ...trong handleSaveTestResult...
+    const selectedBloodUnits = parseInt((form.querySelector('#bloodUnits') as HTMLSelectElement)?.value || '1')
+    const bloodVolumeNeeded = selectedBloodUnits * 250 // 1 đơn vị = 250ml
+    // ...existing code...
+    const newBloodRequest = {
+      // ...existing fields...
+      unitsNeeded: selectedBloodUnits,
+      volumeNeeded: bloodVolumeNeeded, // thêm trường này
+      // ...existing fields...
+    }
+    // ...existing code...
 
     // Get values from form
     const notes = (form.querySelector('#testNotes') as HTMLTextAreaElement)?.value || ''
@@ -2168,6 +2183,11 @@ const availableBags = useMemo(() =>
   ),
   [bloodBags, selectedRequest, bloodStock]
 )
+
+const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
+    const bag = availableBags.find(b => b.id === id)
+    return sum + (bag ? bag.volume : 0)
+  }, 0)
 // ...existing code...
 
     const handleBagSelection = useCallback((bagId: string) => {
@@ -2516,12 +2536,20 @@ const availableBags = useMemo(() =>
               <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
                 <div className="flex items-center justify-between">
                   <div className="text-sm font-medium text-blue-800">
-                    Tiến độ chọn túi máu: {selectedBloodBags.length}/{selectedRequest?.unitsNeeded || 0} túi
+                    Tiến độ chọn túi máu: {totalSelectedVolume}/{selectedRequest?.volumeNeeded || (selectedRequest?.unitsNeeded || 1) * 250} ml
                   </div>
                   <div className="text-xs text-blue-600">
-                    {selectedBloodBags.length === (selectedRequest?.unitsNeeded || 0)
-                      ? "✓ Đã đủ số lượng yêu cầu"
-                      : `Còn thiếu ${(selectedRequest?.unitsNeeded || 0) - selectedBloodBags.length} túi`}
+                    {totalSelectedVolume >= (selectedRequest?.volumeNeeded || (selectedRequest?.unitsNeeded || 1) * 250)
+                      ? "✓ Đã đủ thể tích yêu cầu"
+                      : `Còn thiếu ${(selectedRequest?.volumeNeeded || (selectedRequest?.unitsNeeded || 1) * 250) - totalSelectedVolume} ml`}
+                  </div>
+                  <div className="mt-2 bg-blue-200 rounded-full h-2">
+                    <div
+                      className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                      style={{
+                        width: `${Math.min(100, (totalSelectedVolume / (selectedRequest?.volumeNeeded || (selectedRequest?.unitsNeeded || 1) * 250)) * 100)}%`
+                      }}
+                    ></div>
                   </div>
                 </div>
                 <div className="mt-2 bg-blue-200 rounded-full h-2">
@@ -2570,8 +2598,7 @@ const availableBags = useMemo(() =>
                       <TableBody>
                         {availableBags.map((bag) => {
                           const isSelected = selectedBloodBags.includes(bag.id)
-                          const isDisabled = !isSelected && selectedBloodBags.length >= (selectedRequest?.unitsNeeded || 0)
-
+                          const isDisabled = !isSelected && totalSelectedVolume >= (selectedRequest?.volumeNeeded || (selectedRequest?.unitsNeeded || 1) * 250)
                           return (
                             <BloodBagTableRow
                               key={bag.id}
@@ -2608,12 +2635,12 @@ const availableBags = useMemo(() =>
                 </Button>
                 <Button
                   onClick={handleConfirmDialog}
-                  disabled={selectedBloodBags.length === 0 || selectedBloodBags.length < (selectedRequest?.unitsNeeded || 0)}
+                  disabled={selectedBloodBags.length === 0 || totalSelectedVolume < (selectedRequest?.volumeNeeded || (selectedRequest?.unitsNeeded || 1) * 250)}
                   className="bg-green-600 hover:bg-green-700 min-w-[180px] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <CheckCircle className="w-4 h-4 mr-2" />
-                  {selectedBloodBags.length < (selectedRequest?.unitsNeeded || 0)
-                    ? `Cần thêm ${(selectedRequest?.unitsNeeded || 0) - selectedBloodBags.length} túi nữa`
+                  {totalSelectedVolume < (selectedRequest?.volumeNeeded || (selectedRequest?.unitsNeeded || 1) * 250)
+                    ? `Cần thêm ${(selectedRequest?.volumeNeeded || (selectedRequest?.unitsNeeded || 1) * 250) - totalSelectedVolume} ml nữa`
                     : `Duyệt và phân bổ (${selectedBloodBags.length} túi)`
                   }
                 </Button>
