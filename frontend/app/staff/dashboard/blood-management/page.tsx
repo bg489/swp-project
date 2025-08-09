@@ -1671,6 +1671,7 @@ export default function BloodManagementPage() {
       address = ""
       emergencyContact = ""
       medicalHistory = ""
+      urgency = "critical"
     }
 
 
@@ -4067,7 +4068,7 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
                         <span className="text-gray-400 text-xs">Không có</span>
                       )}
                     </TableCell>
-                    <TableCell className="text-sm">{formatDate(patient.registrationDate)}</TableCell>
+                    <TableCell className="text-sm">{formatDate(patient.registration_date)}</TableCell>
                     <TableCell>
                       <Badge className={getStatusColor(patient.status)}>
                         {patient.status === 'waiting' ? 'Hoạt động' : 'Không hoạt động'}
