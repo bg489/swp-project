@@ -2094,15 +2094,81 @@ export default function BloodManagementPage() {
       [bloodRequests, selectedRequestForBloodSelection]
     )
 
-    const availableBags = useMemo(() =>
-      bloodBags.filter(bag =>
-        bag.status === 'available' &&
-        selectedRequest &&
-        bag.component === selectedRequest.component &&
-        bag.stockId && bloodStock.find(stock => stock.id === bag.stockId)?.bloodType === selectedRequest.bloodType
-      ),
-      [bloodBags, selectedRequest, bloodStock]
-    )
+    // ...existing code...
+    // Hàm kiểm tra hòa hợp ABO và Rh(D) cho từng loại chế phẩm
+    function isCompatible(bloodTypeRecipient: string, bloodTypeDonor: string, component: string) {
+      // Tách nhóm máu và Rh
+      const [aboR, rhR] = bloodTypeRecipient.match(/(A|B|AB|O)([+-])/).slice(1)
+      const [aboD, rhD] = bloodTypeDonor.match(/(A|B|AB|O)([+-])/).slice(1)
+
+      // Quy tắc truyền máu toàn phần & hồng cầu
+      if (component === 'whole_blood' || component === 'red_cells') {
+        // ABO
+        const abos = {
+          'O': ['O'],
+          'A': ['A', 'O'],
+          'B': ['B', 'O'],
+          'AB': ['AB', 'A', 'B', 'O'],
+        }
+        // Rh
+        if (rhR === '-') {
+          return abos[aboR].includes(aboD) && rhD === '-'
+        } else {
+          return abos[aboR].includes(aboD)
+        }
+      }
+
+      // Quy tắc truyền huyết tương
+      if (component === 'plasma') {
+        const abos = {
+          'O': ['O', 'A', 'B', 'AB'],
+          'A': ['A', 'AB'],
+          'B': ['B', 'AB'],
+          'AB': ['AB'],
+        }
+        // Rh không quan trọng với plasma
+        return abos[aboR].includes(aboD)
+      }
+
+      // Quy tắc truyền tiểu cầu (platelets)
+      if (component === 'platelets') {
+        // Nếu còn huyết tương nguyên thủy: chỉ cùng nhóm ABO
+        // Nếu đã loại bỏ huyết tương nguyên thủy: như máu toàn phần/hồng cầu
+        // Ở đây giả sử là đã loại bỏ huyết tương nguyên thủy (phổ biến)
+        const abos = {
+          'O': ['O'],
+          'A': ['A', 'O'],
+          'B': ['B', 'O'],
+          'AB': ['AB', 'A', 'B', 'O'],
+        }
+        // Rh
+        if (rhR === '-') {
+          return abos[aboR].includes(aboD) && rhD === '-'
+        } else {
+          return abos[aboR].includes(aboD)
+        }
+      }
+
+      // Mặc định không hòa hợp
+      return false
+    }
+
+const availableBags = useMemo(() =>
+  bloodBags.filter(bag =>
+    bag.status === 'available' &&
+    selectedRequest &&
+    bag.component === selectedRequest.component &&
+    bag.stockId &&
+    (() => {
+      // Lấy nhóm máu túi máu
+      const donorBloodType = bloodStock.find(stock => stock.id === bag.stockId)?.bloodType
+      if (!donorBloodType) return false
+      return isCompatible(selectedRequest.bloodType, donorBloodType, bag.component)
+    })()
+  ),
+  [bloodBags, selectedRequest, bloodStock]
+)
+// ...existing code...
 
     const handleBagSelection = useCallback((bagId: string) => {
       setSelectedBloodBags(prev => {
@@ -2914,7 +2980,7 @@ export default function BloodManagementPage() {
                     <option value="10">10 đơn vị</option>
                   </select>
                   <div className="text-sm text-gray-500 min-w-max">
-                    (450ml/đơn vị)
+                    (250ml/đơn vị)
                   </div>
                 </div>
                 <p className="text-xs text-gray-500 mt-1">
