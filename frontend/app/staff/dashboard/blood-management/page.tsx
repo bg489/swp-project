@@ -20,6 +20,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { useAuth } from "@/contexts/auth-context"
 import { format } from 'date-fns'
 import api from "@/lib/axios"
+import { useSearchParams } from "next/navigation"
 import toast, { Toaster } from "react-hot-toast"
 import { vi } from 'date-fns/locale'
 import {
@@ -49,6 +50,41 @@ import {
   RefreshCw,
   Save
 } from 'lucide-react'
+
+
+interface Hospital {
+  _id: string;
+  name: string;
+  address: string;
+  phone: string;
+  latitude: number;
+  longitude: number;
+  createdAt: string;
+  updatedAt: string;
+  __v?: number;
+}
+
+interface Staff {
+  _id: string;
+  user_id: string;
+  full_name: string;
+  email: string;
+  phone: string;
+  date_of_birth: string;
+  address: string;
+  role: string;
+  department: string;
+  assigned_area: string;
+  shift_time: string;
+  is_active: boolean;
+  is_verified: boolean;
+  password_hash?: string;
+  createdAt: string;
+  updatedAt: string;
+  __v?: number;
+  hospital: Hospital;
+}
+
 
 // Types
 interface BloodStock {
@@ -112,28 +148,33 @@ interface BloodTest {
 }
 
 interface Patient {
-  id: string
+  _id: string
   name: string
   age: number
   gender: 'male' | 'female' | 'other'
-  bloodType: string
-  bloodComponent: string
+  blood_type: string
+  component_needed: string
   urgency: 'critical' | 'high' | 'medium' | 'low'
-  phone: string
+  contact: string
   email: string
   address: string
-  emergencyContact: string
-  medicalHistory: string[]
-  registrationDate: string
-  status: 'active' | 'inactive'
-  citizenId: string
+  emergency_contact: string
+  medical_history: string[]
+  registration_date: string
+  status: 'waiting' | 'processing' | 'done' | 'cancelled'
+  cccd: string
+  isUnknown?: boolean
+  hospital?: string
 }
 
 export default function BloodManagementPage() {
   const router = useRouter()
   const { user } = useAuth()
+  const searchParams = useSearchParams()
+  const hospitalId = searchParams.get("hospitalId") || ""
 
-  const [staff, setStaff] = useState<any>({})
+  const [staff, setStaff] = useState<Staff | null>(null)
+  const [staffId, setStaffId] = useState<string>()
   const [bloodUnits, setBloodUnits] = useState<any>([])
 
   // State management
@@ -181,6 +222,8 @@ export default function BloodManagementPage() {
   const editBloodTypeRef = useRef<string>('')
   const editBloodComponentRef = useRef<string>('')
   const editUrgencyRef = useRef<string>('')
+
+  const [isEmergencyUnknown, setIsEmergencyUnknown] = useState(false)
 
   function getStockIdFromBloodGroup(bloodGroupABO: string, bloodGroupRh: string): string {
     const bloodGroup = `${bloodGroupABO}${bloodGroupRh}`;
@@ -418,6 +461,21 @@ export default function BloodManagementPage() {
     }
   }, [])
 
+  // Kiểm tra và xử lý dữ liệu từ localStorage
+  async function getPatients(){
+      try {
+        // const parsedPatients = JSON.parse(storedPatients)
+        // patientsData = parsedPatients
+        const response = await api.get(`/patients/by-hospital/${hospitalId}`);
+        console.log(response.data.patients)
+        setPatients(response.data.patients);
+      } catch (error) {
+        // Lỗi parse JSON, dùng default data
+        localStorage.removeItem('patients')
+        console.log('Đã khôi phục dữ liệu bệnh nhân')
+      }
+  }
+
   // Sample data initialization
   useEffect(() => {
     // Initialize with sample data
@@ -504,6 +562,8 @@ export default function BloodManagementPage() {
         const profileRes = await api.get(`/users/staff-profiles/active/${user._id}`);
         const staffData = profileRes.data.staffProfile;
         setStaff(staffData);
+        console.log("Staff data:", staffData);
+        setStaffId(staffData?.hospital?._id);
 
         if (staffData?.hospital?._id) {
           // Fetch donation requests from API
@@ -1231,19 +1291,9 @@ export default function BloodManagementPage() {
 
     let patientsData = defaultPatients
 
-    // Kiểm tra và xử lý dữ liệu từ localStorage
-    if (storedPatients) {
-      try {
-        const parsedPatients = JSON.parse(storedPatients)
-        patientsData = parsedPatients
-      } catch (error) {
-        // Lỗi parse JSON, dùng default data
-        localStorage.removeItem('patients')
-        console.log('Đã khôi phục dữ liệu bệnh nhân')
-      }
-    }
-
-    setPatients(patientsData)
+    
+    getPatients();
+    console.log("No problem")
   }, [user])
 
   // Helper functions
@@ -1254,6 +1304,7 @@ export default function BloodManagementPage() {
       case 'passed':
       case 'approved':
       case 'fulfilled':
+      case 'waiting':
         return 'bg-green-100 text-green-800'
       case 'pending':
         return 'bg-yellow-100 text-yellow-800'
@@ -1585,28 +1636,43 @@ export default function BloodManagementPage() {
   }, [selectedTestForUpdate])
 
   // Handle add patient - no reload, switch to patients tab
-  const handleAddPatient = useCallback((e: React.FormEvent) => {
+  const handleAddPatient = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
 
     const form = e.target as HTMLFormElement
 
     // Get values directly from form
-    const name = (form.querySelector('#patientName') as HTMLInputElement)?.value || ''
-    const age = (form.querySelector('#age') as HTMLInputElement)?.value || ''
-    const gender = genderRef.current || ''
-    const bloodType = bloodTypeRef.current || ''
-    const bloodComponent = bloodComponentRef.current || ''
-    const urgency = urgencyRef.current || 'medium'
-    const phone = (form.querySelector('#phone') as HTMLInputElement)?.value || ''
-    const citizenId = (form.querySelector('#citizenId') as HTMLInputElement)?.value || ''
-    const email = (form.querySelector('#email') as HTMLInputElement)?.value || ''
-    const address = (form.querySelector('#address') as HTMLInputElement)?.value || ''
-    const emergencyContact = (form.querySelector('#emergencyContact') as HTMLInputElement)?.value || ''
-    const medicalHistory = (form.querySelector('#medicalHistory') as HTMLTextAreaElement)?.value || ''
+    let name = (form.querySelector('#patientName') as HTMLInputElement)?.value || ''
+    let age = (form.querySelector('#age') as HTMLInputElement)?.value || ''
+    let gender = genderRef.current || ''
+    let bloodType = bloodTypeRef.current || ''
+    let bloodComponent = bloodComponentRef.current || ''
+    let urgency = urgencyRef.current || 'medium'
+    let phone = (form.querySelector('#phone') as HTMLInputElement)?.value || ''
+    let citizenId = (form.querySelector('#citizenId') as HTMLInputElement)?.value || ''
+    let email = (form.querySelector('#email') as HTMLInputElement)?.value || ''
+    let address = (form.querySelector('#address') as HTMLInputElement)?.value || ''
+    let emergencyContact = (form.querySelector('#emergencyContact') as HTMLInputElement)?.value || ''
+    let medicalHistory = (form.querySelector('#medicalHistory') as HTMLTextAreaElement)?.value || ''
 
     // Generate ID without depending on state
     const timestamp = Date.now()
     const newId = `P${timestamp.toString().slice(-3).padStart(3, '0')}`
+
+    if (isEmergencyUnknown) {
+      name = "Bệnh nhân khẩn cấp"
+      age = ""
+      gender = "other"
+      bloodType = ""
+      bloodComponent = "whole_blood"
+      phone = ""
+      citizenId = ""
+      email = ""
+      address = ""
+      emergencyContact = ""
+      medicalHistory = ""
+    }
+
 
     // Create new patient object
     const patientToAdd = {
@@ -1629,13 +1695,33 @@ export default function BloodManagementPage() {
 
     console.log('Đã thêm bệnh nhân mới:', patientToAdd)
 
-    // Update patients state
-    setPatients(prev => [...prev, patientToAdd])
+    // ...existing code...
+    const patientToAdd2 = {
+      name,
+      age: parseInt(age),
+      gender: gender as 'male' | 'female' | 'other',
+      blood_type: bloodType,
+      component_needed: bloodComponent,
+      urgency: urgency as 'critical' | 'high' | 'medium' | 'low',
+      contact: phone,
+      cccd: citizenId,
+      emergency_contact: emergencyContact,
+      address,
+      medical_history: medicalHistory ? [medicalHistory] : [],
+      registration_date: new Date().toISOString(),
+      status: 'waiting',
+      email,
+      isUnknown: false,
+      hospital: hospitalId
+    }
 
-    // Store in localStorage to persist data
-    const existingPatients = JSON.parse(localStorage.getItem('patients') || '[]')
-    existingPatients.push(patientToAdd)
-    localStorage.setItem('patients', JSON.stringify(existingPatients))
+    console.log('Đã thêm bệnh nhân mới2:', patientToAdd2)
+    // ...gọi API thêm bệnh nhân...
+    await api.post("/patients/create", patientToAdd2)
+    // ...existing code...
+    toast.success(`Đã thêm bệnh nhân ${name} thành công!`)
+
+    getPatients();
 
     // Close dialog
     setShowAddPatientDialog(false)
@@ -1654,7 +1740,7 @@ export default function BloodManagementPage() {
     // Switch to patients tab
     setActiveTab('patients')
 
-  }, []) // Empty dependency array - no re-render dependency
+  }, [isEmergencyUnknown]) // Empty dependency array - no re-render dependency
 
   // Handle patient actions
   const handleViewPatient = useCallback((patient: Patient) => {
@@ -2698,13 +2784,13 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
               <div className="space-y-2 max-h-96 overflow-y-auto">
                 {patients
                   .filter(patient =>
-                    patient.status === 'active' &&
+                    patient.status === 'waiting' &&
                     (patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                      patient.id.toLowerCase().includes(searchTerm.toLowerCase()))
+                      patient._id.toLowerCase().includes(searchTerm.toLowerCase()))
                   )
                   .map((patient) => (
                     <div
-                      key={patient.id}
+                      key={patient._id}
                       className="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer transition-colors"
                       onClick={() => {
                         setSelectedPatientForTest(patient)
@@ -2713,11 +2799,9 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
                         // Kiểm tra mức độ khẩn cấp
                         const urgency = patient.urgency || 'medium'
                         if (urgency === 'critical' || urgency === 'high') {
-                          // Trường hợp khẩn cấp: tự động đặt ngày hôm nay và chuyển thẳng đến xét nghiệm
                           setSelectedTestDate(new Date())
                           setShowTestStepsDialog(true)
                         } else {
-                          // Trường hợp thường: cho phép chọn ngày
                           setShowTestDateDialog(true)
                         }
                       }}
@@ -2726,22 +2810,22 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
                         <div className="space-y-2">
                           <div className="flex items-center gap-3">
                             <h3 className="font-semibold text-lg">{patient.name}</h3>
-                            <Badge variant="outline" className="text-xs">{patient.id}</Badge>
+                            <Badge variant="outline" className="text-xs">{patient._id}</Badge>
                           </div>
                           <div className="flex items-center gap-4 text-sm text-gray-600">
                             <span>{patient.age} tuổi</span>
                             <span>{patient.gender === 'male' ? 'Nam' : patient.gender === 'female' ? 'Nữ' : 'Khác'}</span>
-                            <span>{patient.phone}</span>
+                            <span>{patient.contact}</span>
                           </div>
                           <div className="flex items-center gap-2">
                             <Badge variant="outline" className="text-red-600 border-red-600">
-                              🩸 {patient.bloodType}
+                              🩸 {patient.blood_type}
                             </Badge>
                             <Badge variant="outline" className="text-blue-600 border-blue-600">
-                              {patient.bloodComponent === 'whole_blood' && '🩸 Máu toàn phần'}
-                              {patient.bloodComponent === 'red_cells' && '🔴 Hồng cầu'}
-                              {patient.bloodComponent === 'platelets' && '🟡 Tiểu cầu'}
-                              {patient.bloodComponent === 'plasma' && '🔵 Huyết tương'}
+                              {patient.component_needed === 'whole_blood' && '🩸 Máu toàn phần'}
+                              {patient.component_needed === 'red_cells' && '🔴 Hồng cầu'}
+                              {patient.component_needed === 'platelets' && '🟡 Tiểu cầu'}
+                              {patient.component_needed === 'plasma' && '🔵 Huyết tương'}
                             </Badge>
                             <Badge variant="outline" className={`${getUrgencyColor(patient.urgency || 'medium')} font-medium text-xs border`}>
                               {getUrgencyName(patient.urgency || 'medium')}
@@ -2767,9 +2851,9 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
                   ))}
               </div>
 
-              {patients.filter(p => p.status === 'active').length === 0 && (
+              {patients.filter(p => p.status === 'waiting').length === 0 && (
                 <div className="text-center py-8 text-gray-500">
-                  Không có bệnh nhân nào đang hoạt động
+                  Không có bệnh nhân nào đang chờ xét nghiệm
                 </div>
               )}
             </DialogContent>
@@ -3274,6 +3358,18 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
                 <DialogTitle>Thêm bệnh nhân mới</DialogTitle>
               </DialogHeader>
               <form ref={formRef} onSubmit={handleAddPatient}>
+                <div className="col-span-2 flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="emergencyUnknown"
+                    checked={isEmergencyUnknown}
+                    onChange={e => setIsEmergencyUnknown(e.target.checked)}
+                    className="w-4 h-4"
+                  />
+                  <Label htmlFor="emergencyUnknown" className="font-medium text-red-600">
+                    Trường hợp khẩn cấp (Chưa rõ thông tin)
+                  </Label>
+                </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="patientName">Họ và tên</Label>
@@ -3285,6 +3381,8 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
                       onKeyDown={handleNameKeyDown}
                       onInput={handleNameInput}
                       onPaste={handleNamePaste}
+                      required={!isEmergencyUnknown}
+                      disabled={isEmergencyUnknown}
                     />
                   </div>
                   <div>
@@ -3300,6 +3398,8 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
                       onKeyDown={handleNumericKeyDown}
                       onInput={handleAgeInput}
                       onPaste={handleAgePaste}
+                      required={!isEmergencyUnknown}
+                      disabled={isEmergencyUnknown}
                     />
                   </div>
                   <div>
@@ -3374,6 +3474,8 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
                       onKeyDown={handleNumericKeyDown}
                       onInput={handlePhoneInput}
                       onPaste={handlePhonePaste}
+                      required={!isEmergencyUnknown}
+                      disabled={isEmergencyUnknown}
                     />
                   </div>
                   <div>
@@ -3389,6 +3491,8 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
                       onKeyDown={handleNumericKeyDown}
                       onInput={handleCitizenIdInput}
                       onPaste={handleCitizenIdPaste}
+                      required={!isEmergencyUnknown}
+                      disabled={isEmergencyUnknown}
                     />
                   </div>
                   <div>
@@ -3411,6 +3515,8 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
                           target.reportValidity()
                         }
                       }}
+                      required={!isEmergencyUnknown}
+                      disabled={isEmergencyUnknown}
                     />
                   </div>
                   <div className="col-span-2">
@@ -3419,6 +3525,8 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
                       id="address"
                       placeholder="Nhập địa chỉ đầy đủ"
                       defaultValue=""
+                      required={!isEmergencyUnknown}
+                      disabled={isEmergencyUnknown}
                     />
                   </div>
                   <div>
@@ -3434,6 +3542,8 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
                       onKeyDown={handleNumericKeyDown}
                       onInput={handleEmergencyContactInput}
                       onPaste={handleEmergencyContactPaste}
+                      required={!isEmergencyUnknown}
+                      disabled={isEmergencyUnknown}
                     />
                   </div>
                   <div className="col-span-2">
@@ -3442,6 +3552,8 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
                       id="medicalHistory"
                       placeholder="Mô tả tiền sử bệnh..."
                       defaultValue=""
+                      required={!isEmergencyUnknown}
+                      disabled={isEmergencyUnknown}
                     />
                   </div>
                   <div className="col-span-2 flex justify-end gap-2 pt-4">
@@ -3464,7 +3576,7 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
                     >
                       Hủy
                     </Button>
-                    <Button type="submit">Thêm bệnh nhân</Button>
+                    <Button type="submit" disabled={!staff?.hospital?._id}>Thêm bệnh nhân</Button>
                   </div>
                 </div>
               </form>
@@ -3895,7 +4007,7 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
                     <TableCell>
                       <div>
                         <div className="font-medium">{patient.name}</div>
-                        <div className="text-sm text-gray-500">{patient.id}</div>
+                        <div className="text-sm text-gray-500">{patient._id}</div>
                       </div>
                     </TableCell>
                     <TableCell>
@@ -3908,17 +4020,17 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className="text-red-600 border-red-600 font-bold">
-                        🩸 {patient.bloodType || 'N/A'}
+                        🩸 {patient.blood_type || 'N/A'}
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className={`${getComponentColor(patient.bloodComponent || 'plasma')} font-medium text-xs border`}>
-                        {patient.bloodComponent === 'whole_blood' && '🩸'}
-                        {patient.bloodComponent === 'red_cells' && '🔴'}
-                        {patient.bloodComponent === 'platelets' && '🟡'}
-                        {patient.bloodComponent === 'plasma' && '🔵'}
-                        {!patient.bloodComponent && '🔵'}
-                        {' '}{getComponentName(patient.bloodComponent || 'plasma')}
+                      <Badge variant="outline" className={`${getComponentColor(patient.component_needed || 'plasma')} font-medium text-xs border`}>
+                        {patient.component_needed === 'whole_blood' && '🩸'}
+                        {patient.component_needed === 'red_cells' && '🔴'}
+                        {patient.component_needed === 'platelets' && '🟡'}
+                        {patient.component_needed === 'plasma' && '🔵'}
+                        {!patient.component_needed && '🔵'}
+                        {' '}{getComponentName(patient.component_needed || 'plasma')}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -3928,27 +4040,27 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
                     </TableCell>
                     <TableCell>
                       <div className="text-sm">
-                        <div className="font-medium">{patient.phone}</div>
+                        <div className="font-medium">{patient.contact}</div>
                         <div className="text-gray-500 truncate max-w-32">{patient.email}</div>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="font-mono text-sm">{patient.citizenId}</div>
+                      <div className="font-mono text-sm">{patient.cccd}</div>
                     </TableCell>
                     <TableCell>
-                      <div className="font-medium text-sm">{patient.emergencyContact}</div>
+                      <div className="font-medium text-sm">{patient.emergency_contact}</div>
                     </TableCell>
                     <TableCell className="max-w-36 truncate text-sm">{patient.address}</TableCell>
                     <TableCell className="max-w-32 text-sm">
-                      {patient.medicalHistory && patient.medicalHistory.length > 0 ? (
+                      {patient.medical_history && patient.medical_history.length > 0 ? (
                         <div className="space-y-1">
-                          {patient.medicalHistory.slice(0, 2).map((history, index) => (
+                          {patient.medical_history.slice(0, 2).map((history, index) => (
                             <div key={index} className="text-xs bg-yellow-50 text-yellow-800 px-2 py-1 rounded truncate">
                               {history}
                             </div>
                           ))}
-                          {patient.medicalHistory.length > 2 && (
-                            <div className="text-xs text-gray-500">+{patient.medicalHistory.length - 2} khác</div>
+                          {patient.medical_history.length > 2 && (
+                            <div className="text-xs text-gray-500">+{patient.medical_history.length - 2} khác</div>
                           )}
                         </div>
                       ) : (
@@ -3958,7 +4070,7 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
                     <TableCell className="text-sm">{formatDate(patient.registrationDate)}</TableCell>
                     <TableCell>
                       <Badge className={getStatusColor(patient.status)}>
-                        {patient.status === 'active' ? 'Hoạt động' : 'Không hoạt động'}
+                        {patient.status === 'waiting' ? 'Hoạt động' : 'Không hoạt động'}
                       </Badge>
                     </TableCell>
                   </TableRow>
