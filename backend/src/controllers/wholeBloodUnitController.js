@@ -390,3 +390,45 @@ export async function markWholeBloodUnitAsTransfused(req, res) {
         return res.status(500).json({ message: "Internal server error." });
     }
 }
+
+export async function markMultipleWholeBloodUnitsAsTransfused(req, res) {
+    try {
+        const { ids, notes } = req.body; 
+        // ids = ["64a...", "64b..."]
+        // notes = "Đã truyền cho bệnh nhân Nguyễn Văn A"
+
+        if (!Array.isArray(ids) || ids.length === 0) {
+            return res.status(400).json({ message: "Invalid or empty ids array." });
+        }
+
+        // Tìm các đơn vị máu hợp lệ (chưa transfused, chưa expired, chưa not_eligible)
+        const validUnits = await WholeBloodUnit.find({
+            _id: { $in: ids },
+            status: { $nin: ["transfused", "expired", "not_eligible"] }
+        });
+
+        if (validUnits.length === 0) {
+            return res.status(400).json({ message: "No eligible blood units found to transfuse." });
+        }
+
+        // Cập nhật hàng loạt
+        await WholeBloodUnit.updateMany(
+            { _id: { $in: validUnits.map(u => u._id) } },
+            { 
+                $set: { 
+                    status: "transfused",
+                    ...(typeof notes === "string" && notes.trim() !== "" ? { notes: notes.trim() } : {})
+                } 
+            }
+        );
+
+        return res.status(200).json({
+            message: "Whole blood units updated to transfused successfully.",
+            updatedCount: validUnits.length,
+            updatedIds: validUnits.map(u => u._id)
+        });
+    } catch (error) {
+        console.error("Error in bulk transfuse:", error);
+        return res.status(500).json({ message: "Internal server error." });
+    }
+}

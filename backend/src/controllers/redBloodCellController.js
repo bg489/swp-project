@@ -186,3 +186,43 @@ export async function markRedBloodCellUnitAsTransfused(req, res) {
         return res.status(500).json({ message: "Internal server error." });
     }
 }
+
+export async function markMultipleRedBloodCellUnitsAsTransfused(req, res) {
+    try {
+        const { ids, notes } = req.body;
+
+        if (!Array.isArray(ids) || ids.length === 0) {
+            return res.status(400).json({ message: "Invalid or empty ids array." });
+        }
+
+        // Lọc ra các đơn vị hợp lệ
+        const validUnits = await RedBloodCellUnit.find({
+            _id: { $in: ids },
+            status: { $nin: ["transfused", "expired", "not_eligible"] }
+        });
+
+        if (validUnits.length === 0) {
+            return res.status(400).json({ message: "No eligible red blood cell units found to transfuse." });
+        }
+
+        // Cập nhật hàng loạt
+        await RedBloodCellUnit.updateMany(
+            { _id: { $in: validUnits.map(u => u._id) } },
+            { 
+                $set: { 
+                    status: "transfused",
+                    ...(typeof notes === "string" && notes.trim() !== "" ? { notes: notes.trim() } : {})
+                }
+            }
+        );
+
+        return res.status(200).json({
+            message: "Red blood cell units updated to transfused successfully.",
+            updatedCount: validUnits.length,
+            updatedIds: validUnits.map(u => u._id)
+        });
+    } catch (error) {
+        console.error("Error in bulk transfuse (RBC):", error);
+        return res.status(500).json({ message: "Internal server error." });
+    }
+}

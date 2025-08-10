@@ -162,3 +162,43 @@ export async function markPlateletUnitAsTransfused(req, res) {
         return res.status(500).json({ message: "Internal server error." });
     }
 }
+
+export async function markMultiplePlateletUnitsAsTransfused(req, res) {
+    try {
+        const { ids, notes } = req.body;
+
+        if (!Array.isArray(ids) || ids.length === 0) {
+            return res.status(400).json({ message: "Invalid or empty ids array." });
+        }
+
+        // Tìm các đơn vị hợp lệ (không expired, not_eligible, transfused)
+        const validUnits = await PlateletUnit.find({
+            _id: { $in: ids },
+            status: { $nin: ["transfused", "expired", "not_eligible"] }
+        });
+
+        if (validUnits.length === 0) {
+            return res.status(400).json({ message: "No eligible platelet units found to transfuse." });
+        }
+
+        // Cập nhật hàng loạt
+        await PlateletUnit.updateMany(
+            { _id: { $in: validUnits.map(u => u._id) } },
+            { 
+                $set: { 
+                    status: "transfused",
+                    ...(typeof notes === "string" && notes.trim() !== "" ? { notes: notes.trim() } : {})
+                }
+            }
+        );
+
+        return res.status(200).json({
+            message: "Platelet units updated to transfused successfully.",
+            updatedCount: validUnits.length,
+            updatedIds: validUnits.map(u => u._id)
+        });
+    } catch (error) {
+        console.error("Error in bulk transfuse (Platelet):", error);
+        return res.status(500).json({ message: "Internal server error." });
+    }
+}

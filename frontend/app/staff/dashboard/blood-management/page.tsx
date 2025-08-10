@@ -510,6 +510,20 @@ export default function BloodManagementPage() {
       }
   }
 
+  async function getBloodRequestRecords(){
+      try {
+        // const parsedPatients = JSON.parse(storedPatients)
+        // patientsData = parsedPatients
+        const response = await api.get(`/blood-request-records/blood-requests/${hospitalId}`);
+        setBloodRequests(response.data.bloodRequestRecords);
+        console.log("Blood requests:", response.data.bloodRequestRecords)
+      } catch (error) {
+        // Lỗi parse JSON, dùng default data
+        localStorage.removeItem('patients')
+        console.log('Đã khôi phục dữ liệu bệnh nhân')
+      }
+  }
+
   // Sample data initialization
   useEffect(() => {
     // Initialize with sample data
@@ -665,7 +679,7 @@ export default function BloodManagementPage() {
           });
 
           const platUnits = await api.get(`/whole-blood/hospital/${staffData.hospital._id}/platelets`);
-          const mappedPlateletUnits = plasUnits.data.units.map((unit: any, index: number) => {
+          const mappedPlateletUnits = platUnits.data.units.map((unit: any, index: number) => {
             const stockId = getStockIdFromBloodGroup(unit.bloodGroupABO, unit.bloodGroupRh);
 
             return {
@@ -1328,6 +1342,7 @@ export default function BloodManagementPage() {
     
     getPatients();
     getBloodTestRecords();
+    getBloodRequestRecords();
     console.log("No problem")
   }, [user])
 
@@ -1365,8 +1380,14 @@ export default function BloodManagementPage() {
     setSelectedBloodBags([])
   }, [])
 
-  const handleConfirmApproval = useCallback(() => {
+  const handleConfirmApproval = useCallback(async () => {
     if (selectedRequestForBloodSelection && selectedBloodBags.length > 0) {
+      const response_id = bloodRequests.find(request => request.id === selectedRequestForBloodSelection)?._id;
+      console.log(response_id)
+      await api.put(`/blood-request-records/status/${response_id}`, {status: "approved"})
+      await api.put(`/blood-request-records/selected-bag/${response_id}`, {selectedBags: [...selectedBloodBags]})
+      toast.success("Thành công")
+
       setBloodRequests(prevRequests =>
         prevRequests.map(request =>
           request.id === selectedRequestForBloodSelection
@@ -1404,7 +1425,10 @@ export default function BloodManagementPage() {
     console.log(`Đã từ chối yêu cầu máu ID: ${requestId}`)
   }, [])
 
-  const handleStartTransfusion = useCallback((requestId: string) => {
+  const handleStartTransfusion = useCallback(async (requestId: string) => {
+    const response_id = bloodRequests.find(request => request.id === requestId)?._id;
+    await api.put(`/blood-request-records/status/${response_id}`, {status: "in_progress"})
+    toast.success("Thành công chuyển trạng thái bằng \"Bắt đầu truyền máu\"")
     const request = bloodRequests.find(req => req.id === requestId)
 
     setBloodRequests(prevRequests =>
@@ -1433,9 +1457,37 @@ export default function BloodManagementPage() {
     console.log(`Đã bắt đầu truyền máu cho yêu cầu ID: ${requestId}`)
   }, [bloodRequests])
 
-  const handleCompleteTransfusion = useCallback((requestId: string) => {
+  const handleCompleteTransfusion = useCallback(async (requestId: string) => {
     // Find the request to get blood type and units needed
+    const response = bloodRequests.find(request => request.id === requestId);
+    console.log(response)
+    await api.put(`/blood-request-records/status/${response?._id}`, {status: "fulfilled"})
+    toast.success("Thành công chuyển trạng thái bằng \"Truyền máu thành công\"")
     const request = bloodRequests.find(req => req.id === requestId)
+    if (response.component === "whole_blood"){
+      await api.put(`/whole-blood/whole-blood-unit/transfused/notes`, {
+        ids: response?.selectedBags,
+        notes: `Đã sử dụng cho yêu cầu ${requestId} - ${request?.patientName}`,
+      })
+    } else if (response.component === "red_cells"){
+      await api.put(`/whole-blood/red-blood-cell/transfused/notes`, {
+        ids: response?.selectedBags,
+        notes: `Đã sử dụng cho yêu cầu ${requestId} - ${request?.patientName}`,
+      })
+    } if (response.component === "platelets"){
+      await api.put(`/whole-blood/platelet/transfused/notes`, {
+        ids: response?.selectedBags,
+        notes: `Đã sử dụng cho yêu cầu ${requestId} - ${request?.patientName}`,
+      })
+    } if (response.component === "plasma"){
+      await api.put(`/whole-blood/plasma/transfused/notes`, {
+        ids: response?.selectedBags,
+        notes: `Đã sử dụng cho yêu cầu ${requestId} - ${request?.patientName}`,
+      })
+    } 
+    toast.success("Đã đánh dấu những túi máu thành \"Đã truyền\"")
+    
+    
 
     if (request) {
       // Update blood requests status
@@ -1641,6 +1693,7 @@ export default function BloodManagementPage() {
 
       const newBloodRequest = {
         id: newRequestId,
+        hospital_id: hospitalId,
         patientName: patientInfo.name,
         patientId: patientInfo._id,
         bloodType: confirmedBloodType, // Use confirmed blood type
@@ -1660,7 +1713,10 @@ export default function BloodManagementPage() {
       console.log(newBloodRequest)
 
       // Add to blood requests
-      setBloodRequests(prev => [newBloodRequest, ...prev])
+      await api.post("/blood-request-records/blood-requests", newBloodRequest);
+      toast.success("Đã tạo ra một yêu cầu máu")
+
+      getBloodRequestRecords();
 
       console.log('Đã tự động tạo yêu cầu máu:', newBloodRequest)
     }
@@ -2347,8 +2403,20 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
           return newSelection.length !== prev.length ? newSelection : prev
         } else {
           // Thêm túi máu nếu chưa đạt giới hạn
-          if (selectedRequest && prev.length < selectedRequest.unitsNeeded) {
-            return [...prev, bagId]
+          console.log(selectedRequest);
+          if (selectedRequest) {
+            const maxVolume = selectedRequest.volumeNeeded || (selectedRequest.unitsNeeded || 1) * 250;
+            const bagVolume = availableBags.find(b => b._id === bagId)?.volume || 0;
+
+            // Tính tổng ml sau khi thêm túi này
+            const totalVolumeAfterAdd = prev.reduce((sum, id) => {
+              const vol = availableBags.find(b => b._id === id)?.volume || 0;
+              return sum + vol;
+            }, 0) + bagVolume;
+
+            if (totalVolumeAfterAdd <= maxVolume) {
+              return [...prev, bagId];
+            }
           }
           // Không thay đổi nếu đã đạt giới hạn
           return prev
