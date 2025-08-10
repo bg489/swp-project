@@ -391,31 +391,10 @@ export default function BloodManagementPage() {
     const target = e.target as HTMLInputElement
     let value = target.value
 
-    // Chỉ giữ lại chữ cái, khoảng trắng và dấu tiếng Việt
-    value = value.replace(/[^a-zA-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠàáâãèéêìíòóôõùúăđĩũơƯĂÊÔÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚÝĂĐĨŨƠƯĂÊÔĤÕÑäëïöüÿñæøåαβγδεζηθικλμνξοπρστυφχψωАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя\s]/g, '')
+    // Chỉ giữ lại chữ cái Unicode, khoảng trắng (hỗ trợ đầy đủ tiếng Việt)
+    value = value.replace(/[^\p{L}\s]/gu, '')
 
     target.value = value
-  }, [])
-
-  const handleNameKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
-    // Chỉ cho phép: chữ cái, khoảng trắng, Backspace, Delete, Tab, Enter, Arrow keys
-    if (!(
-      (e.key >= 'a' && e.key <= 'z') ||
-      (e.key >= 'A' && e.key <= 'Z') ||
-      e.key === ' ' ||
-      e.key === 'Backspace' ||
-      e.key === 'Delete' ||
-      e.key === 'Tab' ||
-      e.key === 'Enter' ||
-      e.key === 'ArrowLeft' ||
-      e.key === 'ArrowRight' ||
-      e.key === 'ArrowUp' ||
-      e.key === 'ArrowDown' ||
-      // Cho phép các dấu tiếng Việt
-      /[À-ỹ]/.test(e.key)
-    )) {
-      e.preventDefault()
-    }
   }, [])
 
   const handleNamePaste = useCallback((e: React.ClipboardEvent<HTMLInputElement>) => {
@@ -423,8 +402,8 @@ export default function BloodManagementPage() {
     const paste = e.clipboardData.getData('text')
     const target = e.target as HTMLInputElement
 
-    // Chỉ lấy chữ cái, khoảng trắng và dấu tiếng Việt từ paste
-    const cleanPaste = paste.replace(/[^a-zA-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠàáâãèéêìíòóôõùúăđĩũơƯĂÊÔÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚÝĂĐĨŨƠƯĂÊÔĤÕÑäëïöüÿñæøåαβγδεζηθικλμνξοπρστυφχψωАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя\s]/g, '')
+    // Chỉ lấy chữ cái Unicode, khoảng trắng từ paste (hỗ trợ đầy đủ tiếng Việt)
+    const cleanPaste = paste.replace(/[^\p{L}\s]/gu, '')
 
     target.value = cleanPaste
   }, [])
@@ -1543,7 +1522,8 @@ export default function BloodManagementPage() {
     const syphilis = false
 
     // Get patient info for comparison
-    const patientInfo = patients.find(p => p.id === selectedTestForUpdate.donorId)
+    console.log(selectedTestForUpdate)
+    const patientInfo = patients.find(p => p._id === selectedTestForUpdate.donorId)
     const originalBloodComponent = patientInfo?.bloodComponent || ''
 
     // Check if blood type or component was actually changed
@@ -1589,6 +1569,7 @@ export default function BloodManagementPage() {
 
     // Automatically create blood request when test is confirmed
     if (patientInfo) {
+      console.log(patientInfo)
       const newRequestId = `R${Date.now().toString().slice(-6)}`
 
       // Use the confirmed blood component or the original one if not changed
@@ -1602,7 +1583,7 @@ export default function BloodManagementPage() {
       const newBloodRequest = {
         id: newRequestId,
         patientName: patientInfo.name,
-        patientId: patientInfo.id,
+        patientId: patientInfo._id,
         bloodType: confirmedBloodType, // Use confirmed blood type
         component: validComponent,
         unitsNeeded: bloodUnits, // Use selected units
@@ -2199,60 +2180,61 @@ export default function BloodManagementPage() {
     // ...existing code...
     // Hàm kiểm tra hòa hợp ABO và Rh(D) cho từng loại chế phẩm
     function isCompatible(bloodTypeRecipient: string, bloodTypeDonor: string, component: string) {
-      // Tách nhóm máu và Rh
-      const [aboR, rhR] = bloodTypeRecipient.match(/(A|B|AB|O)([+-])/).slice(1)
-      const [aboD, rhD] = bloodTypeDonor.match(/(A|B|AB|O)([+-])/).slice(1)
+      if (!bloodTypeRecipient || bloodTypeRecipient === 'unknown') {
+        if (component === 'whole_blood' || component === 'red_cells' || component === 'platelets') {
+          return bloodTypeDonor === 'O-' || bloodTypeDonor === 'O+';
+        }
+        if (component === 'plasma') {
+          return bloodTypeDonor === 'AB-' || bloodTypeDonor === 'AB+';
+        }
+        return false;
+      }
+      if (!bloodTypeDonor || bloodTypeDonor === 'unknown') return true;
 
-      // Quy tắc truyền máu toàn phần & hồng cầu
+      const matchR = bloodTypeRecipient.match(/(A|B|AB|O)([+-])/);
+      const matchD = bloodTypeDonor.match(/(A|B|AB|O)([+-])/);
+      if (!matchR || !matchD) return false;
+
+      const [aboR, rhR] = matchR.slice(1);
+      const [aboD, rhD] = matchD.slice(1);
+
+      // ...phần còn lại giữ nguyên...
       if (component === 'whole_blood' || component === 'red_cells') {
-        // ABO
         const abos = {
           'O': ['O'],
           'A': ['A', 'O'],
           'B': ['B', 'O'],
           'AB': ['AB', 'A', 'B', 'O'],
-        }
-        // Rh
+        };
         if (rhR === '-') {
-          return abos[aboR].includes(aboD) && rhD === '-'
+          return abos[aboR].includes(aboD) && rhD === '-';
         } else {
-          return abos[aboR].includes(aboD)
+          return abos[aboR].includes(aboD);
         }
       }
-
-      // Quy tắc truyền huyết tương
       if (component === 'plasma') {
         const abos = {
           'O': ['O', 'A', 'B', 'AB'],
           'A': ['A', 'AB'],
           'B': ['B', 'AB'],
           'AB': ['AB'],
-        }
-        // Rh không quan trọng với plasma
-        return abos[aboR].includes(aboD)
+        };
+        return abos[aboR].includes(aboD);
       }
-
-      // Quy tắc truyền tiểu cầu (platelets)
       if (component === 'platelets') {
-        // Nếu còn huyết tương nguyên thủy: chỉ cùng nhóm ABO
-        // Nếu đã loại bỏ huyết tương nguyên thủy: như máu toàn phần/hồng cầu
-        // Ở đây giả sử là đã loại bỏ huyết tương nguyên thủy (phổ biến)
         const abos = {
           'O': ['O'],
           'A': ['A', 'O'],
           'B': ['B', 'O'],
           'AB': ['AB', 'A', 'B', 'O'],
-        }
-        // Rh
+        };
         if (rhR === '-') {
-          return abos[aboR].includes(aboD) && rhD === '-'
+          return abos[aboR].includes(aboD) && rhD === '-';
         } else {
-          return abos[aboR].includes(aboD)
+          return abos[aboR].includes(aboD);
         }
       }
-
-      // Mặc định không hòa hợp
-      return false
+      return false;
     }
 
 const availableBags = useMemo(() =>
@@ -2469,7 +2451,7 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className="text-red-600 border-red-600">
-                        {request.bloodType}
+                        {request.bloodType === "unknown" ? "Không rõ" : request.bloodType}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -2577,12 +2559,25 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
                       {(() => {
                         // Hàm xác định các nhóm máu có thể truyền cho bệnh nhân này
                         function getCompatibleBloodTypes(recipient: string, component: string) {
-                          // Quy tắc giống như isCompatible nhưng trả về danh sách nhóm máu phù hợp
-                          const [aboR, rhR] = recipient.match(/(A|B|AB|O)([+-])/).slice(1)
                           const allTypes = [
                             'O-', 'O+', 'A-', 'A+', 'B-', 'B+', 'AB-', 'AB+'
                           ]
-                          // Lọc các nhóm máu phù hợp
+                          if (recipient === 'unknown') {
+                            if (component === 'whole_blood' || component === 'red_cells' || component === 'platelets') {
+                              // O- là tối ưu, nếu không có thì O+
+                              return ['O-', 'O+']
+                            }
+                            if (component === 'plasma') {
+                              // AB- là tối ưu, nếu không có thì AB+
+                              return ['AB-', 'AB+']
+                            }
+                            // fallback
+                            return allTypes
+                          }
+                          // ...phần còn lại giữ nguyên...
+                          const match = recipient.match(/(A|B|AB|O)([+-])/)
+                          if (!match) return []
+                          const [aboR, rhR] = match.slice(1)
                           return allTypes.filter(donor =>
                             isCompatible(recipient, donor, component)
                           )
@@ -2604,7 +2599,7 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
                   <div className="flex flex-wrap items-center gap-3">
                     <div className="flex items-center gap-1">
                       <span>Nhóm máu:</span>
-                      <Badge variant="outline" className="text-red-600 border-red-600">{selectedRequest.bloodType}</Badge>
+                      <Badge variant="outline" className="text-red-600 border-red-600">{selectedRequest.bloodType === "unknown" ? "Chưa rõ" : selectedRequest.bloodType}</Badge>
                     </div>
                     <div className="flex items-center gap-1">
                       <span>Thành phần:</span>
@@ -2993,11 +2988,12 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
                   if (selectedPatientForTest && selectedTestDate) {
                     // Tạo ID xét nghiệm mới
                     const newTestId = `T${Date.now().toString().slice(-6)}`
+                    console.log(selectedPatientForTest)
 
                     // Tạo bản ghi xét nghiệm mới
                     const newBloodTest: BloodTest = {
                       id: newTestId,
-                      donorId: selectedPatientForTest.id, // Sử dụng ID bệnh nhân làm donorId
+                      donorId: selectedPatientForTest._id, // Sử dụng ID bệnh nhân làm donorId
                       donorName: selectedPatientForTest.name,
                       testDate: format(selectedTestDate, 'yyyy-MM-dd'),
                       bloodType: selectedPatientForTest.bloodType,
@@ -3068,6 +3064,7 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
                         defaultValue={selectedTestForUpdate?.bloodType || ''}
                       >
                         <option value="">Chọn nhóm máu</option>
+                        <option value="unknown">Nhóm máu chưa biết</option>
                         <option value="A+">A+</option>
                         <option value="A-">A-</option>
                         <option value="B+">B+</option>
@@ -3247,7 +3244,7 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className="text-red-600 border-red-600">
-                        {test.bloodType}
+                        {test.bloodType === "unknown" ? "Không rõ" : test.bloodType}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -3379,7 +3376,6 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
                       placeholder="Nhập họ tên bệnh nhân"
                       defaultValue=""
                       required
-                      onKeyDown={handleNameKeyDown}
                       onInput={handleNameInput}
                       onPaste={handleNamePaste}
                       required={!isEmergencyUnknown}
@@ -3736,7 +3732,6 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
                             placeholder="Nhập họ tên bệnh nhân"
                             defaultValue={selectedPatient.name}
                             required
-                            onKeyDown={handleNameKeyDown}
                             onInput={handleNameInput}
                             onPaste={handleNamePaste}
                           />
