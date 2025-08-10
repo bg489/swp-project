@@ -62,3 +62,22 @@ export async function getPatientsByHospital(req, res) {
     res.status(500).json({ message: "Lỗi server" });
   }
 }
+
+// PATCH /api/patients/:id/cancelled - Chuyển trạng thái bệnh nhân thành "cancelled"
+export async function cancelPatientById(req, res) {
+  try {
+    const { id } = req.params;
+    const patient = await Patient.findByIdAndUpdate(
+      id,
+      { status: "cancelled" },
+      { new: true }
+    );
+    if (!patient) {
+      return res.status(404).json({ message: "Không tìm thấy bệnh nhân" });
+    }
+    return res.status(200).json({ message: "Đã chuyển trạng thái thành cancelled", patient });
+  } catch (error) {
+    console.error("Lỗi khi chuyển trạng thái bệnh nhân:", error);
+    res.status(500).json({ message: "Lỗi server" });
+  }
+}

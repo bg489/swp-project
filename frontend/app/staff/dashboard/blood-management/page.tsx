@@ -1642,7 +1642,7 @@ export default function BloodManagementPage() {
 
     if (isEmergencyUnknown) {
       name = "Bệnh nhân khẩn cấp"
-      age = ""
+      age = "0"
       gender = "other"
       bloodType = ""
       bloodComponent = "whole_blood"
@@ -1741,7 +1741,7 @@ export default function BloodManagementPage() {
     setIsEditingPatient(true)
   }, [])
 
-  const handleSavePatientEdit = useCallback((e: React.FormEvent) => {
+  const handleSavePatientEdit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!selectedPatient) return
@@ -1779,6 +1779,25 @@ export default function BloodManagementPage() {
       citizenId
     }
 
+    await api.put(`/patients/${selectedPatient._id}`, {
+      name: name,
+      age: parseInt(age),
+      gender: gender,
+      blood_type: bloodType,
+      component_needed: bloodComponent,
+      urgency: urgency,
+      contact: phone,
+      cccd: citizenId,
+      email: email,
+      address: address,
+      emergency_contact: emergencyContact,
+      medical_history: medicalHistory ? [medicalHistory] : [],
+    })
+
+    getPatients();
+
+    toast.success("Đã cập nhật bệnh nhân thành công")
+
     console.log('Đã cập nhật bệnh nhân:', updatedPatient)
 
     // Update patients state
@@ -1794,21 +1813,18 @@ export default function BloodManagementPage() {
     setIsEditingPatient(false)
   }, [selectedPatient])
 
-  const handleDeletePatient = useCallback(() => {
+  const handleDeletePatient = useCallback(async () => {
     if (!selectedPatient) return
 
     const confirmDelete = window.confirm(`Bạn có chắc chắn muốn xóa bệnh nhân "${selectedPatient.name}"?`)
 
     if (confirmDelete) {
-      console.log('Đã xóa bệnh nhân:', selectedPatient.id)
 
-      // Remove from patients state
-      setPatients(prev => prev.filter(p => p.id !== selectedPatient.id))
+      await api.put(`/patients/${selectedPatient._id}/cancelled`);
 
-      // Remove from localStorage
-      const existingPatients = JSON.parse(localStorage.getItem('patients') || '[]')
-      const updatedPatients = existingPatients.filter((p: Patient) => p.id !== selectedPatient.id)
-      localStorage.setItem('patients', JSON.stringify(updatedPatients))
+      toast.success('Đã xóa bệnh nhân: ' + selectedPatient.name + ', ' + selectedPatient._id);
+
+      getPatients();
 
       // Close dialog
       setShowPatientDetailsDialog(false)
@@ -3601,7 +3617,7 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
                         </div>
                         <div>
                           <Label className="text-sm font-semibold text-gray-600">Mã bệnh nhân</Label>
-                          <p className="text-lg font-mono">{selectedPatient.id}</p>
+                          <p className="text-lg font-mono">{selectedPatient._id}</p>
                         </div>
                         <div>
                           <Label className="text-sm font-semibold text-gray-600">Tuổi</Label>
@@ -3618,20 +3634,20 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
                           <Label className="text-sm font-semibold text-gray-600">Nhóm máu</Label>
                           <div className="mt-2">
                             <Badge variant="outline" className="text-red-600 border-red-600 text-lg px-4 py-2 font-bold">
-                              🩸 {selectedPatient.bloodType || 'N/A'}
+                              🩸 {selectedPatient.blood_type || 'N/A'}
                             </Badge>
                           </div>
                         </div>
                         <div>
                           <Label className="text-sm font-semibold text-gray-600">Thành phần máu cần</Label>
                           <div className="mt-2">
-                            <Badge variant="outline" className={`${getComponentColor(selectedPatient.bloodComponent || 'plasma')} text-sm px-4 py-2 font-medium border`}>
-                              {selectedPatient.bloodComponent === 'whole_blood' && '🩸'}
-                              {selectedPatient.bloodComponent === 'red_cells' && '🔴'}
-                              {selectedPatient.bloodComponent === 'platelets' && '🟡'}
-                              {selectedPatient.bloodComponent === 'plasma' && '🔵'}
-                              {!selectedPatient.bloodComponent && '🔵'}
-                              {' '}{getComponentName(selectedPatient.bloodComponent || 'plasma')}
+                            <Badge variant="outline" className={`${getComponentColor(selectedPatient.component_needed || 'plasma')} text-sm px-4 py-2 font-medium border`}>
+                              {selectedPatient.component_needed === 'whole_blood' && '🩸'}
+                              {selectedPatient.component_needed === 'red_cells' && '🔴'}
+                              {selectedPatient.component_needed === 'platelets' && '🟡'}
+                              {selectedPatient.component_needed === 'plasma' && '🔵'}
+                              {!selectedPatient.component_needed && '🔵'}
+                              {' '}{getComponentName(selectedPatient.component_needed || 'plasma')}
                             </Badge>
                           </div>
                         </div>
@@ -3645,7 +3661,7 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
                         </div>
                         <div>
                           <Label className="text-sm font-semibold text-gray-600">Số điện thoại</Label>
-                          <p className="text-lg font-mono">{selectedPatient.phone}</p>
+                          <p className="text-lg font-mono">{selectedPatient.contact}</p>
                         </div>
                         <div>
                           <Label className="text-sm font-semibold text-gray-600">Email</Label>
@@ -3653,11 +3669,11 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
                         </div>
                         <div>
                           <Label className="text-sm font-semibold text-gray-600">CCCD</Label>
-                          <p className="text-lg font-mono">{selectedPatient.citizenId}</p>
+                          <p className="text-lg font-mono">{selectedPatient.cccd}</p>
                         </div>
                         <div>
                           <Label className="text-sm font-semibold text-gray-600">Liên hệ khẩn cấp</Label>
-                          <p className="text-lg font-mono">{selectedPatient.emergencyContact}</p>
+                          <p className="text-lg font-mono">{selectedPatient.emergency_contact}</p>
                         </div>
                         <div className="col-span-2">
                           <Label className="text-sm font-semibold text-gray-600">Địa chỉ</Label>
@@ -3665,9 +3681,9 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
                         </div>
                         <div className="col-span-2">
                           <Label className="text-sm font-semibold text-gray-600">Tiền sử bệnh</Label>
-                          {selectedPatient.medicalHistory && selectedPatient.medicalHistory.length > 0 ? (
+                          {selectedPatient.medical_history && selectedPatient.medical_history.length > 0 ? (
                             <div className="space-y-2">
-                              {selectedPatient.medicalHistory.map((history, index) => (
+                              {selectedPatient.medical_history.map((history, index) => (
                                 <div key={index} className="bg-yellow-50 text-yellow-800 px-3 py-2 rounded-lg">
                                   {history}
                                 </div>
@@ -3679,7 +3695,7 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
                         </div>
                         <div>
                           <Label className="text-sm font-semibold text-gray-600">Ngày đăng ký</Label>
-                          <p className="text-lg">{formatDate(selectedPatient.registrationDate)}</p>
+                          <p className="text-lg">{formatDate(selectedPatient.registration_date)}</p>
                         </div>
                         <div>
                           <Label className="text-sm font-semibold text-gray-600">Trạng thái</Label>
@@ -3687,7 +3703,7 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
                             <Badge
                               className={`${getStatusColor(selectedPatient.status)} text-xs px-2 py-1 font-medium flex items-center gap-1 w-fit`}
                             >
-                              {selectedPatient.status === 'active' ? (
+                              {selectedPatient.status === 'waiting' ? (
                                 <>
                                   <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
                                   Hoạt động
@@ -3745,7 +3761,7 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
                             min="1"
                             max="150"
                             required
-                            defaultValue={selectedPatient.age.toString()}
+                            defaultValue={selectedPatient.age != null ? selectedPatient.age.toString() : ''}
                             onKeyDown={handleNumericKeyDown}
                             onInput={handleAgeInput}
                             onPaste={handleAgePaste}
@@ -3770,7 +3786,7 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
                         <div>
                           <Label htmlFor="editPatientBloodType">Nhóm máu</Label>
                           <Select
-                            defaultValue={selectedPatient.bloodType}
+                            defaultValue={selectedPatient.blood_type}
                             onValueChange={(value) => editBloodTypeRef.current = value}
                           >
                             <SelectTrigger>
@@ -3791,7 +3807,7 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
                         <div>
                           <Label htmlFor="editBloodComponent">Thành phần máu yêu cầu</Label>
                           <Select
-                            defaultValue={selectedPatient.bloodComponent}
+                            defaultValue={selectedPatient.component_needed}
                             onValueChange={(value) => editBloodComponentRef.current = value}
                           >
                             <SelectTrigger>
@@ -3831,7 +3847,7 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
                             maxLength={10}
                             title="Số điện thoại phải bắt đầu bằng số 0 và có đúng 10 chữ số"
                             required
-                            defaultValue={selectedPatient.phone}
+                            defaultValue={selectedPatient.contact}
                             onKeyDown={handleNumericKeyDown}
                             onInput={handlePhoneInput}
                             onPaste={handlePhonePaste}
@@ -3846,7 +3862,7 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
                             maxLength={12}
                             title="Căn cước công dân phải có đúng 12 chữ số"
                             required
-                            defaultValue={selectedPatient.citizenId}
+                            defaultValue={selectedPatient.cccd}
                             onKeyDown={handleNumericKeyDown}
                             onInput={handleCitizenIdInput}
                             onPaste={handleCitizenIdPaste}
@@ -3890,7 +3906,7 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
                             maxLength={10}
                             title="Số điện thoại phải bắt đầu bằng số 0 và có đúng 10 chữ số"
                             required
-                            defaultValue={selectedPatient.emergencyContact}
+                            defaultValue={selectedPatient.emergency_contact}
                             onKeyDown={handleNumericKeyDown}
                             onInput={handleEmergencyContactInput}
                             onPaste={handleEmergencyContactPaste}
@@ -3901,7 +3917,7 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
                           <Textarea
                             id="editMedicalHistory"
                             placeholder="Mô tả tiền sử bệnh..."
-                            defaultValue={selectedPatient.medicalHistory?.join(', ') || ''}
+                            defaultValue={selectedPatient.medical_history?.join(', ') || ''}
                           />
                         </div>
                         <div className="col-span-2 flex justify-end gap-2 pt-4">
@@ -3996,7 +4012,7 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
 
                 return filteredPatients.map((patient) => (
                   <TableRow
-                    key={patient.id}
+                    key={patient._id}
                     className="cursor-pointer hover:bg-gray-50 transition-colors"
                     onClick={() => handleViewPatient(patient)}
                   >
