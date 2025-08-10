@@ -131,21 +131,63 @@ interface BloodRequest {
   selectedBags?: string[] // Lưu trữ ID của các túi máu đã chọn
 }
 
-interface BloodTest {
-  id: string
-  donorId: string
-  donorName: string
-  testDate: string
-  bloodType: string
-  hemoglobin: number
-  hiv: boolean
-  hepatitisB: boolean
-  hepatitisC: boolean
-  syphilis: boolean
-  status: 'pending' | 'passed' | 'failed'
-  technician: string
-  notes?: string
+type Gender = 'male' | 'female' | 'other';
+type Urgency = 'low' | 'medium' | 'high';
+type ComponentNeeded = 'whole_blood' | 'plasma' | 'platelets' | 'red_cells';
+type BloodType =
+  | 'A+'
+  | 'A-'
+  | 'B+'
+  | 'B-'
+  | 'AB+'
+  | 'AB-'
+  | 'O+'
+  | 'O-';
+
+interface DonorInfo {
+  _id: string;
+  name: string;
+  hospital: string;
+  age: number;
+  gender: Gender;
+  blood_type: BloodType;
+  component_needed: ComponentNeeded;
+  urgency: Urgency;
+  contact: string;
+  email: string;
+  cccd: string;
+  emergency_contact: string;
+  address: string;
+  medical_history: string[];
+  registration_date: string; // ISO date
+  status: 'waiting' | 'approved' | 'rejected' | 'unknown';
+  isUnknown: boolean;
+  createdAt: string; // ISO date
+  updatedAt: string; // ISO date
+  __v: number;
 }
+
+interface BloodTest {
+  _id: string;
+  donorId: string | DonorInfo;
+  hospital: string;
+  donorName: string;
+  testDate: string; // ISO date
+  bloodType: BloodType;
+  hemoglobin: number;
+  hiv: boolean;
+  hepatitisB: boolean;
+  hepatitisC: boolean;
+  syphilis: boolean;
+  status: 'pending' | 'passed' | 'failed';
+  technician: string;
+  notes?: string;
+  createdAt: string; // ISO date
+  updatedAt: string; // ISO date
+  __v: number;
+}
+
+
 
 interface Patient {
   _id: string
@@ -448,6 +490,19 @@ export default function BloodManagementPage() {
         const response = await api.get(`/patients/by-hospital/${hospitalId}`);
         console.log(response.data.patients)
         setPatients(response.data.patients);
+      } catch (error) {
+        // Lỗi parse JSON, dùng default data
+        localStorage.removeItem('patients')
+        console.log('Đã khôi phục dữ liệu bệnh nhân')
+      }
+  }
+
+  async function getBloodTestRecords(){
+      try {
+        // const parsedPatients = JSON.parse(storedPatients)
+        // patientsData = parsedPatients
+        const response = await api.get(`/blood-test-records/by-hospital/${hospitalId}`);
+        setBloodTests(response.data.bloodTestRecords);
       } catch (error) {
         // Lỗi parse JSON, dùng default data
         localStorage.removeItem('patients')
@@ -1272,6 +1327,7 @@ export default function BloodManagementPage() {
 
     
     getPatients();
+    getBloodTestRecords();
     console.log("No problem")
   }, [user])
 
@@ -1486,7 +1542,7 @@ export default function BloodManagementPage() {
 
   
 
-  const handleSaveTestResult = useCallback((e: React.FormEvent) => {
+  const handleSaveTestResult = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!selectedTestForUpdate) return
@@ -1523,7 +1579,7 @@ export default function BloodManagementPage() {
 
     // Get patient info for comparison
     console.log(selectedTestForUpdate)
-    const patientInfo = patients.find(p => p._id === selectedTestForUpdate.donorId)
+    const patientInfo = patients.find(p => p._id === selectedTestForUpdate.donorId._id)
     const originalBloodComponent = patientInfo?.bloodComponent || ''
 
     // Check if blood type or component was actually changed
@@ -1562,13 +1618,16 @@ export default function BloodManagementPage() {
       status: status as 'passed' | 'failed'
     }
 
-    console.log('Đã cập nhật kết quả xét nghiệm:', updatedTest)
+    const response = await api.put(`/blood-test-records/${selectedTestForUpdate._id}`, updatedTest);
+    toast.success(response.data.message)
+    console.log(response.data)
 
     // Update blood tests state
-    setBloodTests(prev => prev.map(t => t.id === selectedTestForUpdate.id ? updatedTest : t))
-
+    getBloodTestRecords();
+    
     // Automatically create blood request when test is confirmed
-    if (patientInfo) {
+    if (response.data.message === "Cập nhật kết quả xét nghiệm thành công") {
+      console.log("Truy tim: ")
       console.log(patientInfo)
       const newRequestId = `R${Date.now().toString().slice(-6)}`
 
@@ -1596,6 +1655,9 @@ export default function BloodManagementPage() {
         reason: `Yêu cầu ${bloodUnits} đơn vị máu sau xét nghiệm xác nhận cho bệnh nhân ${patientInfo.name}`,
         selectedBags: [] // Khởi tạo mảng rỗng cho túi máu đã chọn
       }
+
+      console.log("Yeu: ")
+      console.log(newBloodRequest)
 
       // Add to blood requests
       setBloodRequests(prev => [newBloodRequest, ...prev])
@@ -1644,7 +1706,7 @@ export default function BloodManagementPage() {
       name = "Bệnh nhân khẩn cấp"
       age = "0"
       gender = "other"
-      bloodType = ""
+      bloodType = "AB+"
       bloodComponent = "whole_blood"
       phone = ""
       citizenId = ""
@@ -2880,7 +2942,7 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
             <DialogTitle>Chọn ngày xét nghiệm</DialogTitle>
             {selectedPatientForTest && (
               <p className="text-sm text-gray-600">
-                Bệnh nhân: <strong>{selectedPatientForTest.name}</strong> ({selectedPatientForTest.id})
+                Bệnh nhân: <strong>{selectedPatientForTest.name}</strong> ({String(selectedPatientForTest._id)})
               </p>
             )}
           </DialogHeader>
@@ -3000,7 +3062,7 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
                 Đóng
               </Button>
               <Button
-                onClick={() => {
+                onClick={async () => {
                   if (selectedPatientForTest && selectedTestDate) {
                     // Tạo ID xét nghiệm mới
                     const newTestId = `T${Date.now().toString().slice(-6)}`
@@ -3012,7 +3074,7 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
                       donorId: selectedPatientForTest._id, // Sử dụng ID bệnh nhân làm donorId
                       donorName: selectedPatientForTest.name,
                       testDate: format(selectedTestDate, 'yyyy-MM-dd'),
-                      bloodType: selectedPatientForTest.bloodType,
+                      bloodType: selectedPatientForTest.blood_type,
                       hemoglobin: 0, // Sẽ được cập nhật sau khi có kết quả
                       hiv: false,
                       hepatitisB: false,
@@ -3020,11 +3082,29 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
                       syphilis: false,
                       status: 'pending',
                       technician: 'Đang chờ phân công',
-                      notes: `Xét nghiệm trước truyền máu cho bệnh nhân ${selectedPatientForTest.name}. Thành phần cần: ${getComponentName(selectedPatientForTest.bloodComponent)}`
+                      notes: `Xét nghiệm trước truyền máu cho bệnh nhân ${selectedPatientForTest.name}. Thành phần cần: ${getComponentName(selectedPatientForTest.component_needed)}`
                     }
 
+                    await api.post("/blood-test-records", {
+                      hospital: hospitalId,
+                      donorId: selectedPatientForTest._id, // Sử dụng ID bệnh nhân làm donorId
+                      donorName: selectedPatientForTest.name,
+                      testDate: format(selectedTestDate, 'yyyy-MM-dd'),
+                      bloodType: selectedPatientForTest.blood_type,
+                      hemoglobin: 0, // Sẽ được cập nhật sau khi có kết quả
+                      hiv: false,
+                      hepatitisB: false,
+                      hepatitisC: false,
+                      syphilis: false,
+                      status: 'pending',
+                      technician: 'Đang chờ phân công',
+                      notes: `Xét nghiệm trước truyền máu cho bệnh nhân ${selectedPatientForTest.name}. Thành phần cần: ${getComponentName(selectedPatientForTest.component_needed)}`
+                    })
+
+                    toast.success("Đã thêm dòng xét nghiệm máu thành công")
+
                     // Thêm vào danh sách xét nghiệm
-                    setBloodTests(prev => [newBloodTest, ...prev])
+                    getBloodTestRecords();
 
                     // Hiển thị thông báo thành công
                     setShowSuccessMessage(`Đã tạo yêu cầu xét nghiệm cho bệnh nhân ${selectedPatientForTest.name}`)
@@ -3056,7 +3136,7 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
             <DialogTitle>Cập nhật kết quả xét nghiệm</DialogTitle>
             {selectedTestForUpdate && (
               <div className="text-sm text-gray-600 space-y-1">
-                <p><strong>Bệnh nhân:</strong> {selectedTestForUpdate.donorName} ({selectedTestForUpdate.donorId})</p>
+                <p><strong>Bệnh nhân:</strong> {selectedTestForUpdate.donorName} ({selectedTestForUpdate.donorId._id})</p>
                 <p><strong>Nhóm máu:</strong> {selectedTestForUpdate.bloodType}</p>
                 <p><strong>Ngày xét nghiệm:</strong> {formatDate(selectedTestForUpdate.testDate)}</p>
               </div>
@@ -3067,8 +3147,8 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
             <div className="space-y-6">
               {(() => {
                 // Find patient info for blood component
-                const patient = patients.find(p => p.id === selectedTestForUpdate?.donorId)
-                const patientBloodComponent = patient?.bloodComponent || ''
+                const patient = patients.find(p => p._id === selectedTestForUpdate?.donorId._id)
+                const patientBloodComponent = patient?.component_needed || ''
 
                 return (
                   <div className="grid grid-cols-2 gap-4">
@@ -3077,7 +3157,7 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
                       <select
                         id="confirmedBloodType"
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        defaultValue={selectedTestForUpdate?.bloodType || ''}
+                        defaultValue={selectedTestForUpdate?.donorId.blood_type || ''}
                       >
                         <option value="">Chọn nhóm máu</option>
                         <option value="unknown">Nhóm máu chưa biết</option>
@@ -3152,7 +3232,7 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
                 <Button
                   type="button"
                   variant="destructive"
-                  onClick={() => {
+                  onClick={async () => {
                     if (selectedTestForUpdate) {
                       // Cập nhật trạng thái thành hủy
                       const updatedTest = {
@@ -3161,8 +3241,10 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
                         notes: (selectedTestForUpdate.notes || '') + '\n[Đã hủy xét nghiệm]'
                       }
 
-                      setBloodTests(prev => prev.map(t => t.id === selectedTestForUpdate.id ? updatedTest : t))
+                      const response = await api.put(`/blood-test-records/${selectedTestForUpdate._id}`, updatedTest);
                       console.log('Đã hủy xét nghiệm:', updatedTest)
+
+                      getBloodTestRecords();
 
                       setShowSuccessMessage(`Đã hủy xét nghiệm cho ${selectedTestForUpdate.donorName}`)
                       setTimeout(() => setShowSuccessMessage(''), 5000)
@@ -3207,8 +3289,9 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
             <TableBody>
               {bloodTests.map((test) => {
                 // Find patient info for blood component
-                const patient = patients.find(p => p.id === test.donorId)
-                const bloodComponent = patient?.bloodComponent || ''
+                console.log(test)
+                const patient = patients.find(p => p._id === test.donorId)
+                const bloodComponent = patient?.component_needed || ''
 
                 // Extract result information from notes
                 const getTestResult = () => {
@@ -3251,11 +3334,13 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
                 }
 
                 return (
-                  <TableRow key={test.id}>
+                  <TableRow key={test.donorId._id}>
                     <TableCell>
-                      <div>
-                        <div className="font-medium">{test.donorName}</div>
-                        <div className="text-sm text-gray-500">{test.donorId}</div>
+                      <div className="font-medium">
+                        {typeof test.donorId === 'object' ? test.donorId.name : test.donorName}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {typeof test.donorId === 'object' ? test.donorId._id : test.donorId}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -3264,19 +3349,19 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      {bloodComponent && (
+                      {typeof test.donorId === 'object' && test.donorId.component_needed && (
                         <Badge variant="outline" className="text-blue-600 border-blue-600">
-                          {bloodComponent === 'whole_blood' && 'Máu toàn phần'}
-                          {bloodComponent === 'red_cells' && 'Hồng cầu'}
-                          {bloodComponent === 'platelets' && 'Tiểu cầu'}
-                          {bloodComponent === 'plasma' && 'Huyết tương'}
+                          {test.donorId.component_needed === 'whole_blood' && 'Máu toàn phần'}
+                          {test.donorId.component_needed === 'red_cells' && 'Hồng cầu'}
+                          {test.donorId.component_needed === 'platelets' && 'Tiểu cầu'}
+                          {test.donorId.component_needed === 'plasma' && 'Huyết tương'}
                         </Badge>
                       )}
                     </TableCell>
                     <TableCell>
-                      {patient && (
-                        <Badge variant="outline" className={`${getUrgencyColor(patient.urgency || 'medium')} font-medium text-xs border`}>
-                          {getUrgencyName(patient.urgency || 'medium')}
+                      {typeof test.donorId === 'object' && test.donorId.urgency && (
+                        <Badge variant="outline" className={`${getUrgencyColor(test.donorId.urgency || 'medium')} font-medium text-xs border`}>
+                          {getUrgencyName(test.donorId.urgency || 'medium')}
                         </Badge>
                       )}
                     </TableCell>
