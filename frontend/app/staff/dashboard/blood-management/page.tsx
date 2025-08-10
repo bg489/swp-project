@@ -2336,7 +2336,7 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
             </div>
           </TableCell>
           <TableCell className="text-center font-medium">
-            {bag.volume}
+            {Number(bag.volume).toFixed(2)}
           </TableCell>
           <TableCell className="text-center text-sm">
             {formatDate(bag.collectionDate)}
@@ -2618,12 +2618,12 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
               <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
                 <div className="flex items-center justify-between">
                   <div className="text-sm font-medium text-blue-800">
-                    Tiến độ chọn túi máu: {totalSelectedVolume}/{selectedRequest?.volumeNeeded || (selectedRequest?.unitsNeeded || 1) * 250} ml
+                    Tiến độ chọn túi máu: {Number(totalSelectedVolume).toFixed(2)}/{selectedRequest?.volumeNeeded || (selectedRequest?.unitsNeeded || 1) * 250} ml
                   </div>
                   <div className="text-xs text-blue-600">
                     {totalSelectedVolume >= (selectedRequest?.volumeNeeded || (selectedRequest?.unitsNeeded || 1) * 250)
                       ? "✓ Đã đủ thể tích yêu cầu"
-                      : `Còn thiếu ${(selectedRequest?.volumeNeeded || (selectedRequest?.unitsNeeded || 1) * 250) - totalSelectedVolume} ml`}
+                      : `Còn thiếu ${Number((selectedRequest?.volumeNeeded || (selectedRequest?.unitsNeeded || 1) * 250) - totalSelectedVolume).toFixed(2)} ml`}
                   </div>
                   <div className="mt-2 bg-blue-200 rounded-full h-2">
                     <div
@@ -2722,7 +2722,7 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
                 >
                   <CheckCircle className="w-4 h-4 mr-2" />
                   {totalSelectedVolume < (selectedRequest?.volumeNeeded || (selectedRequest?.unitsNeeded || 1) * 250)
-                    ? `Cần thêm ${(selectedRequest?.volumeNeeded || (selectedRequest?.unitsNeeded || 1) * 250) - totalSelectedVolume} ml nữa`
+                    ? `Cần thêm ${Number((selectedRequest?.volumeNeeded || (selectedRequest?.unitsNeeded || 1) * 250) - totalSelectedVolume).toFixed(2)} ml nữa`
                     : `Duyệt và phân bổ (${selectedBloodBags.length} túi)`
                   }
                 </Button>
