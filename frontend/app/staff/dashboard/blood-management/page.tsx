@@ -1696,6 +1696,27 @@ export default function BloodManagementPage() {
       // Use the confirmed blood component or the original one if not changed
       const finalBloodComponent = componentChanged ? confirmedBloodComponent : originalBloodComponent
 
+      // Sync patient's required component and blood type with confirmed result if changed
+      try {
+        if (patientInfo?._id && (componentChanged || bloodTypeChanged)) {
+          const payload: any = {}
+          if (componentChanged) payload.component_needed = confirmedBloodComponent
+          if (bloodTypeChanged) payload.blood_type = confirmedBloodType
+
+          await api.put(`/patients/${patientInfo._id}`, payload)
+
+          // Update local state
+          setPatients(prev => prev.map(p => p._id === patientInfo._id ? { ...p, ...payload } : p))
+
+          // Update localStorage cache if present
+          const existingPatientsLS = JSON.parse(localStorage.getItem('patients') || '[]')
+          const updatedPatientsLS = existingPatientsLS.map((p: any) => p._id === patientInfo._id ? { ...p, ...payload } : p)
+          localStorage.setItem('patients', JSON.stringify(updatedPatientsLS))
+        }
+      } catch (err) {
+        console.error('Không thể cập nhật thông tin máu của bệnh nhân', err)
+      }
+
       // Ensure component type is valid
       const validComponent = ['whole_blood', 'red_cells', 'platelets', 'plasma'].includes(finalBloodComponent)
         ? finalBloodComponent as 'whole_blood' | 'red_cells' | 'platelets' | 'plasma'
@@ -2065,47 +2086,7 @@ export default function BloodManagementPage() {
               <p className="text-gray-600">Theo dõi và quản lý lượng máu trong kho</p>
             </div>
           </div>
-          {/* Summary cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Tổng đơn vị</CardTitle>
-                <Droplets className="h-4 w-4 text-red-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-red-600">
-                  {bloodBags.length}
-                </div>
-                <p className="text-xs text-muted-foreground">Tất cả nhóm máu</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Có sẵn</CardTitle>
-                <CheckCircle className="h-4 w-4 text-green-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-green-600">
-                  {bloodBags.filter((value) => {
-                    return value.status === "available"
-                  }).length}
-                </div>
-                <p className="text-xs text-muted-foreground">Đơn vị sẵn sàng</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Đã hết</CardTitle>
-                <XCircle className="h-4 w-4 text-red-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-red-600">
-                  {bloodStock.filter(stock => stock.units === 0).length}
-                </div>
-                <p className="text-xs text-muted-foreground">Nhóm máu hết</p>
-              </CardContent>
-            </Card>
-          </div>
+          {/* Summary cards removed per request */}
 
           {/* Blood stock table */}
           <Card>
@@ -2138,8 +2119,8 @@ export default function BloodManagementPage() {
                           return value.stockId === stock.id && value.status === "available"
                         }).length > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
                           {bloodBags.filter((value) => {
-                            return value.stockId === stock.id
-                          }).length > 0 ? 'Có sẵn' : 'Đã hết'}
+                            return value.stockId === stock.id && value.status === "available"
+                          }).length > 0 ? 'Có sẵn' : 'Không có sẵn'}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -2402,6 +2383,14 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
     return sum + (bag ? bag.volume : 0)
   }, 0)
 // ...existing code...
+  // Pretty confirmation state for over-selection
+  const [overConfirmOpen, setOverConfirmOpen] = useState(false)
+
+  // Derived requirements and overage metrics
+  const requiredUnits = selectedRequest?.unitsNeeded || 1
+  const requiredVolume = selectedRequest?.volumeNeeded || requiredUnits * 250
+  const overUnits = Math.max(0, selectedBloodBags.length - requiredUnits)
+  const overVolume = Math.max(0, totalSelectedVolume - requiredVolume)
 
     const handleBagSelection = useCallback((bagId: string) => {
       setSelectedBloodBags(prev => {
@@ -2412,24 +2401,8 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
           const newSelection = prev.filter(id => id !== bagId)
           return newSelection.length !== prev.length ? newSelection : prev
         } else {
-          // Thêm túi máu nếu chưa đạt giới hạn
-          console.log(selectedRequest);
-          if (selectedRequest) {
-            const maxVolume = selectedRequest.volumeNeeded || (selectedRequest.unitsNeeded || 1) * 250;
-            const bagVolume = availableBags.find(b => b.id === bagId)?.volume || 0;
-
-            // Tính tổng ml sau khi thêm túi này
-            const totalVolumeAfterAdd = prev.reduce((sum, id) => {
-              const vol = availableBags.find(b => b.id === id)?.volume || 0;
-              return sum + vol;
-            }, 0) + bagVolume;
-
-            if (totalVolumeAfterAdd <= maxVolume) {
-              return [...prev, bagId];
-            }
-          }
-          // Không thay đổi nếu đã đạt giới hạn
-          return prev
+          // Bỏ giới hạn số đơn vị: có thể chọn bao nhiêu túi cũng được
+          return [...prev, bagId]
         }
       })
     }, [selectedRequest])
@@ -2453,8 +2426,15 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
     const handleConfirmDialog = useCallback((e: React.MouseEvent) => {
       e.preventDefault()
       e.stopPropagation()
+
+      // Xác nhận với hộp thoại đẹp nếu chọn vượt số túi yêu cầu hoặc vượt thể tích ml yêu cầu
+      if (selectedRequest && (overUnits > 0 || overVolume > 0)) {
+        setOverConfirmOpen(true)
+        return
+      }
+
       handleConfirmApproval()
-    }, [handleConfirmApproval])
+    }, [handleConfirmApproval, selectedRequest, overUnits, overVolume])
 
     // Memoized table row component to prevent unnecessary re-renders
     const BloodBagTableRow = memo(({ bag, isSelected, isDisabled, onToggle }: {
@@ -2589,8 +2569,6 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
                   <TableHead>Thành phần máu</TableHead>
                   <TableHead>Số đơn vị</TableHead>
                   <TableHead>Mức độ</TableHead>
-                  <TableHead>Bệnh viện</TableHead>
-                  <TableHead>Ngày yêu cầu</TableHead>
                   <TableHead>Ngày cần</TableHead>
                   <TableHead>Trạng thái</TableHead>
                   <TableHead>Thao tác</TableHead>
@@ -2598,7 +2576,7 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
               </TableHeader>
               <TableBody>
                 {bloodRequests.map((request) => (
-                  <TableRow key={request.id}>
+                  <TableRow key={request._id || request.id}>
                     <TableCell>
                       <div>
                         <div className="font-medium">{request.patientName}</div>
@@ -2623,8 +2601,6 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
                             request.urgency === 'medium' ? 'Trung bình' : 'Thấp'}
                       </Badge>
                     </TableCell>
-                    <TableCell>{request.hospital}</TableCell>
-                    <TableCell>{formatDate(request.requestDate)}</TableCell>
                     <TableCell>{formatDate(request.requiredDate)}</TableCell>
                     <TableCell>
                       <Badge className={getStatusColor(request.status)}>
@@ -2637,26 +2613,15 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
                     <TableCell>
                       <div className="flex gap-2">
                         {request.status === 'pending' && (
-                          <>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="text-green-600 border-green-600 hover:bg-green-50"
-                              onClick={() => handleApproveRequest(request.id)}
-                            >
-                              <CheckCircle className="w-4 h-4 mr-1" />
-                              Duyệt
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="text-red-600 border-red-600 hover:bg-red-50"
-                              onClick={() => handleRejectRequest(request.id)}
-                            >
-                              <XCircle className="w-4 h-4 mr-1" />
-                              Từ chối
-                            </Button>
-                          </>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-green-600 border-green-600 hover:bg-green-50"
+                            onClick={() => handleApproveRequest(request.id)}
+                          >
+                            <CheckCircle className="w-4 h-4 mr-1" />
+                            Duyệt
+                          </Button>
                         )}
                         {request.status === 'approved' && (
                           <Button
@@ -2691,7 +2656,7 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
                 ))}
                 {bloodRequests.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={10} className="text-center py-8 text-gray-500">
+                    <TableCell colSpan={9} className="text-center py-8 text-gray-500">
                       <ClipboardList className="w-12 h-12 mx-auto mb-3 text-gray-400" />
                       <p className="text-lg font-medium mb-1">Chưa có yêu cầu máu nào</p>
                       <p className="text-sm">Tạo yêu cầu từ kết quả xét nghiệm</p>
@@ -2774,26 +2739,43 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
               <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
                 <div className="flex items-center justify-between">
                   <div className="text-sm font-medium text-blue-800">
-                    Tiến độ chọn túi máu: {Number(totalSelectedVolume).toFixed(2)}/{selectedRequest?.volumeNeeded || (selectedRequest?.unitsNeeded || 1) * 250} ml
+                    Tiến độ chọn túi máu: {selectedBloodBags.length}/{selectedRequest?.unitsNeeded || 1} túi
                   </div>
                   <div className="text-xs text-blue-600">
-                    {totalSelectedVolume >= (selectedRequest?.volumeNeeded || (selectedRequest?.unitsNeeded || 1) * 250)
-                      ? "✓ Đã đủ thể tích yêu cầu"
-                      : `Còn thiếu ${Number((selectedRequest?.volumeNeeded || (selectedRequest?.unitsNeeded || 1) * 250) - totalSelectedVolume).toFixed(2)} ml`}
+                    {(selectedRequest && selectedBloodBags.length >= (selectedRequest.unitsNeeded || 1))
+                      ? "✓ Đã đủ số đơn vị yêu cầu"
+                      : `Còn thiếu ${(selectedRequest ? (selectedRequest.unitsNeeded || 1) - selectedBloodBags.length : 0)} túi`}
                   </div>
                   <div className="mt-2 bg-blue-200 rounded-full h-2">
                     <div
                       className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                      style={{
-                        width: `${Math.min(100, (totalSelectedVolume / (selectedRequest?.volumeNeeded || (selectedRequest?.unitsNeeded || 1) * 250)) * 100)}%`
-                      }}
+                      style={{ width: `${Math.min(100, (selectedBloodBags.length / (selectedRequest?.unitsNeeded || 1)) * 100)}%` }}
                     ></div>
                   </div>
+                  {selectedRequest && selectedBloodBags.length > (selectedRequest.unitsNeeded || 1) && (
+                    <div className="mt-2 text-xs text-amber-700">
+                      Đang chọn dư {selectedBloodBags.length - (selectedRequest.unitsNeeded || 1)} túi
+                    </div>
+                  )}
                 </div>
-                <div className="mt-2 bg-blue-200 rounded-full h-2">
+                {/* Thể tích (ml) */}
+                <div className="mt-3 text-xs text-blue-700">
+                  Thể tích đã chọn: {Number(totalSelectedVolume).toFixed(2)}/
+                  {selectedRequest?.volumeNeeded || (selectedRequest?.unitsNeeded || 1) * 250} ml
+                  <span className="ml-2">
+                    {totalSelectedVolume > (selectedRequest?.volumeNeeded || (selectedRequest?.unitsNeeded || 1) * 250)
+                      ? `Dư ${Number(totalSelectedVolume - (selectedRequest?.volumeNeeded || (selectedRequest?.unitsNeeded || 1) * 250)).toFixed(2)} ml`
+                      : totalSelectedVolume >= (selectedRequest?.volumeNeeded || (selectedRequest?.unitsNeeded || 1) * 250)
+                        ? "✓ Đã đủ thể tích yêu cầu"
+                        : `Còn thiếu ${Number((selectedRequest?.volumeNeeded || (selectedRequest?.unitsNeeded || 1) * 250) - totalSelectedVolume).toFixed(2)} ml`}
+                  </span>
+                </div>
+                <div className="mt-1 bg-blue-200 rounded-full h-2">
                   <div
                     className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${(selectedBloodBags.length / (selectedRequest?.unitsNeeded || 1)) * 100}%` }}
+                    style={{
+                      width: `${Math.min(100, (totalSelectedVolume / (selectedRequest?.volumeNeeded || (selectedRequest?.unitsNeeded || 1) * 250)) * 100)}%`
+                    }}
                   ></div>
                 </div>
               </div>
@@ -2819,6 +2801,7 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
                     </div>
                   )}
 
+
                   <div className="border border-gray-200 rounded-lg overflow-hidden">
                     <Table>
                       <TableHeader className="bg-gray-50">
@@ -2836,7 +2819,8 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
                       <TableBody>
                         {availableBags.map((bag) => {
                           const isSelected = selectedBloodBags.includes(bag.id)
-                          const isDisabled = !isSelected && totalSelectedVolume >= (selectedRequest?.volumeNeeded || (selectedRequest?.unitsNeeded || 1) * 250)
+                          // Bỏ giới hạn: không vô hiệu hóa theo số lượng hay thể tích
+                          const isDisabled = false
                           return (
                             <BloodBagTableRow
                               key={bag.id}
@@ -2886,6 +2870,48 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Confirm over-selection Dialog */}
+        <Dialog open={overConfirmOpen} onOpenChange={setOverConfirmOpen}>
+          <DialogContent className="sm:max-w-[480px]">
+            <DialogHeader>
+              <DialogTitle className="text-lg font-semibold">Xác nhận chọn vượt yêu cầu</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3">
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="w-5 h-5 mt-0.5" />
+                  <div>
+                    <div className="font-medium">Bạn đang chọn vượt yêu cầu đề ra</div>
+                    <div className="mt-1 text-amber-700">
+                      {overUnits > 0 && (
+                        <>
+                          Dư {overUnits} túi{overVolume > 0 ? ' và ' : ''}
+                        </>
+                      )}
+                      {overVolume > 0 && (
+                        <>Dư {Number(overVolume).toFixed(2)} ml</>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <p className="text-sm text-gray-600">Bạn có chắc chắn muốn tiếp tục phê duyệt với lựa chọn hiện tại?</p>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setOverConfirmOpen(false)}>Quay lại</Button>
+              <Button
+                className="bg-green-600 hover:bg-green-700"
+                onClick={() => {
+                  setOverConfirmOpen(false)
+                  handleConfirmApproval()
+                }}
+              >
+                Tiếp tục
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     )
   }
@@ -2922,15 +2948,7 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
                 <DialogTitle>Chọn bệnh nhân để xét nghiệm</DialogTitle>
               </DialogHeader>
 
-              {/* Search */}
-              <div className="mb-4">
-                <Input
-                  placeholder="Tìm kiếm bệnh nhân theo tên hoặc mã..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="max-w-md"
-                />
-              </div>
+              
 
               {/* Patients list */}
               <div className="space-y-2 max-h-96 overflow-y-auto">
@@ -3397,7 +3415,7 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
                 }
 
                 return (
-                  <TableRow key={typeof test.donorId === 'object' ? test.donorId._id : test.donorId}>
+                  <TableRow key={test._id}>
                     <TableCell>
                       <div className="font-medium">
                         {typeof test.donorId === 'object' ? test.donorId.name : test.donorName}
@@ -3493,21 +3511,7 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
           <p className="text-gray-600">Thông tin bệnh nhân cần truyền máu</p>
         </div>
         <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              // Xóa dữ liệu cũ 
-              localStorage.removeItem('patients')
-              const defaultPatients: Patient[] = []
-              localStorage.setItem('patients', JSON.stringify(defaultPatients))
-              setPatients(defaultPatients)
-              console.log('Đã làm mới dữ liệu bệnh nhân')
-            }}
-          >
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Làm mới dữ liệu
-          </Button>
+          
           <Dialog open={showAddPatientDialog} onOpenChange={setShowAddPatientDialog}>
             <DialogTrigger asChild>
               <Button size="sm">
@@ -4085,18 +4089,7 @@ const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
         </div>
       </div>
 
-      {/* Search */}
-      <div className="flex gap-4 items-center">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-          <Input
-            placeholder="Tìm kiếm bệnh nhân..."
-            className="pl-10"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-      </div>
+      
 
       {/* Patients table */}
       <Card>
