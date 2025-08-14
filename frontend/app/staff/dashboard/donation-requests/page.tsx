@@ -304,7 +304,7 @@ export default function DonationRequestsManagement() {
     }
   }
 
-  async function handleCancelStatus(_id: any, arg1: string): Promise<void> {
+  async function handleCancelStatus(_id: any, currentStatus?: string): Promise<void> {
     if (!window.confirm("Bạn có chắc chắn muốn hủy yêu cầu hiến máu này?")) {
       return
     }
@@ -320,8 +320,13 @@ export default function DonationRequestsManagement() {
         )
       )
 
+      // Adjust counters based on previous status
       setRejected((prev: number) => prev + 1)
-      setPending((prev: number) => prev - 1)
+      if (currentStatus === "pending") {
+        setPending((prev: number) => (prev > 0 ? prev - 1 : 0))
+      } else if (currentStatus === "approved") {
+        setApproved((prev: number) => (prev > 0 ? prev - 1 : 0))
+      }
 
       toast.success("Đã hủy yêu cầu hiến máu thành công!")
     } catch (error: any) {
@@ -727,19 +732,26 @@ export default function DonationRequestsManagement() {
                                 <Button
                                   size="sm"
                                   variant="destructive"
-                                  onClick={() => handleCancelStatus(request._id, "rejected")}
+                                  onClick={() => handleCancelStatus(request._id, request.status)}
                                 >
                                   Từ chối
                                 </Button>
                               </div>
                             )}
-              {(request.status === "approved" && donatedRequestIds.has(String(request._id))) || request.status === "donated" ? (
+                            {request.status === "approved" && (
                               <div className="flex gap-2 mt-2">
-                <Button size="sm" variant="default" onClick={() => handleCompleteStatus(request._id, request.status)}>
+                                <Button size="sm" variant="default" onClick={() => handleCompleteStatus(request._id, request.status)}>
                                   Hoàn tất
                                 </Button>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => handleCancelStatus(request._id, request.status)}
+                                >
+                                  Từ chối
+                                </Button>
                               </div>
-              ) : null}
+                            )}
                           </div>
                         </div>
                       </div>
