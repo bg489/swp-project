@@ -16,6 +16,9 @@ import checkInRoutes from "./routes/checkInRoutes.js";
 import healthCheckRoutes from "./routes/healthCheckRoutes.js";
 import bloodTestRoutes from "./routes/bloodTestRoutes.js";
 import wholeBloodUnitRoutes from "./routes/wholeBloodUnitRoutes.js";
+import patientRoutes from "./routes/patientRoutes.js";
+import bloodTestRecordRoutes from "./routes/bloodTestRecordRoutes.js";
+import bloodRequestRecordRoutes from "./routes/bloodRequestRecordRoutes.js";
 import { connectDB } from "./config/db.js";
 
 
@@ -54,6 +57,9 @@ app.use("/api/checkin", checkInRoutes);
 app.use("/api/health-check", healthCheckRoutes);
 app.use("/api/blood-test", bloodTestRoutes);
 app.use("/api/whole-blood", wholeBloodUnitRoutes);
+app.use("/api/patients", patientRoutes);
+app.use("/api/blood-test-records", bloodTestRecordRoutes);
+app.use("/api/blood-request-records", bloodRequestRecordRoutes);
 
 // if (process.env.NODE_ENV === "production") {
 //   app.use(express.static(path.join(__dirname, "../frontend/dist")));

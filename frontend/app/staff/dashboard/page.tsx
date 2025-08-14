@@ -631,7 +631,7 @@ export default function StaffDashboard() {
           </div>
 
           {/* Blood Management Dashboard Card */}
-          <Card className="mb-8 cursor-pointer hover:shadow-lg transition-shadow duration-200" onClick={() => router.push('/staff/dashboard/blood-management')}>
+          <Card className="mb-8 cursor-pointer hover:shadow-lg transition-shadow duration-200" onClick={() => router.push(`/staff/dashboard/blood-management?hospitalId=${staff?.hospital?._id}`)}>
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">

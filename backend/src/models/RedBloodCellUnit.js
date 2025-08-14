@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const wholeBloodUnitSchema = new mongoose.Schema({
+const redBloodCellUnitSchema = new mongoose.Schema({
     user_id: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
@@ -27,9 +27,6 @@ const wholeBloodUnitSchema = new mongoose.Schema({
     collectionDate: {
         type: Date,
     },
-    anticoagulantSolution: {
-        type: String,
-    },
     expiryDate: {
         type: Date,
     },
@@ -38,6 +35,7 @@ const wholeBloodUnitSchema = new mongoose.Schema({
     },
     storageTemperature: {
         type: String,
+        default: "2-6°C", // Nhiệt độ bảo quản tiêu chuẩn của hồng cầu
     },
     irradiated: {
         type: Boolean,
@@ -46,35 +44,6 @@ const wholeBloodUnitSchema = new mongoose.Schema({
         type: String,
         default: "",
     },
-    abnormalAntibodyDetected: {
-        type: Boolean,
-        default: false,
-    },
-    hivPositive: {
-        type: Boolean,
-        default: false,
-    },
-    hbvPositive: {
-        type: Boolean,
-        default: false,
-    },
-    hcvPositive: {
-        type: Boolean,
-        default: false,
-    },
-    syphilisPositive: {
-        type: Boolean,
-        default: false,
-    },
-    malariaPositive: {
-        type: Boolean,
-        default: false,
-    },
-    cmvPositive: {
-        type: Boolean,
-        default: false,
-    },
-
     status: {
         type: String,
         enum: ["pending", "donated", "expired", "not_eligible", "transfused"],
@@ -84,4 +53,4 @@ const wholeBloodUnitSchema = new mongoose.Schema({
     timestamps: true,
 });
 
-export default mongoose.model("WholeBloodUnit", wholeBloodUnitSchema);
+export default mongoose.model("RedBloodCellUnit", redBloodCellUnitSchema);

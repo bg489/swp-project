@@ -17,16 +17,20 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Textarea } from '@/components/ui/textarea'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { useAuth } from "@/contexts/auth-context"
 import { format } from 'date-fns'
+import api from "@/lib/axios"
+import { useSearchParams } from "next/navigation"
+import toast, { Toaster } from "react-hot-toast"
 import { vi } from 'date-fns/locale'
-import { 
-  Search, 
-  Plus, 
-  Edit, 
-  Trash2, 
-  Eye, 
-  Filter, 
-  Download, 
+import {
+  Search,
+  Plus,
+  Edit,
+  Trash2,
+  Eye,
+  Filter,
+  Download,
   Upload,
   Calendar as CalendarIcon,
   AlertTriangle,
@@ -46,6 +50,41 @@ import {
   RefreshCw,
   Save
 } from 'lucide-react'
+
+
+interface Hospital {
+  _id: string;
+  name: string;
+  address: string;
+  phone: string;
+  latitude: number;
+  longitude: number;
+  createdAt: string;
+  updatedAt: string;
+  __v?: number;
+}
+
+interface Staff {
+  _id: string;
+  user_id: string;
+  full_name: string;
+  email: string;
+  phone: string;
+  date_of_birth: string;
+  address: string;
+  role: string;
+  department: string;
+  assigned_area: string;
+  shift_time: string;
+  is_active: boolean;
+  is_verified: boolean;
+  password_hash?: string;
+  createdAt: string;
+  updatedAt: string;
+  __v?: number;
+  hospital: Hospital;
+}
+
 
 // Types
 interface BloodStock {
@@ -92,49 +131,101 @@ interface BloodRequest {
   selectedBags?: string[] // Lưu trữ ID của các túi máu đã chọn
 }
 
-interface BloodTest {
-  id: string
-  donorId: string
-  donorName: string
-  testDate: string
-  bloodType: string
-  hemoglobin: number
-  hiv: boolean
-  hepatitisB: boolean
-  hepatitisC: boolean
-  syphilis: boolean
-  status: 'pending' | 'passed' | 'failed'
-  technician: string
-  notes?: string
+type Gender = 'male' | 'female' | 'other';
+type Urgency = 'low' | 'medium' | 'high';
+type ComponentNeeded = 'whole_blood' | 'plasma' | 'platelets' | 'red_cells';
+type BloodType =
+  | 'A+'
+  | 'A-'
+  | 'B+'
+  | 'B-'
+  | 'AB+'
+  | 'AB-'
+  | 'O+'
+  | 'O-';
+
+interface DonorInfo {
+  _id: string;
+  name: string;
+  hospital: string;
+  age: number;
+  gender: Gender;
+  blood_type: BloodType;
+  component_needed: ComponentNeeded;
+  urgency: Urgency;
+  contact: string;
+  email: string;
+  cccd: string;
+  emergency_contact: string;
+  address: string;
+  medical_history: string[];
+  registration_date: string; // ISO date
+  status: 'waiting' | 'approved' | 'rejected' | 'unknown';
+  isUnknown: boolean;
+  createdAt: string; // ISO date
+  updatedAt: string; // ISO date
+  __v: number;
 }
 
+interface BloodTest {
+  _id: string;
+  donorId: string | DonorInfo;
+  hospital: string;
+  donorName: string;
+  testDate: string; // ISO date
+  bloodType: BloodType;
+  hemoglobin: number;
+  hiv: boolean;
+  hepatitisB: boolean;
+  hepatitisC: boolean;
+  syphilis: boolean;
+  status: 'pending' | 'passed' | 'failed';
+  technician: string;
+  notes?: string;
+  createdAt: string; // ISO date
+  updatedAt: string; // ISO date
+  __v: number;
+}
+
+
+
 interface Patient {
-  id: string
+  _id: string
   name: string
   age: number
   gender: 'male' | 'female' | 'other'
-  bloodType: string
-  bloodComponent: string
+  blood_type: string
+  component_needed: string
   urgency: 'critical' | 'high' | 'medium' | 'low'
-  phone: string
+  contact: string
   email: string
   address: string
-  emergencyContact: string
-  medicalHistory: string[]
-  registrationDate: string
-  status: 'active' | 'inactive'
-  citizenId: string
+  emergency_contact: string
+  medical_history: string[]
+  registration_date: string
+  status: 'waiting' | 'processing' | 'done' | 'cancelled'
+  cccd: string
+  isUnknown?: boolean
+  hospital?: string
 }
 
 export default function BloodManagementPage() {
   const router = useRouter()
-  
+  const { user } = useAuth()
+  const searchParams = useSearchParams()
+  const hospitalId = searchParams.get("hospitalId") || ""
+
+  const [staff, setStaff] = useState<Staff | null>(null)
+  const [staffId, setStaffId] = useState<string>()
+  const [bloodUnits, setBloodUnits] = useState<any>([])
+
   // State management
   const [activeTab, setActiveTab] = useState('stock')
   const [bloodStock, setBloodStock] = useState<BloodStock[]>([])
   const [bloodBags, setBloodBags] = useState<BloodBag[]>([])
   const [bloodRequests, setBloodRequests] = useState<BloodRequest[]>([])
   const [bloodTests, setBloodTests] = useState<BloodTest[]>([])
+  const [bloodTests2, setBloodTests2] = useState<BloodTest[]>([])
   const [patients, setPatients] = useState<Patient[]>([])
   const [loading, setLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
@@ -149,7 +240,7 @@ export default function BloodManagementPage() {
   const [showPatientDetailsDialog, setShowPatientDetailsDialog] = useState(false)
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null)
   const [isEditingPatient, setIsEditingPatient] = useState(false)
-  
+
   // States for blood test workflow
   const [showSelectPatientDialog, setShowSelectPatientDialog] = useState(false)
   const [selectedPatientForTest, setSelectedPatientForTest] = useState<Patient | null>(null)
@@ -157,7 +248,7 @@ export default function BloodManagementPage() {
   const [selectedTestDate, setSelectedTestDate] = useState<Date>()
   const [showTestStepsDialog, setShowTestStepsDialog] = useState(false)
   const [showSuccessMessage, setShowSuccessMessage] = useState<string>('')
-  
+
   // States for updating test results
   const [showUpdateResultDialog, setShowUpdateResultDialog] = useState(false)
   const [selectedTestForUpdate, setSelectedTestForUpdate] = useState<BloodTest | null>(null)
@@ -174,66 +265,87 @@ export default function BloodManagementPage() {
   const editBloodComponentRef = useRef<string>('')
   const editUrgencyRef = useRef<string>('')
 
+  const [isEmergencyUnknown, setIsEmergencyUnknown] = useState(false)
+
+  function getStockIdFromBloodGroup(bloodGroupABO: string, bloodGroupRh: string): string {
+    const bloodGroup = `${bloodGroupABO}${bloodGroupRh}`;
+
+    switch (bloodGroup) {
+      case "O+": return "1";
+      case "A+": return "2";
+      case "B-": return "3";
+      case "O-": return "4";
+      case "A-": return "5";
+      case "B+": return "6";
+      case "AB+": return "7";
+      case "AB-": return "8";
+      default: return "0"; // fallback nếu không khớp
+    }
+  }
+
+
+
+
   // Optimized input handlers - no re-render, direct DOM manipulation
   const handlePhoneInput = useCallback((e: React.FormEvent<HTMLInputElement>) => {
     const target = e.target as HTMLInputElement
     let value = target.value
-    
+
     // Chỉ giữ lại số
     value = value.replace(/[^0-9]/g, '')
-    
+
     // Giới hạn 10 số
     if (value.length > 10) {
       value = value.slice(0, 10)
     }
-    
+
     // Bắt buộc bắt đầu bằng số 0
     if (value.length > 0 && value[0] !== '0') {
       value = '0' + value.slice(1)
     }
-    
+
     target.value = value
   }, [])
 
   const handleCitizenIdInput = useCallback((e: React.FormEvent<HTMLInputElement>) => {
     const target = e.target as HTMLInputElement
     let value = target.value
-    
+
     // Chỉ giữ lại số
     value = value.replace(/[^0-9]/g, '')
-    
+
     // Giới hạn 12 số
     if (value.length > 12) {
       value = value.slice(0, 12)
     }
-    
+
     target.value = value
   }, [])
 
   const handleEmergencyContactInput = useCallback((e: React.FormEvent<HTMLInputElement>) => {
     const target = e.target as HTMLInputElement
     let value = target.value
-    
+
     // Chỉ giữ lại số
     value = value.replace(/[^0-9]/g, '')
-    
+
     // Giới hạn 10 số
     if (value.length > 10) {
       value = value.slice(0, 10)
     }
-    
+
     // Bắt buộc bắt đầu bằng số 0
     if (value.length > 0 && value[0] !== '0') {
       value = '0' + value.slice(1)
     }
-    
+
     target.value = value
   }, [])
 
   const handleEmailInput = useCallback((e: React.FormEvent<HTMLInputElement>) => {
     const target = e.target as HTMLInputElement
     const value = target.value
-    
+
     // Kiểm tra format Gmail
     if (value && !value.match(/^[a-zA-Z0-9._%+-]+@gmail\.com$/)) {
       target.setCustomValidity('Email phải có định dạng @gmail.com')
@@ -263,20 +375,20 @@ export default function BloodManagementPage() {
     e.preventDefault()
     const paste = e.clipboardData.getData('text')
     const target = e.target as HTMLInputElement
-    
+
     // Chỉ lấy số từ paste
     let cleanPaste = paste.replace(/[^0-9]/g, '')
-    
+
     // Giới hạn 10 số
     if (cleanPaste.length > 10) {
       cleanPaste = cleanPaste.slice(0, 10)
     }
-    
+
     // Bắt buộc bắt đầu bằng số 0
     if (cleanPaste.length > 0 && cleanPaste[0] !== '0') {
       cleanPaste = '0' + cleanPaste.slice(1)
     }
-    
+
     target.value = cleanPaste
   }, [])
 
@@ -284,15 +396,15 @@ export default function BloodManagementPage() {
     e.preventDefault()
     const paste = e.clipboardData.getData('text')
     const target = e.target as HTMLInputElement
-    
+
     // Chỉ lấy số từ paste
     let cleanPaste = paste.replace(/[^0-9]/g, '')
-    
+
     // Giới hạn 12 số
     if (cleanPaste.length > 12) {
       cleanPaste = cleanPaste.slice(0, 12)
     }
-    
+
     target.value = cleanPaste
   }, [])
 
@@ -300,62 +412,41 @@ export default function BloodManagementPage() {
     e.preventDefault()
     const paste = e.clipboardData.getData('text')
     const target = e.target as HTMLInputElement
-    
+
     // Chỉ lấy số từ paste
     let cleanPaste = paste.replace(/[^0-9]/g, '')
-    
+
     // Giới hạn 10 số
     if (cleanPaste.length > 10) {
       cleanPaste = cleanPaste.slice(0, 10)
     }
-    
+
     // Bắt buộc bắt đầu bằng số 0
     if (cleanPaste.length > 0 && cleanPaste[0] !== '0') {
       cleanPaste = '0' + cleanPaste.slice(1)
     }
-    
+
     target.value = cleanPaste
   }, [])
 
   const handleNameInput = useCallback((e: React.FormEvent<HTMLInputElement>) => {
     const target = e.target as HTMLInputElement
     let value = target.value
-    
-    // Chỉ giữ lại chữ cái, khoảng trắng và dấu tiếng Việt
-    value = value.replace(/[^a-zA-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠàáâãèéêìíòóôõùúăđĩũơƯĂÊÔÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚÝĂĐĨŨƠƯĂÊÔĤÕÑäëïöüÿñæøåαβγδεζηθικλμνξοπρστυφχψωАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя\s]/g, '')
-    
-    target.value = value
-  }, [])
 
-  const handleNameKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
-    // Chỉ cho phép: chữ cái, khoảng trắng, Backspace, Delete, Tab, Enter, Arrow keys
-    if (!(
-      (e.key >= 'a' && e.key <= 'z') ||
-      (e.key >= 'A' && e.key <= 'Z') ||
-      e.key === ' ' ||
-      e.key === 'Backspace' ||
-      e.key === 'Delete' ||
-      e.key === 'Tab' ||
-      e.key === 'Enter' ||
-      e.key === 'ArrowLeft' ||
-      e.key === 'ArrowRight' ||
-      e.key === 'ArrowUp' ||
-      e.key === 'ArrowDown' ||
-      // Cho phép các dấu tiếng Việt
-      /[À-ỹ]/.test(e.key)
-    )) {
-      e.preventDefault()
-    }
+    // Chỉ giữ lại chữ cái Unicode, khoảng trắng (hỗ trợ đầy đủ tiếng Việt)
+    value = value.replace(/[^\p{L}\s]/gu, '')
+
+    target.value = value
   }, [])
 
   const handleNamePaste = useCallback((e: React.ClipboardEvent<HTMLInputElement>) => {
     e.preventDefault()
     const paste = e.clipboardData.getData('text')
     const target = e.target as HTMLInputElement
-    
-    // Chỉ lấy chữ cái, khoảng trắng và dấu tiếng Việt từ paste
-    const cleanPaste = paste.replace(/[^a-zA-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠàáâãèéêìíòóôõùúăđĩũơƯĂÊÔÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚÝĂĐĨŨƠƯĂÊÔĤÕÑäëïöüÿñæøåαβγδεζηθικλμνξοπρστυφχψωАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя\s]/g, '')
-    
+
+    // Chỉ lấy chữ cái Unicode, khoảng trắng từ paste (hỗ trợ đầy đủ tiếng Việt)
+    const cleanPaste = paste.replace(/[^\p{L}\s]/gu, '')
+
     target.value = cleanPaste
   }, [])
 
@@ -363,7 +454,7 @@ export default function BloodManagementPage() {
   const handleAgeInput = useCallback((e: React.FormEvent<HTMLInputElement>) => {
     const target = e.target as HTMLInputElement
     const value = parseInt(target.value)
-    
+
     if (!isNaN(value)) {
       if (value > 150) {
         target.value = '150'
@@ -390,6 +481,48 @@ export default function BloodManagementPage() {
       }
     }
   }, [])
+
+  // Kiểm tra và xử lý dữ liệu từ localStorage
+  async function getPatients(){
+      try {
+        // const parsedPatients = JSON.parse(storedPatients)
+        // patientsData = parsedPatients
+        const response = await api.get(`/patients/by-hospital/${hospitalId}`);
+        console.log(response.data.patients)
+        setPatients(response.data.patients);
+      } catch (error) {
+        // Lỗi parse JSON, dùng default data
+        localStorage.removeItem('patients')
+        console.log('Đã khôi phục dữ liệu bệnh nhân')
+      }
+  }
+
+  async function getBloodTestRecords(){
+      try {
+        // const parsedPatients = JSON.parse(storedPatients)
+        // patientsData = parsedPatients
+        const response = await api.get(`/blood-test-records/by-hospital/${hospitalId}`);
+        setBloodTests(response.data.bloodTestRecords);
+      } catch (error) {
+        // Lỗi parse JSON, dùng default data
+        localStorage.removeItem('patients')
+        console.log('Đã khôi phục dữ liệu bệnh nhân')
+      }
+  }
+
+  async function getBloodRequestRecords(){
+      try {
+        // const parsedPatients = JSON.parse(storedPatients)
+        // patientsData = parsedPatients
+        const response = await api.get(`/blood-request-records/blood-requests/${hospitalId}`);
+        setBloodRequests(response.data.bloodRequestRecords);
+        console.log("Blood requests:", response.data.bloodRequestRecords)
+      } catch (error) {
+        // Lỗi parse JSON, dùng default data
+        localStorage.removeItem('patients')
+        console.log('Đã khôi phục dữ liệu bệnh nhân')
+      }
+  }
 
   // Sample data initialization
   useEffect(() => {
@@ -469,6 +602,122 @@ export default function BloodManagementPage() {
       }
     ])
 
+    async function fetchProfile() {
+      try {
+        setLoading(true)
+        if (!user?._id) return;
+
+        const profileRes = await api.get(`/users/staff-profiles/active/${user._id}`);
+        const staffData = profileRes.data.staffProfile;
+        setStaff(staffData);
+        console.log("Staff data:", staffData);
+        setStaffId(staffData?.hospital?._id);
+
+        if (staffData?.hospital?._id) {
+          // Fetch donation requests from API
+
+          const bUnits = await api.get(`/whole-blood/hospital/${staffData.hospital._id}/whole-blood-units`);
+
+          const mappedBloodUnits = bUnits.data.units.map((unit: any, index: number) => {
+            const stockId = getStockIdFromBloodGroup(unit.bloodGroupABO, unit.bloodGroupRh);
+
+            return {
+              id: unit._id,
+              stockId,
+              bagNumber: unit._id,
+              volume: unit.volumeOrWeight,
+              donorId: unit.user_id?._id || 'N/A',
+              donorName: unit.user_id?.full_name || 'Không rõ',
+              collectionDate: unit.collectionDate?.split('T')[0] || '',
+              expiryDate: unit.expiryDate?.split('T')[0] || '',
+              status: unit.status === 'donated' ? 'available' : 'used',
+              location: `Kho A - Tủ 1 - Ngăn ${index + 1}`,
+              component: 'whole_blood',
+              notes: unit.notes || ''
+            };
+          });
+
+          const rbcUnits = await api.get(`/whole-blood/hospital/${staffData.hospital._id}/red-blood-cells`);
+
+          const mappedRedCellUnits = rbcUnits.data.units.map((unit: any, index: number) => {
+            const stockId = getStockIdFromBloodGroup(unit.bloodGroupABO, unit.bloodGroupRh);
+
+            return {
+              id: unit._id,
+              stockId,
+              bagNumber: unit._id,
+              volume: unit.volumeOrWeight,
+              donorId: unit.user_id?._id || 'N/A',
+              donorName: unit.user_id?.full_name || 'Không rõ',
+              collectionDate: unit.collectionDate?.split('T')[0] || '',
+              expiryDate: unit.expiryDate?.split('T')[0] || '',
+              status: unit.status === 'donated' ? 'available' : 'used',
+              location: `Kho A - Tủ 1 - Ngăn ${index + 1}`,
+              component: 'red_cells',
+              notes: unit.notes || ''
+            };
+          });
+
+          const plasUnits = await api.get(`/whole-blood/hospital/${staffData.hospital._id}/plasmas`);
+          const mappedPlasmaUnits = plasUnits.data.units.map((unit: any, index: number) => {
+            const stockId = getStockIdFromBloodGroup(unit.bloodGroupABO, unit.bloodGroupRh);
+
+            return {
+              id: unit._id,
+              stockId,
+              bagNumber: unit._id,
+              volume: unit.volumeOrWeight,
+              donorId: unit.user_id?._id || 'N/A',
+              donorName: unit.user_id?.full_name || 'Không rõ',
+              collectionDate: unit.collectionDate?.split('T')[0] || '',
+              expiryDate: unit.expiryDate?.split('T')[0] || '',
+              status: unit.status === 'donated' ? 'available' : 'used',
+              location: `Kho A - Tủ 1 - Ngăn ${index + 1}`,
+              component: 'plasma',
+              notes: unit.notes || ''
+            };
+          });
+
+          const platUnits = await api.get(`/whole-blood/hospital/${staffData.hospital._id}/platelets`);
+          const mappedPlateletUnits = platUnits.data.units.map((unit: any, index: number) => {
+            const stockId = getStockIdFromBloodGroup(unit.bloodGroupABO, unit.bloodGroupRh);
+
+            return {
+              id: unit._id,
+              stockId,
+              bagNumber: unit._id,
+              volume: unit.volumeOrWeight,
+              donorId: unit.user_id?._id || 'N/A',
+              donorName: unit.user_id?.full_name || 'Không rõ',
+              collectionDate: unit.collectionDate?.split('T')[0] || '',
+              expiryDate: unit.expiryDate?.split('T')[0] || '',
+              status: unit.status === 'donated' ? 'available' : 'used',
+              location: `Kho A - Tủ 1 - Ngăn ${index + 1}`,
+              component: 'platelets',
+              notes: unit.notes || ''
+            };
+          });
+
+
+          setBloodBags([
+            ...mappedBloodUnits,
+            ...mappedRedCellUnits,
+            ...mappedPlasmaUnits,
+            ...mappedPlateletUnits
+          ]);
+
+
+        }
+      } catch (error) {
+        console.error("Failed to fetch data:", error);
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchProfile();
+
+    /*
     setBloodBags([
       // Túi máu cho nhóm O+
       {
@@ -1078,7 +1327,7 @@ export default function BloodManagementPage() {
         location: 'Kho A - Tủ 4 - Ngăn 6',
         component: 'plasma'
       }
-    ])
+    ])*/
 
     setBloodRequests([])
 
@@ -1087,23 +1336,15 @@ export default function BloodManagementPage() {
     // Load patients from localStorage or use default data
     const storedPatients = localStorage.getItem('patients')
     const defaultPatients: Patient[] = []
-    
+
     let patientsData = defaultPatients
+
     
-    // Kiểm tra và xử lý dữ liệu từ localStorage
-    if (storedPatients) {
-      try {
-        const parsedPatients = JSON.parse(storedPatients)
-        patientsData = parsedPatients
-      } catch (error) {
-        // Lỗi parse JSON, dùng default data
-        localStorage.removeItem('patients')
-        console.log('Đã khôi phục dữ liệu bệnh nhân')
-      }
-    }
-    
-    setPatients(patientsData)
-  }, [])
+    getPatients();
+    getBloodTestRecords();
+    getBloodRequestRecords();
+    console.log("No problem")
+  }, [user])
 
   // Helper functions
   const getStatusColor = (status: string) => {
@@ -1113,6 +1354,7 @@ export default function BloodManagementPage() {
       case 'passed':
       case 'approved':
       case 'fulfilled':
+      case 'waiting':
         return 'bg-green-100 text-green-800'
       case 'pending':
         return 'bg-yellow-100 text-yellow-800'
@@ -1138,8 +1380,14 @@ export default function BloodManagementPage() {
     setSelectedBloodBags([])
   }, [])
 
-  const handleConfirmApproval = useCallback(() => {
+  const handleConfirmApproval = useCallback(async () => {
     if (selectedRequestForBloodSelection && selectedBloodBags.length > 0) {
+      const response_id = bloodRequests.find(request => request.id === selectedRequestForBloodSelection)?._id;
+      console.log(response_id)
+      await api.put(`/blood-request-records/status/${response_id}`, {status: "approved"})
+      await api.put(`/blood-request-records/selected-bag/${response_id}`, {selectedBags: [...selectedBloodBags]})
+      toast.success("Thành công")
+
       setBloodRequests(prevRequests =>
         prevRequests.map(request =>
           request.id === selectedRequestForBloodSelection
@@ -1147,7 +1395,7 @@ export default function BloodManagementPage() {
             : request
         )
       )
-      
+
       // Cập nhật trạng thái túi máu đã chọn thành reserved
       setBloodBags(prevBags =>
         prevBags.map(bag =>
@@ -1156,10 +1404,10 @@ export default function BloodManagementPage() {
             : bag
         )
       )
-      
+
       console.log(`Đã duyệt yêu cầu máu ID: ${selectedRequestForBloodSelection}`)
       console.log(`Đã chọn ${selectedBloodBags.length} túi máu:`, selectedBloodBags)
-      
+
       setShowBloodSelectionDialog(false)
       setSelectedRequestForBloodSelection(null)
       setSelectedBloodBags([])
@@ -1177,9 +1425,12 @@ export default function BloodManagementPage() {
     console.log(`Đã từ chối yêu cầu máu ID: ${requestId}`)
   }, [])
 
-  const handleStartTransfusion = useCallback((requestId: string) => {
+  const handleStartTransfusion = useCallback(async (requestId: string) => {
+    const response_id = bloodRequests.find(request => request.id === requestId)?._id;
+    await api.put(`/blood-request-records/status/${response_id}`, {status: "in_progress"})
+    toast.success("Thành công chuyển trạng thái bằng \"Bắt đầu truyền máu\"")
     const request = bloodRequests.find(req => req.id === requestId)
-    
+
     setBloodRequests(prevRequests =>
       prevRequests.map(request =>
         request.id === requestId
@@ -1187,7 +1438,7 @@ export default function BloodManagementPage() {
           : request
       )
     )
-    
+
     // Update selected bags status to 'in_progress' to indicate they are being prepared
     if (request && request.selectedBags) {
       setBloodBags(prevBags =>
@@ -1202,14 +1453,42 @@ export default function BloodManagementPage() {
         })
       )
     }
-    
+
     console.log(`Đã bắt đầu truyền máu cho yêu cầu ID: ${requestId}`)
   }, [bloodRequests])
 
-  const handleCompleteTransfusion = useCallback((requestId: string) => {
+  const handleCompleteTransfusion = useCallback(async (requestId: string) => {
     // Find the request to get blood type and units needed
+    const response = bloodRequests.find(request => request.id === requestId);
+    console.log(response)
+    await api.put(`/blood-request-records/status/${response?._id}`, {status: "fulfilled"})
+    toast.success("Thành công chuyển trạng thái bằng \"Truyền máu thành công\"")
     const request = bloodRequests.find(req => req.id === requestId)
+    if (response.component === "whole_blood"){
+      await api.put(`/whole-blood/whole-blood-unit/transfused/notes`, {
+        ids: response?.selectedBags,
+        notes: `Đã sử dụng cho yêu cầu ${requestId} - ${request?.patientName}`,
+      })
+    } else if (response.component === "red_cells"){
+      await api.put(`/whole-blood/red-blood-cell/transfused/notes`, {
+        ids: response?.selectedBags,
+        notes: `Đã sử dụng cho yêu cầu ${requestId} - ${request?.patientName}`,
+      })
+    } if (response.component === "platelets"){
+      await api.put(`/whole-blood/platelet/transfused/notes`, {
+        ids: response?.selectedBags,
+        notes: `Đã sử dụng cho yêu cầu ${requestId} - ${request?.patientName}`,
+      })
+    } if (response.component === "plasma"){
+      await api.put(`/whole-blood/plasma/transfused/notes`, {
+        ids: response?.selectedBags,
+        notes: `Đã sử dụng cho yêu cầu ${requestId} - ${request?.patientName}`,
+      })
+    } 
+    toast.success("Đã đánh dấu những túi máu thành \"Đã truyền\"")
     
+    
+
     if (request) {
       // Update blood requests status
       setBloodRequests(prevRequests =>
@@ -1219,7 +1498,7 @@ export default function BloodManagementPage() {
             : req
         )
       )
-      
+
       // If request has selected bags, mark those specific bags as used
       if (request.selectedBags && request.selectedBags.length > 0) {
         setBloodBags(prevBags =>
@@ -1237,7 +1516,7 @@ export default function BloodManagementPage() {
 
         // Update blood stock by reducing units based on selected bags
         const stockUpdates = new Map<string, number>()
-        
+
         // Count bags per stock
         request.selectedBags.forEach(bagId => {
           const bag = bloodBags.find(b => b.id === bagId)
@@ -1282,12 +1561,12 @@ export default function BloodManagementPage() {
         setBloodBags(prevBags => {
           const stockForBloodType = bloodStock.find(s => s.bloodType === request.bloodType)
           if (!stockForBloodType) return prevBags
-          
+
           let unitsToMark = request.unitsNeeded
           return prevBags.map(bag => {
-            if (bag.stockId === stockForBloodType.id && 
-                bag.status === 'available' && 
-                unitsToMark > 0) {
+            if (bag.stockId === stockForBloodType.id &&
+              bag.status === 'available' &&
+              unitsToMark > 0) {
               unitsToMark--
               return {
                 ...bag,
@@ -1311,41 +1590,57 @@ export default function BloodManagementPage() {
     setSelectedTestForUpdate(test)
     setShowUpdateResultDialog(true)
   }, [])
+  
 
-  const handleSaveTestResult = useCallback((e: React.FormEvent) => {
+  
+
+  const handleSaveTestResult = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!selectedTestForUpdate) return
-    
+
     const form = e.target as HTMLFormElement
-    
+
+    // ...trong handleSaveTestResult...
+    const selectedBloodUnits = parseInt((form.querySelector('#bloodUnits') as HTMLSelectElement)?.value || '1')
+    const bloodVolumeNeeded = selectedBloodUnits * 250 // 1 đơn vị = 250ml
+    // ...existing code...
+    const newBloodRequest = {
+      // ...existing fields...
+      unitsNeeded: selectedBloodUnits,
+      volumeNeeded: bloodVolumeNeeded, // thêm trường này
+      // ...existing fields...
+    }
+    // ...existing code...
+
     // Get values from form
     const notes = (form.querySelector('#testNotes') as HTMLTextAreaElement)?.value || ''
     const confirmedBloodType = (form.querySelector('#confirmedBloodType') as HTMLSelectElement)?.value || selectedTestForUpdate?.bloodType
     const confirmedBloodComponent = (form.querySelector('#confirmedBloodComponent') as HTMLSelectElement)?.value || ''
     const bloodUnits = parseInt((form.querySelector('#bloodUnits') as HTMLSelectElement)?.value || '1')
-    
+
     // Set default values since fields were removed
     const hemoglobin = selectedTestForUpdate?.hemoglobin || 0
     const technician = selectedTestForUpdate?.technician || 'KTV. Chưa xác định'
-    
+
     // Set all infectious disease tests to false since they were removed
     const hiv = false
     const hepatitisB = false
     const hepatitisC = false
     const syphilis = false
-    
+
     // Get patient info for comparison
-    const patientInfo = patients.find(p => p.id === selectedTestForUpdate.donorId)
+    console.log(selectedTestForUpdate)
+    const patientInfo = patients.find(p => p._id === selectedTestForUpdate.donorId._id)
     const originalBloodComponent = patientInfo?.bloodComponent || ''
-    
+
     // Check if blood type or component was actually changed
     const bloodTypeChanged = confirmedBloodType !== selectedTestForUpdate?.bloodType
     const componentChanged = confirmedBloodComponent !== '' && confirmedBloodComponent !== originalBloodComponent
-    
+
     // Determine test status - will always be 'passed' since infectious disease tests are removed
     const status = 'passed'
-    
+
     // Create updated notes with corrections if any
     let updatedNotes = notes
     if (bloodTypeChanged) {
@@ -1353,14 +1648,14 @@ export default function BloodManagementPage() {
     }
     if (componentChanged) {
       const originalComponentName = originalBloodComponent === 'whole_blood' ? 'Máu toàn phần' :
-                                   originalBloodComponent === 'red_cells' ? 'Hồng cầu' :
-                                   originalBloodComponent === 'platelets' ? 'Tiểu cầu' : 'Huyết tương'
+        originalBloodComponent === 'red_cells' ? 'Hồng cầu' :
+          originalBloodComponent === 'platelets' ? 'Tiểu cầu' : 'Huyết tương'
       const newComponentName = confirmedBloodComponent === 'whole_blood' ? 'Máu toàn phần' :
-                              confirmedBloodComponent === 'red_cells' ? 'Hồng cầu' :
-                              confirmedBloodComponent === 'platelets' ? 'Tiểu cầu' : 'Huyết tương'
+        confirmedBloodComponent === 'red_cells' ? 'Hồng cầu' :
+          confirmedBloodComponent === 'platelets' ? 'Tiểu cầu' : 'Huyết tương'
       updatedNotes += `\n[Sửa thành phần máu: ${originalComponentName} → ${newComponentName}]`
     }
-    
+
     // Update test object
     const updatedTest = {
       ...selectedTestForUpdate,
@@ -1375,27 +1670,32 @@ export default function BloodManagementPage() {
       status: status as 'passed' | 'failed'
     }
 
-    console.log('Đã cập nhật kết quả xét nghiệm:', updatedTest)
-    
+    const response = await api.put(`/blood-test-records/${selectedTestForUpdate._id}`, updatedTest);
+    toast.success(response.data.message)
+    console.log(response.data)
+
     // Update blood tests state
-    setBloodTests(prev => prev.map(t => t.id === selectedTestForUpdate.id ? updatedTest : t))
+    getBloodTestRecords();
     
     // Automatically create blood request when test is confirmed
-    if (patientInfo) {
+    if (response.data.message === "Cập nhật kết quả xét nghiệm thành công") {
+      console.log("Truy tim: ")
+      console.log(patientInfo)
       const newRequestId = `R${Date.now().toString().slice(-6)}`
-      
+
       // Use the confirmed blood component or the original one if not changed
       const finalBloodComponent = componentChanged ? confirmedBloodComponent : originalBloodComponent
-      
+
       // Ensure component type is valid
-      const validComponent = ['whole_blood', 'red_cells', 'platelets', 'plasma'].includes(finalBloodComponent) 
+      const validComponent = ['whole_blood', 'red_cells', 'platelets', 'plasma'].includes(finalBloodComponent)
         ? finalBloodComponent as 'whole_blood' | 'red_cells' | 'platelets' | 'plasma'
         : 'whole_blood' as const
-      
+
       const newBloodRequest = {
         id: newRequestId,
+        hospital_id: hospitalId,
         patientName: patientInfo.name,
-        patientId: patientInfo.id,
+        patientId: patientInfo._id,
         bloodType: confirmedBloodType, // Use confirmed blood type
         component: validComponent,
         unitsNeeded: bloodUnits, // Use selected units
@@ -1408,50 +1708,72 @@ export default function BloodManagementPage() {
         reason: `Yêu cầu ${bloodUnits} đơn vị máu sau xét nghiệm xác nhận cho bệnh nhân ${patientInfo.name}`,
         selectedBags: [] // Khởi tạo mảng rỗng cho túi máu đã chọn
       }
-      
+
+      console.log("Yeu: ")
+      console.log(newBloodRequest)
+
       // Add to blood requests
-      setBloodRequests(prev => [newBloodRequest, ...prev])
-      
+      await api.post("/blood-request-records/blood-requests", newBloodRequest);
+      toast.success("Đã tạo ra một yêu cầu máu")
+
+      getBloodRequestRecords();
+
       console.log('Đã tự động tạo yêu cầu máu:', newBloodRequest)
     }
-    
+
     // Show success message
-    const urgencyText = patientInfo?.urgency === 'critical' ? ' (CỰC KỲ KHẨN CẤP)' : 
-                       patientInfo?.urgency === 'high' ? ' (KHẨN CẤP)' : 
-                       patientInfo?.urgency === 'low' ? ' (ÍT KHẨN CẤP)' : 
-                       ' (TRUNG BÌNH)'
+    const urgencyText = patientInfo?.urgency === 'critical' ? ' (CỰC KỲ KHẨN CẤP)' :
+      patientInfo?.urgency === 'high' ? ' (KHẨN CẤP)' :
+        patientInfo?.urgency === 'low' ? ' (ÍT KHẨN CẤP)' :
+          ' (TRUNG BÌNH)'
     setShowSuccessMessage(`Đã cập nhật kết quả xét nghiệm và tự động tạo yêu cầu ${bloodUnits} đơn vị máu${urgencyText} cho ${selectedTestForUpdate.donorName}`)
     setTimeout(() => setShowSuccessMessage(''), 5000)
-    
+
     // Close dialog and reset
     setShowUpdateResultDialog(false)
     setSelectedTestForUpdate(null)
   }, [selectedTestForUpdate])
 
   // Handle add patient - no reload, switch to patients tab
-  const handleAddPatient = useCallback((e: React.FormEvent) => {
+  const handleAddPatient = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     const form = e.target as HTMLFormElement
-    
+
     // Get values directly from form
-    const name = (form.querySelector('#patientName') as HTMLInputElement)?.value || ''
-    const age = (form.querySelector('#age') as HTMLInputElement)?.value || ''
-    const gender = genderRef.current || ''
-    const bloodType = bloodTypeRef.current || ''
-    const bloodComponent = bloodComponentRef.current || ''
-    const urgency = urgencyRef.current || 'medium'
-    const phone = (form.querySelector('#phone') as HTMLInputElement)?.value || ''
-    const citizenId = (form.querySelector('#citizenId') as HTMLInputElement)?.value || ''
-    const email = (form.querySelector('#email') as HTMLInputElement)?.value || ''
-    const address = (form.querySelector('#address') as HTMLInputElement)?.value || ''
-    const emergencyContact = (form.querySelector('#emergencyContact') as HTMLInputElement)?.value || ''
-    const medicalHistory = (form.querySelector('#medicalHistory') as HTMLTextAreaElement)?.value || ''
-    
+    let name = (form.querySelector('#patientName') as HTMLInputElement)?.value || ''
+    let age = (form.querySelector('#age') as HTMLInputElement)?.value || ''
+    let gender = genderRef.current || ''
+    let bloodType = bloodTypeRef.current || ''
+    let bloodComponent = bloodComponentRef.current || ''
+    let urgency = urgencyRef.current || 'medium'
+    let phone = (form.querySelector('#phone') as HTMLInputElement)?.value || ''
+    let citizenId = (form.querySelector('#citizenId') as HTMLInputElement)?.value || ''
+    let email = (form.querySelector('#email') as HTMLInputElement)?.value || ''
+    let address = (form.querySelector('#address') as HTMLInputElement)?.value || ''
+    let emergencyContact = (form.querySelector('#emergencyContact') as HTMLInputElement)?.value || ''
+    let medicalHistory = (form.querySelector('#medicalHistory') as HTMLTextAreaElement)?.value || ''
+
     // Generate ID without depending on state
     const timestamp = Date.now()
     const newId = `P${timestamp.toString().slice(-3).padStart(3, '0')}`
-    
+
+    if (isEmergencyUnknown) {
+      name = "Bệnh nhân khẩn cấp"
+      age = "0"
+      gender = "other"
+      bloodType = "AB+"
+      bloodComponent = "whole_blood"
+      phone = ""
+      citizenId = ""
+      email = ""
+      address = ""
+      emergencyContact = ""
+      medicalHistory = ""
+      urgency = "critical"
+    }
+
+
     // Create new patient object
     const patientToAdd = {
       id: newId,
@@ -1472,40 +1794,60 @@ export default function BloodManagementPage() {
     }
 
     console.log('Đã thêm bệnh nhân mới:', patientToAdd)
-    
-    // Update patients state
-    setPatients(prev => [...prev, patientToAdd])
-    
-    // Store in localStorage to persist data
-    const existingPatients = JSON.parse(localStorage.getItem('patients') || '[]')
-    existingPatients.push(patientToAdd)
-    localStorage.setItem('patients', JSON.stringify(existingPatients))
-    
+
+    // ...existing code...
+    const patientToAdd2 = {
+      name,
+      age: parseInt(age),
+      gender: gender as 'male' | 'female' | 'other',
+      blood_type: bloodType,
+      component_needed: bloodComponent,
+      urgency: urgency as 'critical' | 'high' | 'medium' | 'low',
+      contact: phone,
+      cccd: citizenId,
+      emergency_contact: emergencyContact,
+      address,
+      medical_history: medicalHistory ? [medicalHistory] : [],
+      registration_date: new Date().toISOString(),
+      status: 'waiting',
+      email,
+      isUnknown: false,
+      hospital: hospitalId
+    }
+
+    console.log('Đã thêm bệnh nhân mới2:', patientToAdd2)
+    // ...gọi API thêm bệnh nhân...
+    await api.post("/patients/create", patientToAdd2)
+    // ...existing code...
+    toast.success(`Đã thêm bệnh nhân ${name} thành công!`)
+
+    getPatients();
+
     // Close dialog
     setShowAddPatientDialog(false)
-    
+
     // Reset form
     if (formRef.current) {
       formRef.current.reset()
     }
-    
+
     // Reset refs
     genderRef.current = ''
     bloodTypeRef.current = ''
     bloodComponentRef.current = ''
     urgencyRef.current = ''
-    
+
     // Switch to patients tab
     setActiveTab('patients')
-    
-  }, []) // Empty dependency array - no re-render dependency
+
+  }, [isEmergencyUnknown]) // Empty dependency array - no re-render dependency
 
   // Handle patient actions
   const handleViewPatient = useCallback((patient: Patient) => {
     setSelectedPatient(patient)
     setIsEditingPatient(false)
     setShowPatientDetailsDialog(true)
-    
+
     // Set edit refs with patient data
     editGenderRef.current = patient.gender || ''
     editBloodTypeRef.current = patient.bloodType || ''
@@ -1517,13 +1859,13 @@ export default function BloodManagementPage() {
     setIsEditingPatient(true)
   }, [])
 
-  const handleSavePatientEdit = useCallback((e: React.FormEvent) => {
+  const handleSavePatientEdit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!selectedPatient) return
-    
+
     const form = e.target as HTMLFormElement
-    
+
     // Get values from form
     const name = (form.querySelector('#editPatientName') as HTMLInputElement)?.value || ''
     const age = (form.querySelector('#editAge') as HTMLInputElement)?.value || ''
@@ -1537,7 +1879,7 @@ export default function BloodManagementPage() {
     const address = (form.querySelector('#editAddress') as HTMLInputElement)?.value || ''
     const emergencyContact = (form.querySelector('#editEmergencyContact') as HTMLInputElement)?.value || ''
     const medicalHistory = (form.querySelector('#editMedicalHistory') as HTMLTextAreaElement)?.value || ''
-    
+
     // Update patient object
     const updatedPatient = {
       ...selectedPatient,
@@ -1555,37 +1897,53 @@ export default function BloodManagementPage() {
       citizenId
     }
 
+    await api.put(`/patients/${selectedPatient._id}`, {
+      name: name,
+      age: parseInt(age),
+      gender: gender,
+      blood_type: bloodType,
+      component_needed: bloodComponent,
+      urgency: urgency,
+      contact: phone,
+      cccd: citizenId,
+      email: email,
+      address: address,
+      emergency_contact: emergencyContact,
+      medical_history: medicalHistory ? [medicalHistory] : [],
+    })
+
+    getPatients();
+
+    toast.success("Đã cập nhật bệnh nhân thành công")
+
     console.log('Đã cập nhật bệnh nhân:', updatedPatient)
-    
+
     // Update patients state
     setPatients(prev => prev.map(p => p.id === selectedPatient.id ? updatedPatient : p))
-    
+
     // Update localStorage
     const existingPatients = JSON.parse(localStorage.getItem('patients') || '[]')
     const updatedPatients = existingPatients.map((p: Patient) => p.id === selectedPatient.id ? updatedPatient : p)
     localStorage.setItem('patients', JSON.stringify(updatedPatients))
-    
+
     // Update selected patient and switch to view mode
     setSelectedPatient(updatedPatient)
     setIsEditingPatient(false)
   }, [selectedPatient])
 
-  const handleDeletePatient = useCallback(() => {
+  const handleDeletePatient = useCallback(async () => {
     if (!selectedPatient) return
-    
+
     const confirmDelete = window.confirm(`Bạn có chắc chắn muốn xóa bệnh nhân "${selectedPatient.name}"?`)
-    
+
     if (confirmDelete) {
-      console.log('Đã xóa bệnh nhân:', selectedPatient.id)
-      
-      // Remove from patients state
-      setPatients(prev => prev.filter(p => p.id !== selectedPatient.id))
-      
-      // Remove from localStorage
-      const existingPatients = JSON.parse(localStorage.getItem('patients') || '[]')
-      const updatedPatients = existingPatients.filter((p: Patient) => p.id !== selectedPatient.id)
-      localStorage.setItem('patients', JSON.stringify(updatedPatients))
-      
+
+      await api.put(`/patients/${selectedPatient._id}/cancelled`);
+
+      toast.success('Đã xóa bệnh nhân: ' + selectedPatient.name + ', ' + selectedPatient._id);
+
+      getPatients();
+
       // Close dialog
       setShowPatientDetailsDialog(false)
       setSelectedPatient(null)
@@ -1645,9 +2003,15 @@ export default function BloodManagementPage() {
     }
   }
 
-  const formatDate = (dateString: string) => {
-    return format(new Date(dateString), 'dd/MM/yyyy', { locale: vi })
+  function formatDate(dateStr?: string) {
+    if (!dateStr) return "Không rõ";
+
+    const parsedDate = new Date(dateStr);
+    if (isNaN(parsedDate.getTime())) return "Không rõ";
+
+    return format(parsedDate, "dd/MM/yyyy");
   }
+
 
   const getComponentName = (component: string) => {
     switch (component) {
@@ -1700,7 +2064,7 @@ export default function BloodManagementPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-red-600">
-                  {bloodStock.reduce((sum, stock) => sum + stock.units, 0)}
+                  {bloodBags.length}
                 </div>
                 <p className="text-xs text-muted-foreground">Tất cả nhóm máu</p>
               </CardContent>
@@ -1712,7 +2076,9 @@ export default function BloodManagementPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-green-600">
-                  {bloodStock.filter(stock => stock.units > 0).reduce((sum, stock) => sum + stock.units, 0)}
+                  {bloodBags.filter((value) => {
+                    return value.status === "available"
+                  }).length}
                 </div>
                 <p className="text-xs text-muted-foreground">Đơn vị sẵn sàng</p>
               </CardContent>
@@ -1754,15 +2120,21 @@ export default function BloodManagementPage() {
                           {stock.bloodType}
                         </Badge>
                       </TableCell>
-                      <TableCell>{stock.units}</TableCell>
+                      <TableCell>{bloodBags.filter((value) => {
+                        return value.stockId === stock.id && value.status === "available"
+                      }).length}</TableCell>
                       <TableCell>
-                        <Badge className={stock.units > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
-                          {stock.units > 0 ? 'Có sẵn' : 'Đã hết'}
+                        <Badge className={bloodBags.filter((value) => {
+                          return value.stockId === stock.id && value.status === "available"
+                        }).length > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+                          {bloodBags.filter((value) => {
+                            return value.stockId === stock.id
+                          }).length > 0 ? 'Có sẵn' : 'Đã hết'}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Button 
-                          variant="outline" 
+                        <Button
+                          variant="outline"
                           size="sm"
                           onClick={() => {
                             setSelectedStockId(stock.id)
@@ -1796,8 +2168,8 @@ export default function BloodManagementPage() {
         {/* Header with back button */}
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               onClick={() => setShowBagDetails(false)}
             >
@@ -1861,7 +2233,7 @@ export default function BloodManagementPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-red-600">
-                {filteredBags.reduce((sum, bag) => sum + bag.volume, 0)} ml
+                {Number(filteredBags.reduce((sum, bag) => sum + bag.volume, 0)).toFixed(2)} ml
               </div>
               <p className="text-xs text-muted-foreground">Tổng lượng máu</p>
             </CardContent>
@@ -1899,7 +2271,7 @@ export default function BloodManagementPage() {
                         <div className="text-sm text-gray-500">{bag.donorId}</div>
                       </div>
                     </TableCell>
-                    <TableCell>{bag.volume}</TableCell>
+                    <TableCell>{Number(bag.volume).toFixed(2)}</TableCell>
                     <TableCell>{formatDate(bag.collectionDate)}</TableCell>
                     <TableCell>{formatDate(bag.expiryDate)}</TableCell>
                     <TableCell>
@@ -1910,13 +2282,13 @@ export default function BloodManagementPage() {
                     <TableCell>
                       <Badge className={
                         bag.status === 'available' ? 'bg-green-100 text-green-800' :
-                        bag.status === 'used' ? 'bg-gray-100 text-gray-800' :
-                        bag.status === 'expired' ? 'bg-red-100 text-red-800' :
-                        'bg-gray-100 text-gray-800'
+                          bag.status === 'used' ? 'bg-gray-100 text-gray-800' :
+                            bag.status === 'expired' ? 'bg-red-100 text-red-800' :
+                              'bg-gray-100 text-gray-800'
                       }>
                         {bag.status === 'available' ? 'Có sẵn' :
-                         bag.status === 'used' ? 'Đã sử dụng' :
-                         bag.status === 'expired' ? 'Hết hạn' : 'Đã sử dụng'}
+                          bag.status === 'used' ? 'Đã sử dụng' :
+                            bag.status === 'expired' ? 'Hết hạn' : 'Đã sử dụng'}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-sm max-w-40">
@@ -1934,33 +2306,117 @@ export default function BloodManagementPage() {
 
   // Blood Requests Management Component
   const BloodRequestsTab = () => {
-    const selectedRequest = useMemo(() => 
+    const selectedRequest = useMemo(() =>
       bloodRequests.find(req => req.id === selectedRequestForBloodSelection),
       [bloodRequests, selectedRequestForBloodSelection]
     )
-    
-    const availableBags = useMemo(() => 
-      bloodBags.filter(bag => 
-        bag.status === 'available' && 
-        selectedRequest && 
-        bag.component === selectedRequest.component &&
-        bag.stockId && bloodStock.find(stock => stock.id === bag.stockId)?.bloodType === selectedRequest.bloodType
-      ),
-      [bloodBags, selectedRequest, bloodStock]
-    )
+
+    // ...existing code...
+    // Hàm kiểm tra hòa hợp ABO và Rh(D) cho từng loại chế phẩm
+    function isCompatible(bloodTypeRecipient: string, bloodTypeDonor: string, component: string) {
+      if (!bloodTypeRecipient || bloodTypeRecipient === 'unknown') {
+        if (component === 'whole_blood' || component === 'red_cells' || component === 'platelets') {
+          return bloodTypeDonor === 'O-' || bloodTypeDonor === 'O+';
+        }
+        if (component === 'plasma') {
+          return bloodTypeDonor === 'AB-' || bloodTypeDonor === 'AB+';
+        }
+        return false;
+      }
+      if (!bloodTypeDonor || bloodTypeDonor === 'unknown') return true;
+
+      const matchR = bloodTypeRecipient.match(/(A|B|AB|O)([+-])/);
+      const matchD = bloodTypeDonor.match(/(A|B|AB|O)([+-])/);
+      if (!matchR || !matchD) return false;
+
+      const [aboR, rhR] = matchR.slice(1);
+      const [aboD, rhD] = matchD.slice(1);
+
+      // ...phần còn lại giữ nguyên...
+      if (component === 'whole_blood' || component === 'red_cells') {
+        const abos = {
+          'O': ['O'],
+          'A': ['A', 'O'],
+          'B': ['B', 'O'],
+          'AB': ['AB', 'A', 'B', 'O'],
+        };
+        if (rhR === '-') {
+          return abos[aboR].includes(aboD) && rhD === '-';
+        } else {
+          return abos[aboR].includes(aboD);
+        }
+      }
+      if (component === 'plasma') {
+        const abos = {
+          'O': ['O', 'A', 'B', 'AB'],
+          'A': ['A', 'AB'],
+          'B': ['B', 'AB'],
+          'AB': ['AB'],
+        };
+        return abos[aboR].includes(aboD);
+      }
+      if (component === 'platelets') {
+        const abos = {
+          'O': ['O'],
+          'A': ['A', 'O'],
+          'B': ['B', 'O'],
+          'AB': ['AB', 'A', 'B', 'O'],
+        };
+        if (rhR === '-') {
+          return abos[aboR].includes(aboD) && rhD === '-';
+        } else {
+          return abos[aboR].includes(aboD);
+        }
+      }
+      return false;
+    }
+
+const availableBags = useMemo(() =>
+  bloodBags.filter(bag =>
+    bag.status === 'available' &&
+    selectedRequest &&
+    bag.component === selectedRequest.component &&
+    bag.stockId &&
+    (() => {
+      // Lấy nhóm máu túi máu
+      const donorBloodType = bloodStock.find(stock => stock.id === bag.stockId)?.bloodType
+      if (!donorBloodType) return false
+      return isCompatible(selectedRequest.bloodType, donorBloodType, bag.component)
+    })()
+  ),
+  [bloodBags, selectedRequest, bloodStock]
+)
+
+const totalSelectedVolume = selectedBloodBags.reduce((sum, id) => {
+    const bag = availableBags.find(b => b.id === id)
+    return sum + (bag ? bag.volume : 0)
+  }, 0)
+// ...existing code...
 
     const handleBagSelection = useCallback((bagId: string) => {
       setSelectedBloodBags(prev => {
         const isCurrentlySelected = prev.includes(bagId)
-        
+
         if (isCurrentlySelected) {
           // Bỏ chọn túi máu - chỉ tạo array mới nếu thực sự có thay đổi
           const newSelection = prev.filter(id => id !== bagId)
           return newSelection.length !== prev.length ? newSelection : prev
         } else {
           // Thêm túi máu nếu chưa đạt giới hạn
-          if (selectedRequest && prev.length < selectedRequest.unitsNeeded) {
-            return [...prev, bagId]
+          console.log(selectedRequest);
+          if (selectedRequest) {
+            const maxVolume = selectedRequest.volumeNeeded || (selectedRequest.unitsNeeded || 1) * 250;
+            const bagVolume = availableBags.find(b => b._id === bagId)?.volume || 0;
+
+            // Tính tổng ml sau khi thêm túi này
+            const totalVolumeAfterAdd = prev.reduce((sum, id) => {
+              const vol = availableBags.find(b => b._id === id)?.volume || 0;
+              return sum + vol;
+            }, 0) + bagVolume;
+
+            if (totalVolumeAfterAdd <= maxVolume) {
+              return [...prev, bagId];
+            }
           }
           // Không thay đổi nếu đã đạt giới hạn
           return prev
@@ -2026,7 +2482,7 @@ export default function BloodManagementPage() {
             </div>
           </TableCell>
           <TableCell className="text-center font-medium">
-            {bag.volume}
+            {Number(bag.volume).toFixed(2)}
           </TableCell>
           <TableCell className="text-center text-sm">
             {formatDate(bag.collectionDate)}
@@ -2051,332 +2507,377 @@ export default function BloodManagementPage() {
     BloodBagTableRow.displayName = 'BloodBagTableRow'
 
     return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Quản lý yêu cầu máu</h2>
-          <p className="text-gray-600">Xử lý và theo dõi các yêu cầu máu từ bệnh viện</p>
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex justify-between items-center">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">Quản lý yêu cầu máu</h2>
+            <p className="text-gray-600">Xử lý và theo dõi các yêu cầu máu từ bệnh viện</p>
+          </div>
         </div>
-      </div>
-      {/* Summary cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Tổng yêu cầu</CardTitle>
-            <FileText className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{bloodRequests.length}</div>
-            <p className="text-xs text-muted-foreground">yêu cầu cần máu</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Chờ xử lý</CardTitle>
-            <Clock className="h-4 w-4 text-yellow-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">
-              {bloodRequests.filter(req => req.status === 'pending').length}
-            </div>
-            <p className="text-xs text-muted-foreground">Cần xem xét</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Khẩn cấp</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-red-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">
-              {bloodRequests.filter(req => req.urgency === 'critical' || req.urgency === 'high').length}
-            </div>
-            <p className="text-xs text-muted-foreground">Ưu tiên cao</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Đã hoàn tất truyền máu</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {bloodRequests.filter(req => req.status === 'fulfilled').length}
-            </div>
-            <p className="text-xs text-muted-foreground">Hoàn thành</p>
-          </CardContent>
-        </Card>
-      </div>
+        {/* Summary cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Tổng yêu cầu</CardTitle>
+              <FileText className="h-4 w-4 text-blue-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-blue-600">{bloodRequests.length}</div>
+              <p className="text-xs text-muted-foreground">yêu cầu cần máu</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Chờ xử lý</CardTitle>
+              <Clock className="h-4 w-4 text-yellow-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-yellow-600">
+                {bloodRequests.filter(req => req.status === 'pending').length}
+              </div>
+              <p className="text-xs text-muted-foreground">Cần xem xét</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Khẩn cấp</CardTitle>
+              <AlertTriangle className="h-4 w-4 text-red-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-red-600">
+                {bloodRequests.filter(req => req.urgency === 'critical' || req.urgency === 'high').length}
+              </div>
+              <p className="text-xs text-muted-foreground">Ưu tiên cao</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Đã hoàn tất truyền máu</CardTitle>
+              <CheckCircle className="h-4 w-4 text-green-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-600">
+                {bloodRequests.filter(req => req.status === 'fulfilled').length}
+              </div>
+              <p className="text-xs text-muted-foreground">Hoàn thành</p>
+            </CardContent>
+          </Card>
+        </div>
 
-      {/* Requests table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Danh sách yêu cầu máu</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Bệnh nhân</TableHead>
-                <TableHead>Nhóm máu</TableHead>
-                <TableHead>Thành phần máu</TableHead>
-                <TableHead>Số đơn vị</TableHead>
-                <TableHead>Mức độ</TableHead>
-                <TableHead>Bệnh viện</TableHead>
-                <TableHead>Ngày yêu cầu</TableHead>
-                <TableHead>Ngày cần</TableHead>
-                <TableHead>Trạng thái</TableHead>
-                <TableHead>Thao tác</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {bloodRequests.map((request) => (
-                <TableRow key={request.id}>
-                  <TableCell>
-                    <div>
-                      <div className="font-medium">{request.patientName}</div>
-                      <div className="text-sm text-gray-500">{request.patientId}</div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="text-red-600 border-red-600">
-                      {request.bloodType}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={getComponentColor(request.component)}>
-                      {getComponentName(request.component)}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{request.unitsNeeded}</TableCell>
-                  <TableCell>
-                    <Badge className={getUrgencyColor(request.urgency)}>
-                      {request.urgency === 'critical' ? 'Cực kỳ khẩn cấp' :
-                       request.urgency === 'high' ? 'Khẩn cấp' :
-                       request.urgency === 'medium' ? 'Trung bình' : 'Thấp'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{request.hospital}</TableCell>
-                  <TableCell>{formatDate(request.requestDate)}</TableCell>
-                  <TableCell>{formatDate(request.requiredDate)}</TableCell>
-                  <TableCell>
-                    <Badge className={getStatusColor(request.status)}>
-                      {request.status === 'pending' ? 'Chờ xử lý' :
-                       request.status === 'approved' ? 'Đã duyệt' :
-                       request.status === 'in_progress' ? 'Đang truyền máu' :
-                       request.status === 'fulfilled' ? 'Đã hoàn tất truyền máu' : 'Đã hủy'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      {request.status === 'pending' && (
-                        <>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
+        {/* Requests table */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Danh sách yêu cầu máu</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Bệnh nhân</TableHead>
+                  <TableHead>Nhóm máu</TableHead>
+                  <TableHead>Thành phần máu</TableHead>
+                  <TableHead>Số đơn vị</TableHead>
+                  <TableHead>Mức độ</TableHead>
+                  <TableHead>Bệnh viện</TableHead>
+                  <TableHead>Ngày yêu cầu</TableHead>
+                  <TableHead>Ngày cần</TableHead>
+                  <TableHead>Trạng thái</TableHead>
+                  <TableHead>Thao tác</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {bloodRequests.map((request) => (
+                  <TableRow key={request.id}>
+                    <TableCell>
+                      <div>
+                        <div className="font-medium">{request.patientName}</div>
+                        <div className="text-sm text-gray-500">{request.patientId}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="text-red-600 border-red-600">
+                        {request.bloodType === "unknown" ? "Không rõ" : request.bloodType}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={getComponentColor(request.component)}>
+                        {getComponentName(request.component)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{request.unitsNeeded}</TableCell>
+                    <TableCell>
+                      <Badge className={getUrgencyColor(request.urgency)}>
+                        {request.urgency === 'critical' ? 'Cực kỳ khẩn cấp' :
+                          request.urgency === 'high' ? 'Khẩn cấp' :
+                            request.urgency === 'medium' ? 'Trung bình' : 'Thấp'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{request.hospital}</TableCell>
+                    <TableCell>{formatDate(request.requestDate)}</TableCell>
+                    <TableCell>{formatDate(request.requiredDate)}</TableCell>
+                    <TableCell>
+                      <Badge className={getStatusColor(request.status)}>
+                        {request.status === 'pending' ? 'Chờ xử lý' :
+                          request.status === 'approved' ? 'Đã duyệt' :
+                            request.status === 'in_progress' ? 'Đang truyền máu' :
+                              request.status === 'fulfilled' ? 'Đã hoàn tất truyền máu' : 'Đã hủy'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        {request.status === 'pending' && (
+                          <>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-green-600 border-green-600 hover:bg-green-50"
+                              onClick={() => handleApproveRequest(request.id)}
+                            >
+                              <CheckCircle className="w-4 h-4 mr-1" />
+                              Duyệt
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-red-600 border-red-600 hover:bg-red-50"
+                              onClick={() => handleRejectRequest(request.id)}
+                            >
+                              <XCircle className="w-4 h-4 mr-1" />
+                              Từ chối
+                            </Button>
+                          </>
+                        )}
+                        {request.status === 'approved' && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                            onClick={() => handleStartTransfusion(request.id)}
+                          >
+                            <Clock className="w-4 h-4 mr-1" />
+                            Bắt đầu truyền máu
+                          </Button>
+                        )}
+                        {request.status === 'in_progress' && (
+                          <Button
+                            variant="outline"
+                            size="sm"
                             className="text-green-600 border-green-600 hover:bg-green-50"
-                            onClick={() => handleApproveRequest(request.id)}
+                            onClick={() => handleCompleteTransfusion(request.id)}
                           >
                             <CheckCircle className="w-4 h-4 mr-1" />
-                            Duyệt
+                            Hoàn tất truyền máu
                           </Button>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="text-red-600 border-red-600 hover:bg-red-50"
-                            onClick={() => handleRejectRequest(request.id)}
-                          >
-                            <XCircle className="w-4 h-4 mr-1" />
-                            Từ chối
-                          </Button>
-                        </>
-                      )}
-                      {request.status === 'approved' && (
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="text-blue-600 border-blue-600 hover:bg-blue-50"
-                          onClick={() => handleStartTransfusion(request.id)}
-                        >
-                          <Clock className="w-4 h-4 mr-1" />
-                          Bắt đầu truyền máu
-                        </Button>
-                      )}
-                      {request.status === 'in_progress' && (
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="text-green-600 border-green-600 hover:bg-green-50"
-                          onClick={() => handleCompleteTransfusion(request.id)}
-                        >
-                          <CheckCircle className="w-4 h-4 mr-1" />
-                          Hoàn tất truyền máu
-                        </Button>
-                      )}
-                      {(request.status === 'fulfilled' || request.status === 'cancelled') && (
-                        <span className="text-sm text-gray-500 italic">
-                          Không có thao tác
-                        </span>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {bloodRequests.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={10} className="text-center py-8 text-gray-500">
-                    <ClipboardList className="w-12 h-12 mx-auto mb-3 text-gray-400" />
-                    <p className="text-lg font-medium mb-1">Chưa có yêu cầu máu nào</p>
-                    <p className="text-sm">Tạo yêu cầu từ kết quả xét nghiệm</p>
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                        )}
+                        {(request.status === 'fulfilled' || request.status === 'cancelled') && (
+                          <span className="text-sm text-gray-500 italic">
+                            Không có thao tác
+                          </span>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {bloodRequests.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={10} className="text-center py-8 text-gray-500">
+                      <ClipboardList className="w-12 h-12 mx-auto mb-3 text-gray-400" />
+                      <p className="text-lg font-medium mb-1">Chưa có yêu cầu máu nào</p>
+                      <p className="text-sm">Tạo yêu cầu từ kết quả xét nghiệm</p>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
 
-      {/* Blood Selection Dialog */}
-      <Dialog open={showBloodSelectionDialog} onOpenChange={handleDialogClose}>
-        <DialogContent className="max-w-7xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold">Chọn túi máu từ kho</DialogTitle>
-            {selectedRequest && (
-              <div className="text-sm text-gray-600 space-y-2">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span>Yêu cầu cho bệnh nhân:</span>
-                  <strong>{selectedRequest.patientName}</strong>
-                </div>
-                <div className="flex flex-wrap items-center gap-3">
-                  <div className="flex items-center gap-1">
-                    <span>Nhóm máu:</span>
-                    <Badge variant="outline" className="text-red-600 border-red-600">{selectedRequest.bloodType}</Badge>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span>Thành phần:</span>
-                    <Badge className={getComponentColor(selectedRequest.component)}>{getComponentName(selectedRequest.component)}</Badge>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span>Cần:</span>
-                    <strong>{selectedRequest.unitsNeeded} đơn vị</strong>
-                  </div>
-                </div>
-              </div>
-            )}
-          </DialogHeader>
-          
-          <div className="space-y-6">
-            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-              <div className="flex items-center justify-between">
-                <div className="text-sm font-medium text-blue-800">
-                  Tiến độ chọn túi máu: {selectedBloodBags.length}/{selectedRequest?.unitsNeeded || 0} túi
-                </div>
-                <div className="text-xs text-blue-600">
-                  {selectedBloodBags.length === (selectedRequest?.unitsNeeded || 0) 
-                    ? "✓ Đã đủ số lượng yêu cầu" 
-                    : `Còn thiếu ${(selectedRequest?.unitsNeeded || 0) - selectedBloodBags.length} túi`}
-                </div>
-              </div>
-              <div className="mt-2 bg-blue-200 rounded-full h-2">
-                <div 
-                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${(selectedBloodBags.length / (selectedRequest?.unitsNeeded || 1)) * 100}%` }}
-                ></div>
-              </div>
-            </div>
-            
-            {availableBags.length === 0 ? (
-              <div className="text-center py-12 text-gray-500">
-                <Droplets className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                <h3 className="text-lg font-medium mb-2">Không có túi máu phù hợp</h3>
-                <p className="text-sm">Không tìm thấy túi máu với nhóm máu và thành phần phù hợp trong kho</p>
-              </div>
-            ) : (
-              <>
-                {/* Warning when not enough bags selected */}
-                {selectedBloodBags.length > 0 && selectedBloodBags.length < (selectedRequest?.unitsNeeded || 0) && (
-                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                    <div className="flex items-center gap-2 text-amber-800">
-                      <AlertTriangle className="w-5 h-5" />
-                      <span className="font-medium">Chưa đủ số lượng yêu cầu</span>
+        {/* Blood Selection Dialog */}
+        <Dialog open={showBloodSelectionDialog} onOpenChange={handleDialogClose}>
+          <DialogContent className="max-w-7xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold">Chọn túi máu từ kho</DialogTitle>
+                {selectedRequest && (
+                  <div className="mt-2">
+                    <div className="font-semibold text-blue-700 mb-1">Thành phần máu có thể truyền:</div>
+                    <div className="flex flex-wrap gap-2">
+                      {(() => {
+                        // Hàm xác định các nhóm máu có thể truyền cho bệnh nhân này
+                        function getCompatibleBloodTypes(recipient: string, component: string) {
+                          const allTypes = [
+                            'O-', 'O+', 'A-', 'A+', 'B-', 'B+', 'AB-', 'AB+'
+                          ]
+                          if (recipient === 'unknown') {
+                            if (component === 'whole_blood' || component === 'red_cells' || component === 'platelets') {
+                              // O- là tối ưu, nếu không có thì O+
+                              return ['O-', 'O+']
+                            }
+                            if (component === 'plasma') {
+                              // AB- là tối ưu, nếu không có thì AB+
+                              return ['AB-', 'AB+']
+                            }
+                            // fallback
+                            return allTypes
+                          }
+                          // ...phần còn lại giữ nguyên...
+                          const match = recipient.match(/(A|B|AB|O)([+-])/)
+                          if (!match) return []
+                          const [aboR, rhR] = match.slice(1)
+                          return allTypes.filter(donor =>
+                            isCompatible(recipient, donor, component)
+                          )
+                        }
+                        const compatibleTypes = getCompatibleBloodTypes(selectedRequest.bloodType, selectedRequest.component)
+                        return compatibleTypes.map(type => (
+                          <Badge key={type} variant="outline" className="border-blue-600 text-blue-700">{type}</Badge>
+                        ))
+                      })()}
                     </div>
-                    <p className="text-sm text-amber-700 mt-1">
-                      Cần chọn thêm {(selectedRequest?.unitsNeeded || 0) - selectedBloodBags.length} túi máu nữa để có thể duyệt yêu cầu này.
-                    </p>
                   </div>
                 )}
-                
-                <div className="border border-gray-200 rounded-lg overflow-hidden">
-                <Table>
-                  <TableHeader className="bg-gray-50">
-                    <TableRow>
-                      <TableHead className="w-16 text-center">Chọn</TableHead>
-                      <TableHead className="min-w-[120px]">Mã túi</TableHead>
-                      <TableHead className="min-w-[160px]">Người hiến</TableHead>
-                      <TableHead className="min-w-[100px] text-center">Thể tích (ml)</TableHead>
-                      <TableHead className="min-w-[120px] text-center">Ngày lấy máu</TableHead>
-                      <TableHead className="min-w-[120px] text-center">Hạn sử dụng</TableHead>
-                      <TableHead className="min-w-[100px] text-center">Nhóm máu</TableHead>
-                      <TableHead className="min-w-[120px] text-center">Thành phần</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {availableBags.map((bag) => {
-                      const isSelected = selectedBloodBags.includes(bag.id)
-                      const isDisabled = !isSelected && selectedBloodBags.length >= (selectedRequest?.unitsNeeded || 0)
-                      
-                      return (
-                        <BloodBagTableRow
-                          key={bag.id}
-                          bag={bag}
-                          isSelected={isSelected}
-                          isDisabled={isDisabled}
-                          onToggle={handleBagSelection}
-                        />
-                      )
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-              </>
-            )}
-          </div>
-          
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pt-6 border-t border-gray-200">
-            <div className="text-sm text-gray-600">
-              {selectedBloodBags.length > 0 && (
-                <div className="space-y-1">
-                  <p className="font-medium">Túi máu đã chọn:</p>
-                  <p>{selectedBloodBags.length} túi</p>
+              {selectedRequest && (
+                <div className="text-sm text-gray-600 space-y-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span>Yêu cầu cho bệnh nhân:</span>
+                    <strong>{selectedRequest.patientName}</strong>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex items-center gap-1">
+                      <span>Nhóm máu:</span>
+                      <Badge variant="outline" className="text-red-600 border-red-600">{selectedRequest.bloodType === "unknown" ? "Chưa rõ" : selectedRequest.bloodType}</Badge>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span>Thành phần:</span>
+                      <Badge className={getComponentColor(selectedRequest.component)}>{getComponentName(selectedRequest.component)}</Badge>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span>Cần:</span>
+                      <strong>{selectedRequest.unitsNeeded} đơn vị</strong>
+                    </div>
+                  </div>
                 </div>
               )}
+            </DialogHeader>
+
+            <div className="space-y-6">
+              <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm font-medium text-blue-800">
+                    Tiến độ chọn túi máu: {Number(totalSelectedVolume).toFixed(2)}/{selectedRequest?.volumeNeeded || (selectedRequest?.unitsNeeded || 1) * 250} ml
+                  </div>
+                  <div className="text-xs text-blue-600">
+                    {totalSelectedVolume >= (selectedRequest?.volumeNeeded || (selectedRequest?.unitsNeeded || 1) * 250)
+                      ? "✓ Đã đủ thể tích yêu cầu"
+                      : `Còn thiếu ${Number((selectedRequest?.volumeNeeded || (selectedRequest?.unitsNeeded || 1) * 250) - totalSelectedVolume).toFixed(2)} ml`}
+                  </div>
+                  <div className="mt-2 bg-blue-200 rounded-full h-2">
+                    <div
+                      className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                      style={{
+                        width: `${Math.min(100, (totalSelectedVolume / (selectedRequest?.volumeNeeded || (selectedRequest?.unitsNeeded || 1) * 250)) * 100)}%`
+                      }}
+                    ></div>
+                  </div>
+                </div>
+                <div className="mt-2 bg-blue-200 rounded-full h-2">
+                  <div
+                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${(selectedBloodBags.length / (selectedRequest?.unitsNeeded || 1)) * 100}%` }}
+                  ></div>
+                </div>
+              </div>
+
+              {availableBags.length === 0 ? (
+                <div className="text-center py-12 text-gray-500">
+                  <Droplets className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                  <h3 className="text-lg font-medium mb-2">Không có túi máu phù hợp</h3>
+                  <p className="text-sm">Không tìm thấy túi máu với nhóm máu và thành phần phù hợp trong kho</p>
+                </div>
+              ) : (
+                <>
+                  {/* Warning when not enough bags selected */}
+                  {selectedBloodBags.length > 0 && selectedBloodBags.length < (selectedRequest?.unitsNeeded || 0) && (
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                      <div className="flex items-center gap-2 text-amber-800">
+                        <AlertTriangle className="w-5 h-5" />
+                        <span className="font-medium">Chưa đủ số lượng yêu cầu</span>
+                      </div>
+                      <p className="text-sm text-amber-700 mt-1">
+                        Cần chọn thêm {(selectedRequest?.unitsNeeded || 0) - selectedBloodBags.length} túi máu nữa để có thể duyệt yêu cầu này.
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="border border-gray-200 rounded-lg overflow-hidden">
+                    <Table>
+                      <TableHeader className="bg-gray-50">
+                        <TableRow>
+                          <TableHead className="w-16 text-center">Chọn</TableHead>
+                          <TableHead className="min-w-[120px]">Mã túi</TableHead>
+                          <TableHead className="min-w-[160px]">Người hiến</TableHead>
+                          <TableHead className="min-w-[100px] text-center">Thể tích (ml)</TableHead>
+                          <TableHead className="min-w-[120px] text-center">Ngày lấy máu</TableHead>
+                          <TableHead className="min-w-[120px] text-center">Hạn sử dụng</TableHead>
+                          <TableHead className="min-w-[100px] text-center">Nhóm máu</TableHead>
+                          <TableHead className="min-w-[120px] text-center">Thành phần</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {availableBags.map((bag) => {
+                          const isSelected = selectedBloodBags.includes(bag.id)
+                          const isDisabled = !isSelected && totalSelectedVolume >= (selectedRequest?.volumeNeeded || (selectedRequest?.unitsNeeded || 1) * 250)
+                          return (
+                            <BloodBagTableRow
+                              key={bag.id}
+                              bag={bag}
+                              isSelected={isSelected}
+                              isDisabled={isDisabled}
+                              onToggle={handleBagSelection}
+                            />
+                          )
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </>
+              )}
             </div>
-            <div className="flex gap-3">
-              <Button 
-                variant="outline" 
-                onClick={handleCancelDialog}
-                className="min-w-[100px]"
-              >
-                Hủy bỏ
-              </Button>
-              <Button 
-                onClick={handleConfirmDialog}
-                disabled={selectedBloodBags.length === 0 || selectedBloodBags.length < (selectedRequest?.unitsNeeded || 0)}
-                className="bg-green-600 hover:bg-green-700 min-w-[180px] disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <CheckCircle className="w-4 h-4 mr-2" />
-                {selectedBloodBags.length < (selectedRequest?.unitsNeeded || 0) 
-                  ? `Cần thêm ${(selectedRequest?.unitsNeeded || 0) - selectedBloodBags.length} túi nữa`
-                  : `Duyệt và phân bổ (${selectedBloodBags.length} túi)`
-                }
-              </Button>
+
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pt-6 border-t border-gray-200">
+              <div className="text-sm text-gray-600">
+                {selectedBloodBags.length > 0 && (
+                  <div className="space-y-1">
+                    <p className="font-medium">Túi máu đã chọn:</p>
+                    <p>{selectedBloodBags.length} túi</p>
+                  </div>
+                )}
+              </div>
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  onClick={handleCancelDialog}
+                  className="min-w-[100px]"
+                >
+                  Hủy bỏ
+                </Button>
+                <Button
+                  onClick={handleConfirmDialog}
+                  disabled={selectedBloodBags.length === 0 || totalSelectedVolume < (selectedRequest?.volumeNeeded || (selectedRequest?.unitsNeeded || 1) * 250)}
+                  className="bg-green-600 hover:bg-green-700 min-w-[180px] disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  {totalSelectedVolume < (selectedRequest?.volumeNeeded || (selectedRequest?.unitsNeeded || 1) * 250)
+                    ? `Cần thêm ${Number((selectedRequest?.volumeNeeded || (selectedRequest?.unitsNeeded || 1) * 250) - totalSelectedVolume).toFixed(2)} ml nữa`
+                    : `Duyệt và phân bổ (${selectedBloodBags.length} túi)`
+                  }
+                </Button>
+              </div>
             </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </div>
-  )
+          </DialogContent>
+        </Dialog>
+      </div>
+    )
   }
 
   // Blood Tests Management Component
@@ -2410,7 +2911,7 @@ export default function BloodManagementPage() {
               <DialogHeader>
                 <DialogTitle>Chọn bệnh nhân để xét nghiệm</DialogTitle>
               </DialogHeader>
-              
+
               {/* Search */}
               <div className="mb-4">
                 <Input
@@ -2424,27 +2925,25 @@ export default function BloodManagementPage() {
               {/* Patients list */}
               <div className="space-y-2 max-h-96 overflow-y-auto">
                 {patients
-                  .filter(patient => 
-                    patient.status === 'active' &&
-                    (patient.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                     patient.id.toLowerCase().includes(searchTerm.toLowerCase()))
+                  .filter(patient =>
+                    patient.status === 'waiting' &&
+                    (patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                      patient._id.toLowerCase().includes(searchTerm.toLowerCase()))
                   )
                   .map((patient) => (
-                    <div 
-                      key={patient.id} 
+                    <div
+                      key={patient._id}
                       className="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer transition-colors"
                       onClick={() => {
                         setSelectedPatientForTest(patient)
                         setShowSelectPatientDialog(false)
-                        
+
                         // Kiểm tra mức độ khẩn cấp
                         const urgency = patient.urgency || 'medium'
                         if (urgency === 'critical' || urgency === 'high') {
-                          // Trường hợp khẩn cấp: tự động đặt ngày hôm nay và chuyển thẳng đến xét nghiệm
                           setSelectedTestDate(new Date())
                           setShowTestStepsDialog(true)
                         } else {
-                          // Trường hợp thường: cho phép chọn ngày
                           setShowTestDateDialog(true)
                         }
                       }}
@@ -2453,22 +2952,22 @@ export default function BloodManagementPage() {
                         <div className="space-y-2">
                           <div className="flex items-center gap-3">
                             <h3 className="font-semibold text-lg">{patient.name}</h3>
-                            <Badge variant="outline" className="text-xs">{patient.id}</Badge>
+                            <Badge variant="outline" className="text-xs">{patient._id}</Badge>
                           </div>
                           <div className="flex items-center gap-4 text-sm text-gray-600">
                             <span>{patient.age} tuổi</span>
                             <span>{patient.gender === 'male' ? 'Nam' : patient.gender === 'female' ? 'Nữ' : 'Khác'}</span>
-                            <span>{patient.phone}</span>
+                            <span>{patient.contact}</span>
                           </div>
                           <div className="flex items-center gap-2">
                             <Badge variant="outline" className="text-red-600 border-red-600">
-                              🩸 {patient.bloodType}
+                              🩸 {patient.blood_type}
                             </Badge>
                             <Badge variant="outline" className="text-blue-600 border-blue-600">
-                              {patient.bloodComponent === 'whole_blood' && '🩸 Máu toàn phần'}
-                              {patient.bloodComponent === 'red_cells' && '🔴 Hồng cầu'}
-                              {patient.bloodComponent === 'platelets' && '🟡 Tiểu cầu'}
-                              {patient.bloodComponent === 'plasma' && '🔵 Huyết tương'}
+                              {patient.component_needed === 'whole_blood' && '🩸 Máu toàn phần'}
+                              {patient.component_needed === 'red_cells' && '🔴 Hồng cầu'}
+                              {patient.component_needed === 'platelets' && '🟡 Tiểu cầu'}
+                              {patient.component_needed === 'plasma' && '🔵 Huyết tương'}
                             </Badge>
                             <Badge variant="outline" className={`${getUrgencyColor(patient.urgency || 'medium')} font-medium text-xs border`}>
                               {getUrgencyName(patient.urgency || 'medium')}
@@ -2482,8 +2981,8 @@ export default function BloodManagementPage() {
                             </div>
                           )}
                           <Button size="sm" variant="outline" className={
-                            (patient.urgency === 'critical' || patient.urgency === 'high') 
-                              ? 'border-red-600 text-red-600 hover:bg-red-50' 
+                            (patient.urgency === 'critical' || patient.urgency === 'high')
+                              ? 'border-red-600 text-red-600 hover:bg-red-50'
                               : ''
                           }>
                             Chọn
@@ -2493,10 +2992,10 @@ export default function BloodManagementPage() {
                     </div>
                   ))}
               </div>
-              
-              {patients.filter(p => p.status === 'active').length === 0 && (
+
+              {patients.filter(p => p.status === 'waiting').length === 0 && (
                 <div className="text-center py-8 text-gray-500">
-                  Không có bệnh nhân nào đang hoạt động
+                  Không có bệnh nhân nào đang chờ xét nghiệm
                 </div>
               )}
             </DialogContent>
@@ -2511,11 +3010,11 @@ export default function BloodManagementPage() {
             <DialogTitle>Chọn ngày xét nghiệm</DialogTitle>
             {selectedPatientForTest && (
               <p className="text-sm text-gray-600">
-                Bệnh nhân: <strong>{selectedPatientForTest.name}</strong> ({selectedPatientForTest.id})
+                Bệnh nhân: <strong>{selectedPatientForTest.name}</strong> ({String(selectedPatientForTest._id)})
               </p>
             )}
           </DialogHeader>
-          
+
           <div className="space-y-4">
             <div>
               <Label>Ngày xét nghiệm</Label>
@@ -2541,10 +3040,10 @@ export default function BloodManagementPage() {
                 </PopoverContent>
               </Popover>
             </div>
-            
+
             <div className="flex justify-end gap-2 pt-4">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => {
                   setShowTestDateDialog(false)
                   setSelectedPatientForTest(null)
@@ -2553,7 +3052,7 @@ export default function BloodManagementPage() {
               >
                 Hủy
               </Button>
-              <Button 
+              <Button
                 onClick={() => {
                   if (selectedTestDate) {
                     setShowTestDateDialog(false)
@@ -2581,8 +3080,8 @@ export default function BloodManagementPage() {
                 <p><strong>Nhóm máu:</strong> {selectedPatientForTest.bloodType}</p>
                 <p><strong>Thành phần cần:</strong> {
                   selectedPatientForTest.bloodComponent === 'whole_blood' ? 'Máu toàn phần' :
-                  selectedPatientForTest.bloodComponent === 'red_cells' ? 'Hồng cầu' :
-                  selectedPatientForTest.bloodComponent === 'platelets' ? 'Tiểu cầu' : 'Huyết tương'
+                    selectedPatientForTest.bloodComponent === 'red_cells' ? 'Hồng cầu' :
+                      selectedPatientForTest.bloodComponent === 'platelets' ? 'Tiểu cầu' : 'Huyết tương'
                 }</p>
                 <p><strong>Mức độ khẩn cấp:</strong> <span className={`px-2 py-1 rounded text-xs font-medium ${getUrgencyColor(selectedPatientForTest.urgency || 'medium')}`}>
                   {getUrgencyName(selectedPatientForTest.urgency || 'medium')}
@@ -2590,7 +3089,7 @@ export default function BloodManagementPage() {
               </div>
             )}
           </DialogHeader>
-          
+
           <div className="space-y-6">
             {/* Thông báo trường hợp khẩn cấp */}
             {selectedPatientForTest && (selectedPatientForTest.urgency === 'critical' || selectedPatientForTest.urgency === 'high') && (
@@ -2613,15 +3112,15 @@ export default function BloodManagementPage() {
               <div className="bg-blue-50 p-4 rounded-lg">
                 <h4 className="font-semibold text-blue-800 mb-2">Quy trình xét nghiệm máu</h4>
                 <p className="text-sm text-blue-700">
-                  Hệ thống sẽ tự động tạo yêu cầu xét nghiệm cho bệnh nhân. 
+                  Hệ thống sẽ tự động tạo yêu cầu xét nghiệm cho bệnh nhân.
                   Kỹ thuật viên có thể cập nhật kết quả xét nghiệm sau khi hoàn tất.
                 </p>
               </div>
             </div>
 
             <div className="flex justify-end gap-2 pt-4 border-t">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => {
                   setShowTestStepsDialog(false)
                   setSelectedPatientForTest(null)
@@ -2630,19 +3129,20 @@ export default function BloodManagementPage() {
               >
                 Đóng
               </Button>
-              <Button 
-                onClick={() => {
+              <Button
+                onClick={async () => {
                   if (selectedPatientForTest && selectedTestDate) {
                     // Tạo ID xét nghiệm mới
                     const newTestId = `T${Date.now().toString().slice(-6)}`
-                    
+                    console.log(selectedPatientForTest)
+
                     // Tạo bản ghi xét nghiệm mới
                     const newBloodTest: BloodTest = {
                       id: newTestId,
-                      donorId: selectedPatientForTest.id, // Sử dụng ID bệnh nhân làm donorId
+                      donorId: selectedPatientForTest._id, // Sử dụng ID bệnh nhân làm donorId
                       donorName: selectedPatientForTest.name,
                       testDate: format(selectedTestDate, 'yyyy-MM-dd'),
-                      bloodType: selectedPatientForTest.bloodType,
+                      bloodType: selectedPatientForTest.blood_type,
                       hemoglobin: 0, // Sẽ được cập nhật sau khi có kết quả
                       hiv: false,
                       hepatitisB: false,
@@ -2650,23 +3150,41 @@ export default function BloodManagementPage() {
                       syphilis: false,
                       status: 'pending',
                       technician: 'Đang chờ phân công',
-                      notes: `Xét nghiệm trước truyền máu cho bệnh nhân ${selectedPatientForTest.name}. Thành phần cần: ${getComponentName(selectedPatientForTest.bloodComponent)}`
+                      notes: `Xét nghiệm trước truyền máu cho bệnh nhân ${selectedPatientForTest.name}. Thành phần cần: ${getComponentName(selectedPatientForTest.component_needed)}`
                     }
-                    
+
+                    await api.post("/blood-test-records", {
+                      hospital: hospitalId,
+                      donorId: selectedPatientForTest._id, // Sử dụng ID bệnh nhân làm donorId
+                      donorName: selectedPatientForTest.name,
+                      testDate: format(selectedTestDate, 'yyyy-MM-dd'),
+                      bloodType: selectedPatientForTest.blood_type,
+                      hemoglobin: 0, // Sẽ được cập nhật sau khi có kết quả
+                      hiv: false,
+                      hepatitisB: false,
+                      hepatitisC: false,
+                      syphilis: false,
+                      status: 'pending',
+                      technician: 'Đang chờ phân công',
+                      notes: `Xét nghiệm trước truyền máu cho bệnh nhân ${selectedPatientForTest.name}. Thành phần cần: ${getComponentName(selectedPatientForTest.component_needed)}`
+                    })
+
+                    toast.success("Đã thêm dòng xét nghiệm máu thành công")
+
                     // Thêm vào danh sách xét nghiệm
-                    setBloodTests(prev => [newBloodTest, ...prev])
-                    
+                    getBloodTestRecords();
+
                     // Hiển thị thông báo thành công
                     setShowSuccessMessage(`Đã tạo yêu cầu xét nghiệm cho bệnh nhân ${selectedPatientForTest.name}`)
                     setTimeout(() => setShowSuccessMessage(''), 5000) // Ẩn thông báo sau 5 giây
-                    
+
                     console.log('Đã tạo yêu cầu xét nghiệm:', newBloodTest)
-                    
+
                     // Reset và đóng dialog
                     setShowTestStepsDialog(false)
                     setSelectedPatientForTest(null)
                     setSelectedTestDate(undefined)
-                    
+
                     // Tự động chuyển sang tab xét nghiệm để xem kết quả
                     setActiveTab('tests')
                   }
@@ -2686,30 +3204,31 @@ export default function BloodManagementPage() {
             <DialogTitle>Cập nhật kết quả xét nghiệm</DialogTitle>
             {selectedTestForUpdate && (
               <div className="text-sm text-gray-600 space-y-1">
-                <p><strong>Bệnh nhân:</strong> {selectedTestForUpdate.donorName} ({selectedTestForUpdate.donorId})</p>
+                <p><strong>Bệnh nhân:</strong> {selectedTestForUpdate.donorName} ({selectedTestForUpdate.donorId._id})</p>
                 <p><strong>Nhóm máu:</strong> {selectedTestForUpdate.bloodType}</p>
                 <p><strong>Ngày xét nghiệm:</strong> {formatDate(selectedTestForUpdate.testDate)}</p>
               </div>
             )}
           </DialogHeader>
-          
+
           <form onSubmit={handleSaveTestResult}>
             <div className="space-y-6">
               {(() => {
                 // Find patient info for blood component
-                const patient = patients.find(p => p.id === selectedTestForUpdate?.donorId)
-                const patientBloodComponent = patient?.bloodComponent || ''
-                
+                const patient = patients.find(p => p._id === selectedTestForUpdate?.donorId._id)
+                const patientBloodComponent = patient?.component_needed || ''
+
                 return (
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label>Nhóm máu xác nhận</Label>
-                      <select 
-                        id="confirmedBloodType" 
+                      <select
+                        id="confirmedBloodType"
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        defaultValue={selectedTestForUpdate?.bloodType || ''}
+                        defaultValue={selectedTestForUpdate?.donorId.blood_type || ''}
                       >
                         <option value="">Chọn nhóm máu</option>
+                        <option value="unknown">Nhóm máu chưa biết</option>
                         <option value="A+">A+</option>
                         <option value="A-">A-</option>
                         <option value="B+">B+</option>
@@ -2722,8 +3241,8 @@ export default function BloodManagementPage() {
                     </div>
                     <div>
                       <Label>Thành phần máu xác nhận</Label>
-                      <select 
-                        id="confirmedBloodComponent" 
+                      <select
+                        id="confirmedBloodComponent"
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         defaultValue={patientBloodComponent}
                       >
@@ -2742,8 +3261,8 @@ export default function BloodManagementPage() {
               <div>
                 <Label htmlFor="bloodUnits">Số đơn vị máu cần</Label>
                 <div className="flex items-center space-x-2">
-                  <select 
-                    id="bloodUnits" 
+                  <select
+                    id="bloodUnits"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     defaultValue="1"
                   >
@@ -2759,7 +3278,7 @@ export default function BloodManagementPage() {
                     <option value="10">10 đơn vị</option>
                   </select>
                   <div className="text-sm text-gray-500 min-w-max">
-                    (450ml/đơn vị)
+                    (250ml/đơn vị)
                   </div>
                 </div>
                 <p className="text-xs text-gray-500 mt-1">
@@ -2769,8 +3288,8 @@ export default function BloodManagementPage() {
 
               <div>
                 <Label htmlFor="testNotes">Ghi chú</Label>
-                <Textarea 
-                  id="testNotes" 
+                <Textarea
+                  id="testNotes"
                   placeholder="Ghi chú thêm về kết quả xét nghiệm..."
                   defaultValue={selectedTestForUpdate?.notes || ''}
                   rows={3}
@@ -2778,10 +3297,10 @@ export default function BloodManagementPage() {
               </div>
 
               <div className="flex justify-end gap-2 pt-4 border-t">
-                <Button 
+                <Button
                   type="button"
-                  variant="destructive" 
-                  onClick={() => {
+                  variant="destructive"
+                  onClick={async () => {
                     if (selectedTestForUpdate) {
                       // Cập nhật trạng thái thành hủy
                       const updatedTest = {
@@ -2789,13 +3308,15 @@ export default function BloodManagementPage() {
                         status: 'failed' as const,
                         notes: (selectedTestForUpdate.notes || '') + '\n[Đã hủy xét nghiệm]'
                       }
-                      
-                      setBloodTests(prev => prev.map(t => t.id === selectedTestForUpdate.id ? updatedTest : t))
+
+                      const response = await api.put(`/blood-test-records/${selectedTestForUpdate._id}`, updatedTest);
                       console.log('Đã hủy xét nghiệm:', updatedTest)
-                      
+
+                      getBloodTestRecords();
+
                       setShowSuccessMessage(`Đã hủy xét nghiệm cho ${selectedTestForUpdate.donorName}`)
                       setTimeout(() => setShowSuccessMessage(''), 5000)
-                      
+
                       setShowUpdateResultDialog(false)
                       setSelectedTestForUpdate(null)
                     }
@@ -2836,36 +3357,37 @@ export default function BloodManagementPage() {
             <TableBody>
               {bloodTests.map((test) => {
                 // Find patient info for blood component
-                const patient = patients.find(p => p.id === test.donorId)
-                const bloodComponent = patient?.bloodComponent || ''
-                
+                console.log(test)
+                const patient = patients.find(p => p._id === test.donorId)
+                const bloodComponent = patient?.component_needed || ''
+
                 // Extract result information from notes
                 const getTestResult = () => {
                   if (test.status === 'pending') {
                     return <span className="text-gray-400 italic">Chờ xét nghiệm</span>
                   }
-                  
+
                   const notes = test.notes || ''
                   const hasBloodTypeChange = notes.includes('[Sửa nhóm máu:')
                   const hasComponentChange = notes.includes('[Sửa thành phần máu:')
-                  
+
                   if (hasBloodTypeChange || hasComponentChange) {
                     const changes = []
-                    
+
                     if (hasBloodTypeChange) {
                       const bloodTypeMatch = notes.match(/\[Sửa nhóm máu: (.+?) → (.+?)\]/)
                       if (bloodTypeMatch) {
                         changes.push(`Nhóm máu: ${bloodTypeMatch[1]} → ${bloodTypeMatch[2]}`)
                       }
                     }
-                    
+
                     if (hasComponentChange) {
                       const componentMatch = notes.match(/\[Sửa thành phần máu: (.+?) → (.+?)\]/)
                       if (componentMatch) {
                         changes.push(`Thành phần: ${componentMatch[1]} → ${componentMatch[2]}`)
                       }
                     }
-                    
+
                     return (
                       <div className="text-xs">
                         <div className="text-orange-600 font-medium mb-1">Có thay đổi:</div>
@@ -2878,43 +3400,45 @@ export default function BloodManagementPage() {
                     return <span className="text-green-600 text-xs font-medium">Không thay đổi</span>
                   }
                 }
-                
+
                 return (
-                  <TableRow key={test.id}>
+                  <TableRow key={test.donorId._id}>
                     <TableCell>
-                      <div>
-                        <div className="font-medium">{test.donorName}</div>
-                        <div className="text-sm text-gray-500">{test.donorId}</div>
+                      <div className="font-medium">
+                        {typeof test.donorId === 'object' ? test.donorId.name : test.donorName}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {typeof test.donorId === 'object' ? test.donorId._id : test.donorId}
                       </div>
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className="text-red-600 border-red-600">
-                        {test.bloodType}
+                        {test.bloodType === "unknown" ? "Không rõ" : test.bloodType}
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      {bloodComponent && (
+                      {typeof test.donorId === 'object' && test.donorId.component_needed && (
                         <Badge variant="outline" className="text-blue-600 border-blue-600">
-                          {bloodComponent === 'whole_blood' && 'Máu toàn phần'}
-                          {bloodComponent === 'red_cells' && 'Hồng cầu'}
-                          {bloodComponent === 'platelets' && 'Tiểu cầu'}
-                          {bloodComponent === 'plasma' && 'Huyết tương'}
+                          {test.donorId.component_needed === 'whole_blood' && 'Máu toàn phần'}
+                          {test.donorId.component_needed === 'red_cells' && 'Hồng cầu'}
+                          {test.donorId.component_needed === 'platelets' && 'Tiểu cầu'}
+                          {test.donorId.component_needed === 'plasma' && 'Huyết tương'}
                         </Badge>
                       )}
                     </TableCell>
                     <TableCell>
-                      {patient && (
-                        <Badge variant="outline" className={`${getUrgencyColor(patient.urgency || 'medium')} font-medium text-xs border`}>
-                          {getUrgencyName(patient.urgency || 'medium')}
+                      {typeof test.donorId === 'object' && test.donorId.urgency && (
+                        <Badge variant="outline" className={`${getUrgencyColor(test.donorId.urgency || 'medium')} font-medium text-xs border`}>
+                          {getUrgencyName(test.donorId.urgency || 'medium')}
                         </Badge>
                       )}
                     </TableCell>
                     <TableCell>{formatDate(test.testDate)}</TableCell>
                     <TableCell>
                       <Badge className={getStatusColor(test.status)}>
-                        {test.status === 'passed' ? 'Đã xác nhận' : 
-                         test.status === 'failed' && test.notes?.includes('[Đã hủy xét nghiệm]') ? 'Đã hủy' :
-                         test.status === 'failed' ? 'Cần sửa' : 'Chờ xác nhận'}
+                        {test.status === 'passed' ? 'Đã xác nhận' :
+                          test.status === 'failed' && test.notes?.includes('[Đã hủy xét nghiệm]') ? 'Đã hủy' :
+                            test.status === 'failed' ? 'Cần sửa' : 'Chờ xác nhận'}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -2931,9 +3455,9 @@ export default function BloodManagementPage() {
                     </TableCell>
                     <TableCell>
                       {test.status === 'pending' ? (
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
+                        <Button
+                          variant="outline"
+                          size="sm"
                           className="text-blue-600 border-blue-600 hover:bg-blue-50"
                           onClick={() => handleUpdateTestResult(test)}
                         >
@@ -2974,8 +3498,8 @@ export default function BloodManagementPage() {
           <p className="text-gray-600">Thông tin bệnh nhân cần truyền máu</p>
         </div>
         <div className="flex gap-2">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             size="sm"
             onClick={() => {
               // Xóa dữ liệu cũ 
@@ -3001,199 +3525,226 @@ export default function BloodManagementPage() {
                 <DialogTitle>Thêm bệnh nhân mới</DialogTitle>
               </DialogHeader>
               <form ref={formRef} onSubmit={handleAddPatient}>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="patientName">Họ và tên</Label>
-                  <Input 
-                    id="patientName" 
-                    placeholder="Nhập họ tên bệnh nhân"
-                    defaultValue=""
-                    required
-                    onKeyDown={handleNameKeyDown}
-                    onInput={handleNameInput}
-                    onPaste={handleNamePaste}
+                <div className="col-span-2 flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="emergencyUnknown"
+                    checked={isEmergencyUnknown}
+                    onChange={e => setIsEmergencyUnknown(e.target.checked)}
+                    className="w-4 h-4"
                   />
+                  <Label htmlFor="emergencyUnknown" className="font-medium text-red-600">
+                    Trường hợp khẩn cấp (Chưa rõ thông tin)
+                  </Label>
                 </div>
-                <div>
-                  <Label htmlFor="age">Tuổi</Label>
-                  <Input 
-                    id="age" 
-                    type="number" 
-                    placeholder="35" 
-                    min="1" 
-                    max="150" 
-                    required 
-                    defaultValue=""
-                    onKeyDown={handleNumericKeyDown}
-                    onInput={handleAgeInput}
-                    onPaste={handleAgePaste}
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="patientName">Họ và tên</Label>
+                    <Input
+                      id="patientName"
+                      placeholder="Nhập họ tên bệnh nhân"
+                      defaultValue=""
+                      required
+                      onInput={handleNameInput}
+                      onPaste={handleNamePaste}
+                      required={!isEmergencyUnknown}
+                      disabled={isEmergencyUnknown}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="age">Tuổi</Label>
+                    <Input
+                      id="age"
+                      type="number"
+                      placeholder="35"
+                      min="1"
+                      max="150"
+                      required
+                      defaultValue=""
+                      onKeyDown={handleNumericKeyDown}
+                      onInput={handleAgeInput}
+                      onPaste={handleAgePaste}
+                      required={!isEmergencyUnknown}
+                      disabled={isEmergencyUnknown}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="gender">Giới tính</Label>
+                    <Select onValueChange={(value) => genderRef.current = value}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Chọn giới tính" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="male">Nam</SelectItem>
+                        <SelectItem value="female">Nữ</SelectItem>
+                        <SelectItem value="other">Khác</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="patientBloodType">Nhóm máu</Label>
+                    <Select onValueChange={(value) => bloodTypeRef.current = value}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Chọn nhóm máu" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="O+">O+</SelectItem>
+                        <SelectItem value="O-">O-</SelectItem>
+                        <SelectItem value="A+">A+</SelectItem>
+                        <SelectItem value="A-">A-</SelectItem>
+                        <SelectItem value="B+">B+</SelectItem>
+                        <SelectItem value="B-">B-</SelectItem>
+                        <SelectItem value="AB+">AB+</SelectItem>
+                        <SelectItem value="AB-">AB-</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="bloodComponent">Thành phần máu yêu cầu</Label>
+                    <Select onValueChange={(value) => bloodComponentRef.current = value}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Chọn thành phần máu" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="whole_blood">Máu toàn phần</SelectItem>
+                        <SelectItem value="red_cells">Hồng cầu</SelectItem>
+                        <SelectItem value="platelets">Tiểu cầu</SelectItem>
+                        <SelectItem value="plasma">Huyết tương</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="urgency">Mức độ khẩn cấp</Label>
+                    <Select onValueChange={(value) => urgencyRef.current = value} defaultValue="medium">
+                      <SelectTrigger>
+                        <SelectValue placeholder="Chọn mức độ khẩn cấp" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="critical">🔴 Cực kỳ khẩn cấp</SelectItem>
+                        <SelectItem value="high">🟠 Khẩn cấp</SelectItem>
+                        <SelectItem value="medium">🟡 Trung bình</SelectItem>
+                        <SelectItem value="low">🟢 Thấp</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="phone">Số điện thoại</Label>
+                    <Input
+                      id="phone"
+                      placeholder="0901234567"
+                      pattern="^0[0-9]{9}$"
+                      maxLength={10}
+                      title="Số điện thoại phải bắt đầu bằng số 0 và có đúng 10 chữ số"
+                      required
+                      defaultValue=""
+                      onKeyDown={handleNumericKeyDown}
+                      onInput={handlePhoneInput}
+                      onPaste={handlePhonePaste}
+                      required={!isEmergencyUnknown}
+                      disabled={isEmergencyUnknown}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="citizenId">Căn cước công dân</Label>
+                    <Input
+                      id="citizenId"
+                      placeholder="001234567890"
+                      pattern="^[0-9]{12}$"
+                      maxLength={12}
+                      title="Căn cước công dân phải có đúng 12 chữ số"
+                      required
+                      defaultValue=""
+                      onKeyDown={handleNumericKeyDown}
+                      onInput={handleCitizenIdInput}
+                      onPaste={handleCitizenIdPaste}
+                      required={!isEmergencyUnknown}
+                      disabled={isEmergencyUnknown}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="email@gmail.com"
+                      pattern="^[a-zA-Z0-9._%+-]+@gmail\.com$"
+                      title="Email phải có định dạng @gmail.com"
+                      required
+                      defaultValue=""
+                      onInput={handleEmailInput}
+                      onBlur={(e) => {
+                        const target = e.target as HTMLInputElement
+                        const value = target.value
+
+                        // Hiển thị validation message khi blur
+                        if (value && !value.match(/^[a-zA-Z0-9._%+-]+@gmail\.com$/)) {
+                          target.reportValidity()
+                        }
+                      }}
+                      required={!isEmergencyUnknown}
+                      disabled={isEmergencyUnknown}
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <Label htmlFor="address">Địa chỉ</Label>
+                    <Input
+                      id="address"
+                      placeholder="Nhập địa chỉ đầy đủ"
+                      defaultValue=""
+                      required={!isEmergencyUnknown}
+                      disabled={isEmergencyUnknown}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="emergencyContact">Liên hệ khẩn cấp</Label>
+                    <Input
+                      id="emergencyContact"
+                      placeholder="0907654321"
+                      pattern="^0[0-9]{9}$"
+                      maxLength={10}
+                      title="Số điện thoại phải bắt đầu bằng số 0 và có đúng 10 chữ số"
+                      required
+                      defaultValue=""
+                      onKeyDown={handleNumericKeyDown}
+                      onInput={handleEmergencyContactInput}
+                      onPaste={handleEmergencyContactPaste}
+                      required={!isEmergencyUnknown}
+                      disabled={isEmergencyUnknown}
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <Label htmlFor="medicalHistory">Tiền sử bệnh</Label>
+                    <Textarea
+                      id="medicalHistory"
+                      placeholder="Mô tả tiền sử bệnh..."
+                      defaultValue=""
+                      required={!isEmergencyUnknown}
+                      disabled={isEmergencyUnknown}
+                    />
+                  </div>
+                  <div className="col-span-2 flex justify-end gap-2 pt-4">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        // Reset form first
+                        if (formRef.current) {
+                          formRef.current.reset()
+                        }
+                        // Reset refs
+                        genderRef.current = ''
+                        bloodTypeRef.current = ''
+                        bloodComponentRef.current = ''
+                        urgencyRef.current = ''
+                        // Close dialog
+                        setShowAddPatientDialog(false)
+                      }}
+                    >
+                      Hủy
+                    </Button>
+                    <Button type="submit" disabled={!staff?.hospital?._id}>Thêm bệnh nhân</Button>
+                  </div>
                 </div>
-                <div>
-                  <Label htmlFor="gender">Giới tính</Label>
-                  <Select onValueChange={(value) => genderRef.current = value}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Chọn giới tính" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="male">Nam</SelectItem>
-                      <SelectItem value="female">Nữ</SelectItem>
-                      <SelectItem value="other">Khác</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="patientBloodType">Nhóm máu</Label>
-                  <Select onValueChange={(value) => bloodTypeRef.current = value}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Chọn nhóm máu" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="O+">O+</SelectItem>
-                      <SelectItem value="O-">O-</SelectItem>
-                      <SelectItem value="A+">A+</SelectItem>
-                      <SelectItem value="A-">A-</SelectItem>
-                      <SelectItem value="B+">B+</SelectItem>
-                      <SelectItem value="B-">B-</SelectItem>
-                      <SelectItem value="AB+">AB+</SelectItem>
-                      <SelectItem value="AB-">AB-</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="bloodComponent">Thành phần máu yêu cầu</Label>
-                  <Select onValueChange={(value) => bloodComponentRef.current = value}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Chọn thành phần máu" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="whole_blood">Máu toàn phần</SelectItem>
-                      <SelectItem value="red_cells">Hồng cầu</SelectItem>
-                      <SelectItem value="platelets">Tiểu cầu</SelectItem>
-                      <SelectItem value="plasma">Huyết tương</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="urgency">Mức độ khẩn cấp</Label>
-                  <Select onValueChange={(value) => urgencyRef.current = value} defaultValue="medium">
-                    <SelectTrigger>
-                      <SelectValue placeholder="Chọn mức độ khẩn cấp" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="critical">🔴 Cực kỳ khẩn cấp</SelectItem>
-                      <SelectItem value="high">🟠 Khẩn cấp</SelectItem>
-                      <SelectItem value="medium">🟡 Trung bình</SelectItem>
-                      <SelectItem value="low">🟢 Thấp</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="phone">Số điện thoại</Label>
-                  <Input 
-                    id="phone" 
-                    placeholder="0901234567" 
-                    pattern="^0[0-9]{9}$"
-                    maxLength={10}
-                    title="Số điện thoại phải bắt đầu bằng số 0 và có đúng 10 chữ số"
-                    required
-                    defaultValue=""
-                    onKeyDown={handleNumericKeyDown}
-                    onInput={handlePhoneInput}
-                    onPaste={handlePhonePaste}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="citizenId">Căn cước công dân</Label>
-                  <Input 
-                    id="citizenId" 
-                    placeholder="001234567890" 
-                    pattern="^[0-9]{12}$"
-                    maxLength={12}
-                    title="Căn cước công dân phải có đúng 12 chữ số"
-                    required
-                    defaultValue=""
-                    onKeyDown={handleNumericKeyDown}
-                    onInput={handleCitizenIdInput}
-                    onPaste={handleCitizenIdPaste}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="email">Email</Label>
-                  <Input 
-                    id="email" 
-                    type="email" 
-                    placeholder="email@gmail.com" 
-                    pattern="^[a-zA-Z0-9._%+-]+@gmail\.com$"
-                    title="Email phải có định dạng @gmail.com"
-                    required
-                    defaultValue=""
-                    onInput={handleEmailInput}
-                    onBlur={(e) => {
-                      const target = e.target as HTMLInputElement
-                      const value = target.value
-                      
-                      // Hiển thị validation message khi blur
-                      if (value && !value.match(/^[a-zA-Z0-9._%+-]+@gmail\.com$/)) {
-                        target.reportValidity()
-                      }
-                    }}
-                  />
-                </div>
-                <div className="col-span-2">
-                  <Label htmlFor="address">Địa chỉ</Label>
-                  <Input 
-                    id="address" 
-                    placeholder="Nhập địa chỉ đầy đủ"
-                    defaultValue=""
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="emergencyContact">Liên hệ khẩn cấp</Label>
-                  <Input 
-                    id="emergencyContact" 
-                    placeholder="0907654321" 
-                    pattern="^0[0-9]{9}$"
-                    maxLength={10}
-                    title="Số điện thoại phải bắt đầu bằng số 0 và có đúng 10 chữ số"
-                    required
-                    defaultValue=""
-                    onKeyDown={handleNumericKeyDown}
-                    onInput={handleEmergencyContactInput}
-                    onPaste={handleEmergencyContactPaste}
-                  />
-                </div>
-                <div className="col-span-2">
-                  <Label htmlFor="medicalHistory">Tiền sử bệnh</Label>
-                  <Textarea 
-                    id="medicalHistory" 
-                    placeholder="Mô tả tiền sử bệnh..."
-                    defaultValue=""
-                  />
-                </div>
-                <div className="col-span-2 flex justify-end gap-2 pt-4">
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    onClick={() => {
-                      // Reset form first
-                      if (formRef.current) {
-                        formRef.current.reset()
-                      }
-                      // Reset refs
-                      genderRef.current = ''
-                      bloodTypeRef.current = ''
-                      bloodComponentRef.current = ''
-                      urgencyRef.current = ''
-                      // Close dialog
-                      setShowAddPatientDialog(false)
-                    }}
-                  >
-                    Hủy
-                  </Button>
-                  <Button type="submit">Thêm bệnh nhân</Button>
-                </div>
-              </div>
               </form>
             </DialogContent>
           </Dialog>
@@ -3219,7 +3770,7 @@ export default function BloodManagementPage() {
                         </div>
                         <div>
                           <Label className="text-sm font-semibold text-gray-600">Mã bệnh nhân</Label>
-                          <p className="text-lg font-mono">{selectedPatient.id}</p>
+                          <p className="text-lg font-mono">{selectedPatient._id}</p>
                         </div>
                         <div>
                           <Label className="text-sm font-semibold text-gray-600">Tuổi</Label>
@@ -3228,28 +3779,28 @@ export default function BloodManagementPage() {
                         <div>
                           <Label className="text-sm font-semibold text-gray-600">Giới tính</Label>
                           <p className="text-lg">
-                            {selectedPatient.gender === 'male' ? 'Nam' : 
-                             selectedPatient.gender === 'female' ? 'Nữ' : 'Khác'}
+                            {selectedPatient.gender === 'male' ? 'Nam' :
+                              selectedPatient.gender === 'female' ? 'Nữ' : 'Khác'}
                           </p>
                         </div>
                         <div>
                           <Label className="text-sm font-semibold text-gray-600">Nhóm máu</Label>
                           <div className="mt-2">
                             <Badge variant="outline" className="text-red-600 border-red-600 text-lg px-4 py-2 font-bold">
-                              🩸 {selectedPatient.bloodType || 'N/A'}
+                              🩸 {selectedPatient.blood_type || 'N/A'}
                             </Badge>
                           </div>
                         </div>
                         <div>
                           <Label className="text-sm font-semibold text-gray-600">Thành phần máu cần</Label>
                           <div className="mt-2">
-                            <Badge variant="outline" className={`${getComponentColor(selectedPatient.bloodComponent || 'plasma')} text-sm px-4 py-2 font-medium border`}>
-                              {selectedPatient.bloodComponent === 'whole_blood' && '🩸'} 
-                              {selectedPatient.bloodComponent === 'red_cells' && '🔴'} 
-                              {selectedPatient.bloodComponent === 'platelets' && '🟡'} 
-                              {selectedPatient.bloodComponent === 'plasma' && '🔵'} 
-                              {!selectedPatient.bloodComponent && '🔵'} 
-                              {' '}{getComponentName(selectedPatient.bloodComponent || 'plasma')}
+                            <Badge variant="outline" className={`${getComponentColor(selectedPatient.component_needed || 'plasma')} text-sm px-4 py-2 font-medium border`}>
+                              {selectedPatient.component_needed === 'whole_blood' && '🩸'}
+                              {selectedPatient.component_needed === 'red_cells' && '🔴'}
+                              {selectedPatient.component_needed === 'platelets' && '🟡'}
+                              {selectedPatient.component_needed === 'plasma' && '🔵'}
+                              {!selectedPatient.component_needed && '🔵'}
+                              {' '}{getComponentName(selectedPatient.component_needed || 'plasma')}
                             </Badge>
                           </div>
                         </div>
@@ -3263,7 +3814,7 @@ export default function BloodManagementPage() {
                         </div>
                         <div>
                           <Label className="text-sm font-semibold text-gray-600">Số điện thoại</Label>
-                          <p className="text-lg font-mono">{selectedPatient.phone}</p>
+                          <p className="text-lg font-mono">{selectedPatient.contact}</p>
                         </div>
                         <div>
                           <Label className="text-sm font-semibold text-gray-600">Email</Label>
@@ -3271,11 +3822,11 @@ export default function BloodManagementPage() {
                         </div>
                         <div>
                           <Label className="text-sm font-semibold text-gray-600">CCCD</Label>
-                          <p className="text-lg font-mono">{selectedPatient.citizenId}</p>
+                          <p className="text-lg font-mono">{selectedPatient.cccd}</p>
                         </div>
                         <div>
                           <Label className="text-sm font-semibold text-gray-600">Liên hệ khẩn cấp</Label>
-                          <p className="text-lg font-mono">{selectedPatient.emergencyContact}</p>
+                          <p className="text-lg font-mono">{selectedPatient.emergency_contact}</p>
                         </div>
                         <div className="col-span-2">
                           <Label className="text-sm font-semibold text-gray-600">Địa chỉ</Label>
@@ -3283,9 +3834,9 @@ export default function BloodManagementPage() {
                         </div>
                         <div className="col-span-2">
                           <Label className="text-sm font-semibold text-gray-600">Tiền sử bệnh</Label>
-                          {selectedPatient.medicalHistory && selectedPatient.medicalHistory.length > 0 ? (
+                          {selectedPatient.medical_history && selectedPatient.medical_history.length > 0 ? (
                             <div className="space-y-2">
-                              {selectedPatient.medicalHistory.map((history, index) => (
+                              {selectedPatient.medical_history.map((history, index) => (
                                 <div key={index} className="bg-yellow-50 text-yellow-800 px-3 py-2 rounded-lg">
                                   {history}
                                 </div>
@@ -3297,15 +3848,15 @@ export default function BloodManagementPage() {
                         </div>
                         <div>
                           <Label className="text-sm font-semibold text-gray-600">Ngày đăng ký</Label>
-                          <p className="text-lg">{formatDate(selectedPatient.registrationDate)}</p>
+                          <p className="text-lg">{formatDate(selectedPatient.registration_date)}</p>
                         </div>
                         <div>
                           <Label className="text-sm font-semibold text-gray-600">Trạng thái</Label>
                           <div className="mt-1">
-                            <Badge 
+                            <Badge
                               className={`${getStatusColor(selectedPatient.status)} text-xs px-2 py-1 font-medium flex items-center gap-1 w-fit`}
                             >
-                              {selectedPatient.status === 'active' ? (
+                              {selectedPatient.status === 'waiting' ? (
                                 <>
                                   <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
                                   Hoạt động
@@ -3320,7 +3871,7 @@ export default function BloodManagementPage() {
                           </div>
                         </div>
                       </div>
-                      
+
                       {/* Action buttons for view mode */}
                       <div className="flex justify-end gap-3 pt-6 border-t border-gray-200">
                         <Button
@@ -3345,26 +3896,25 @@ export default function BloodManagementPage() {
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <Label htmlFor="editPatientName">Họ và tên</Label>
-                          <Input 
-                            id="editPatientName" 
+                          <Input
+                            id="editPatientName"
                             placeholder="Nhập họ tên bệnh nhân"
                             defaultValue={selectedPatient.name}
                             required
-                            onKeyDown={handleNameKeyDown}
                             onInput={handleNameInput}
                             onPaste={handleNamePaste}
                           />
                         </div>
                         <div>
                           <Label htmlFor="editAge">Tuổi</Label>
-                          <Input 
-                            id="editAge" 
-                            type="number" 
-                            placeholder="35" 
-                            min="1" 
-                            max="150" 
-                            required 
-                            defaultValue={selectedPatient.age.toString()}
+                          <Input
+                            id="editAge"
+                            type="number"
+                            placeholder="35"
+                            min="1"
+                            max="150"
+                            required
+                            defaultValue={selectedPatient.age != null ? selectedPatient.age.toString() : ''}
                             onKeyDown={handleNumericKeyDown}
                             onInput={handleAgeInput}
                             onPaste={handleAgePaste}
@@ -3372,8 +3922,8 @@ export default function BloodManagementPage() {
                         </div>
                         <div>
                           <Label htmlFor="editGender">Giới tính</Label>
-                          <Select 
-                            defaultValue={selectedPatient.gender} 
+                          <Select
+                            defaultValue={selectedPatient.gender}
                             onValueChange={(value) => editGenderRef.current = value}
                           >
                             <SelectTrigger>
@@ -3388,8 +3938,8 @@ export default function BloodManagementPage() {
                         </div>
                         <div>
                           <Label htmlFor="editPatientBloodType">Nhóm máu</Label>
-                          <Select 
-                            defaultValue={selectedPatient.bloodType} 
+                          <Select
+                            defaultValue={selectedPatient.blood_type}
                             onValueChange={(value) => editBloodTypeRef.current = value}
                           >
                             <SelectTrigger>
@@ -3409,8 +3959,8 @@ export default function BloodManagementPage() {
                         </div>
                         <div>
                           <Label htmlFor="editBloodComponent">Thành phần máu yêu cầu</Label>
-                          <Select 
-                            defaultValue={selectedPatient.bloodComponent} 
+                          <Select
+                            defaultValue={selectedPatient.component_needed}
                             onValueChange={(value) => editBloodComponentRef.current = value}
                           >
                             <SelectTrigger>
@@ -3426,8 +3976,8 @@ export default function BloodManagementPage() {
                         </div>
                         <div>
                           <Label htmlFor="editUrgency">Mức độ khẩn cấp</Label>
-                          <Select 
-                            defaultValue={selectedPatient.urgency || 'medium'} 
+                          <Select
+                            defaultValue={selectedPatient.urgency || 'medium'}
                             onValueChange={(value) => editUrgencyRef.current = value}
                           >
                             <SelectTrigger>
@@ -3443,14 +3993,14 @@ export default function BloodManagementPage() {
                         </div>
                         <div>
                           <Label htmlFor="editPhone">Số điện thoại</Label>
-                          <Input 
-                            id="editPhone" 
-                            placeholder="0901234567" 
+                          <Input
+                            id="editPhone"
+                            placeholder="0901234567"
                             pattern="^0[0-9]{9}$"
                             maxLength={10}
                             title="Số điện thoại phải bắt đầu bằng số 0 và có đúng 10 chữ số"
                             required
-                            defaultValue={selectedPatient.phone}
+                            defaultValue={selectedPatient.contact}
                             onKeyDown={handleNumericKeyDown}
                             onInput={handlePhoneInput}
                             onPaste={handlePhonePaste}
@@ -3458,14 +4008,14 @@ export default function BloodManagementPage() {
                         </div>
                         <div>
                           <Label htmlFor="editCitizenId">Căn cước công dân</Label>
-                          <Input 
-                            id="editCitizenId" 
-                            placeholder="001234567890" 
+                          <Input
+                            id="editCitizenId"
+                            placeholder="001234567890"
                             pattern="^[0-9]{12}$"
                             maxLength={12}
                             title="Căn cước công dân phải có đúng 12 chữ số"
                             required
-                            defaultValue={selectedPatient.citizenId}
+                            defaultValue={selectedPatient.cccd}
                             onKeyDown={handleNumericKeyDown}
                             onInput={handleCitizenIdInput}
                             onPaste={handleCitizenIdPaste}
@@ -3473,10 +4023,10 @@ export default function BloodManagementPage() {
                         </div>
                         <div>
                           <Label htmlFor="editEmail">Email</Label>
-                          <Input 
-                            id="editEmail" 
-                            type="email" 
-                            placeholder="email@gmail.com" 
+                          <Input
+                            id="editEmail"
+                            type="email"
+                            placeholder="email@gmail.com"
                             pattern="^[a-zA-Z0-9._%+-]+@gmail\.com$"
                             title="Email phải có định dạng @gmail.com"
                             required
@@ -3485,7 +4035,7 @@ export default function BloodManagementPage() {
                             onBlur={(e) => {
                               const target = e.target as HTMLInputElement
                               const value = target.value
-                              
+
                               if (value && !value.match(/^[a-zA-Z0-9._%+-]+@gmail\.com$/)) {
                                 target.reportValidity()
                               }
@@ -3494,22 +4044,22 @@ export default function BloodManagementPage() {
                         </div>
                         <div className="col-span-2">
                           <Label htmlFor="editAddress">Địa chỉ</Label>
-                          <Input 
-                            id="editAddress" 
+                          <Input
+                            id="editAddress"
                             placeholder="Nhập địa chỉ đầy đủ"
                             defaultValue={selectedPatient.address}
                           />
                         </div>
                         <div>
                           <Label htmlFor="editEmergencyContact">Liên hệ khẩn cấp</Label>
-                          <Input 
-                            id="editEmergencyContact" 
-                            placeholder="0907654321" 
+                          <Input
+                            id="editEmergencyContact"
+                            placeholder="0907654321"
                             pattern="^0[0-9]{9}$"
                             maxLength={10}
                             title="Số điện thoại phải bắt đầu bằng số 0 và có đúng 10 chữ số"
                             required
-                            defaultValue={selectedPatient.emergencyContact}
+                            defaultValue={selectedPatient.emergency_contact}
                             onKeyDown={handleNumericKeyDown}
                             onInput={handleEmergencyContactInput}
                             onPaste={handleEmergencyContactPaste}
@@ -3517,16 +4067,16 @@ export default function BloodManagementPage() {
                         </div>
                         <div className="col-span-2">
                           <Label htmlFor="editMedicalHistory">Tiền sử bệnh</Label>
-                          <Textarea 
-                            id="editMedicalHistory" 
+                          <Textarea
+                            id="editMedicalHistory"
                             placeholder="Mô tả tiền sử bệnh..."
-                            defaultValue={selectedPatient.medicalHistory?.join(', ') || ''}
+                            defaultValue={selectedPatient.medical_history?.join(', ') || ''}
                           />
                         </div>
                         <div className="col-span-2 flex justify-end gap-2 pt-4">
-                          <Button 
-                            type="button" 
-                            variant="outline" 
+                          <Button
+                            type="button"
+                            variant="outline"
                             onClick={handleCancelEdit}
                           >
                             Hủy
@@ -3584,15 +4134,15 @@ export default function BloodManagementPage() {
             </TableHeader>
             <TableBody>
               {(() => {
-                const filteredPatients = patients.filter(patient => 
-                  !searchTerm || 
+                const filteredPatients = patients.filter(patient =>
+                  !searchTerm ||
                   patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                   patient.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
                   patient.phone.includes(searchTerm) ||
                   patient.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
                   patient.citizenId.includes(searchTerm)
                 )
-                
+
                 if (filteredPatients.length === 0) {
                   return (
                     <TableRow>
@@ -3612,83 +4162,83 @@ export default function BloodManagementPage() {
                     </TableRow>
                   )
                 }
-                
+
                 return filteredPatients.map((patient) => (
-                <TableRow 
-                  key={patient.id} 
-                  className="cursor-pointer hover:bg-gray-50 transition-colors"
-                  onClick={() => handleViewPatient(patient)}
-                >
-                  <TableCell>
-                    <div>
-                      <div className="font-medium">{patient.name}</div>
-                      <div className="text-sm text-gray-500">{patient.id}</div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-sm">
-                      <div>{patient.age} tuổi</div>
-                      <div className="text-gray-500">
-                        {patient.gender === 'male' ? 'Nam' : patient.gender === 'female' ? 'Nữ' : 'Khác'}
+                  <TableRow
+                    key={patient._id}
+                    className="cursor-pointer hover:bg-gray-50 transition-colors"
+                    onClick={() => handleViewPatient(patient)}
+                  >
+                    <TableCell>
+                      <div>
+                        <div className="font-medium">{patient.name}</div>
+                        <div className="text-sm text-gray-500">{patient._id}</div>
                       </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="text-red-600 border-red-600 font-bold">
-                      🩸 {patient.bloodType || 'N/A'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className={`${getComponentColor(patient.bloodComponent || 'plasma')} font-medium text-xs border`}>
-                      {patient.bloodComponent === 'whole_blood' && '🩸'} 
-                      {patient.bloodComponent === 'red_cells' && '🔴'} 
-                      {patient.bloodComponent === 'platelets' && '🟡'} 
-                      {patient.bloodComponent === 'plasma' && '🔵'} 
-                      {!patient.bloodComponent && '🔵'} 
-                      {' '}{getComponentName(patient.bloodComponent || 'plasma')}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className={`${getUrgencyColor(patient.urgency || 'medium')} font-medium text-xs border`}>
-                      {getUrgencyName(patient.urgency || 'medium')}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-sm">
-                      <div className="font-medium">{patient.phone}</div>
-                      <div className="text-gray-500 truncate max-w-32">{patient.email}</div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="font-mono text-sm">{patient.citizenId}</div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="font-medium text-sm">{patient.emergencyContact}</div>
-                  </TableCell>
-                  <TableCell className="max-w-36 truncate text-sm">{patient.address}</TableCell>
-                  <TableCell className="max-w-32 text-sm">
-                    {patient.medicalHistory && patient.medicalHistory.length > 0 ? (
-                      <div className="space-y-1">
-                        {patient.medicalHistory.slice(0, 2).map((history, index) => (
-                          <div key={index} className="text-xs bg-yellow-50 text-yellow-800 px-2 py-1 rounded truncate">
-                            {history}
-                          </div>
-                        ))}
-                        {patient.medicalHistory.length > 2 && (
-                          <div className="text-xs text-gray-500">+{patient.medicalHistory.length - 2} khác</div>
-                        )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm">
+                        <div>{patient.age} tuổi</div>
+                        <div className="text-gray-500">
+                          {patient.gender === 'male' ? 'Nam' : patient.gender === 'female' ? 'Nữ' : 'Khác'}
+                        </div>
                       </div>
-                    ) : (
-                      <span className="text-gray-400 text-xs">Không có</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-sm">{formatDate(patient.registrationDate)}</TableCell>
-                  <TableCell>
-                    <Badge className={getStatusColor(patient.status)}>
-                      {patient.status === 'active' ? 'Hoạt động' : 'Không hoạt động'}
-                    </Badge>
-                  </TableCell>
-                </TableRow>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="text-red-600 border-red-600 font-bold">
+                        🩸 {patient.blood_type || 'N/A'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={`${getComponentColor(patient.component_needed || 'plasma')} font-medium text-xs border`}>
+                        {patient.component_needed === 'whole_blood' && '🩸'}
+                        {patient.component_needed === 'red_cells' && '🔴'}
+                        {patient.component_needed === 'platelets' && '🟡'}
+                        {patient.component_needed === 'plasma' && '🔵'}
+                        {!patient.component_needed && '🔵'}
+                        {' '}{getComponentName(patient.component_needed || 'plasma')}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={`${getUrgencyColor(patient.urgency || 'medium')} font-medium text-xs border`}>
+                        {getUrgencyName(patient.urgency || 'medium')}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm">
+                        <div className="font-medium">{patient.contact}</div>
+                        <div className="text-gray-500 truncate max-w-32">{patient.email}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="font-mono text-sm">{patient.cccd}</div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="font-medium text-sm">{patient.emergency_contact}</div>
+                    </TableCell>
+                    <TableCell className="max-w-36 truncate text-sm">{patient.address}</TableCell>
+                    <TableCell className="max-w-32 text-sm">
+                      {patient.medical_history && patient.medical_history.length > 0 ? (
+                        <div className="space-y-1">
+                          {patient.medical_history.slice(0, 2).map((history, index) => (
+                            <div key={index} className="text-xs bg-yellow-50 text-yellow-800 px-2 py-1 rounded truncate">
+                              {history}
+                            </div>
+                          ))}
+                          {patient.medical_history.length > 2 && (
+                            <div className="text-xs text-gray-500">+{patient.medical_history.length - 2} khác</div>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-gray-400 text-xs">Không có</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-sm">{formatDate(patient.registration_date)}</TableCell>
+                    <TableCell>
+                      <Badge className={getStatusColor(patient.status)}>
+                        {patient.status === 'waiting' ? 'Hoạt động' : 'Không hoạt động'}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
                 ))
               })()}
             </TableBody>
@@ -3746,7 +4296,7 @@ export default function BloodManagementPage() {
           </div>
         </div>
       </header>
-      
+
       <div className="container mx-auto px-4 py-8 flex-grow">
         {/* Main header */}
         <div className="mb-8">
@@ -3791,6 +4341,9 @@ export default function BloodManagementPage() {
           </TabsContent>
         </Tabs>
       </div>
+      <Toaster position="top-center" containerStyle={{
+        top: 80,
+      }} />
     </div>
   )
 }

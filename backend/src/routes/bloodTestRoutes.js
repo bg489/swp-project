@@ -6,6 +6,9 @@ import {
     markBloodTestPassed,
     getBloodTestById,
     getBloodTestsByHospital,
+    updateSeparationInfo,
+    getSeparationInfoById,
+    updateBloodTestValues
 } from "../controllers/bloodTestController.js";
 
 const router = express.Router();
@@ -27,5 +30,13 @@ router.get("/blood-test/:id", getBloodTestById);
 
 // Lấy tất cả xét nghiệm máu theo bệnh viện
 router.get("/hospital/:hospitalId/blood-tests", getBloodTestsByHospital);
+
+router.put("/blood-tests/:id/separation", updateSeparationInfo);
+
+router.get("/blood-tests/:id/separation", getSeparationInfoById);
+
+router.put("/blood-test/update-values/:id", updateBloodTestValues);
+
+
 
 export default router;

@@ -36,7 +36,13 @@ export default function DonatePage() {
 
   // Sử dụng ngày địa phương thay vì UTC để tránh bị lùi ngày
   const today = new Date();
+
+  // Cộng thêm 1 ngày
+  today.setDate(today.getDate() + 1);
+
+  // Format thành chuỗi yyyy-mm-dd
   const todayString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
 
   // Tính toán ngày tối đa (3 tháng từ hôm nay)
   const maxDate = new Date();
@@ -78,35 +84,7 @@ export default function DonatePage() {
   }, [])
 
   const bloodTypes = ["O-", "O+", "A-", "A+", "B-", "B+", "AB-", "AB+"]
-  const allTimeSlots = ["8:00 - 10:00", "10:00 - 12:00", "12:00 - 14:00", "14:00 - 16:00", "16:00 - 18:00", "18:00 - 20:00"]
-  
-  // Filter time slots based on selected date and current time
-  const getAvailableTimeSlots = () => {
-    const selectedDate = new Date(formData.available_date);
-    const today = new Date();
-    const currentHour = today.getHours();
-    const currentMinute = today.getMinutes();
-    
-    // If selected date is not today, return all time slots
-    if (selectedDate.toDateString() !== today.toDateString()) {
-      return allTimeSlots;
-    }
-    
-    // If selected date is today, filter out past time slots
-    return allTimeSlots.filter(slot => {
-      const endTime = slot.split(' - ')[1]; // Get end time of the slot
-      const [endHour, endMinute] = endTime.split(':').map(Number);
-      
-      // Convert current time and end time to minutes for comparison
-      const currentTimeInMinutes = currentHour * 60 + currentMinute;
-      const endTimeInMinutes = endHour * 60 + endMinute;
-      
-      // Only show slots that haven't ended yet (with 30 minutes buffer)
-      return endTimeInMinutes > currentTimeInMinutes + 30;
-    });
-  };
-  
-  const timeSlots = getAvailableTimeSlots();
+  const timeSlots = ["8:00 - 10:00", "10:00 - 12:00", "12:00 - 14:00", "14:00 - 16:00", "16:00 - 18:00", "18:00 - 20:00"]
 
   const requirements = [
     "Tuổi từ 18-60, cân nặng tối thiểu 45kg",
@@ -218,14 +196,6 @@ export default function DonatePage() {
 
       if (!formData.available_time_range.from || !formData.available_time_range.to) {
         toast.error("Vui lòng chọn khung giờ hiến máu.")
-        return;
-      }
-
-      // Check if selected time slot is still available (in case of real-time changes)
-      const currentAvailableSlots = getAvailableTimeSlots();
-      const selectedTimeSlot = `${formData.available_time_range.from} - ${formData.available_time_range.to}`;
-      if (!currentAvailableSlots.includes(selectedTimeSlot)) {
-        toast.error("Khung giờ đã chọn không còn khả dụng. Vui lòng chọn khung giờ khác.")
         return;
       }
 
@@ -437,41 +407,12 @@ export default function DonatePage() {
                                 min={todayString}
                                 max={maxDateString}
                                 value={formData.available_date}
-                                onChange={(e) => {
-                                  const newDate = e.target.value;
-                                  const availableSlots = allTimeSlots.filter(slot => {
-                                    const selectedDate = new Date(newDate);
-                                    const today = new Date();
-                                    
-                                    if (selectedDate.toDateString() !== today.toDateString()) {
-                                      return true;
-                                    }
-                                    
-                                    const endTime = slot.split(' - ')[1];
-                                    const [endHour, endMinute] = endTime.split(':').map(Number);
-                                    const currentHour = today.getHours();
-                                    const currentMinute = today.getMinutes();
-                                    
-                                    const currentTimeInMinutes = currentHour * 60 + currentMinute;
-                                    const endTimeInMinutes = endHour * 60 + endMinute;
-                                    
-                                    return endTimeInMinutes > currentTimeInMinutes + 30;
-                                  });
-                                  
-                                  // Reset time selection if current selection is not available for new date
-                                  const currentTimeSlot = `${formData.available_time_range.from} - ${formData.available_time_range.to}`;
-                                  const newTimeRange = availableSlots.includes(currentTimeSlot) 
-                                    ? formData.available_time_range 
-                                    : availableSlots.length > 0 
-                                      ? { from: availableSlots[0].split(' - ')[0], to: availableSlots[0].split(' - ')[1] }
-                                      : { from: "", to: "" };
-                                  
+                                onChange={(e) =>
                                   setFormData((prev) => ({
                                     ...prev,
-                                    available_date: newDate,
-                                    available_time_range: newTimeRange,
-                                  }));
-                                }}
+                                    available_date: e.target.value,
+                                  }))
+                                }
                                 required
                               />
                               <p className="text-xs text-gray-500 mt-1">
@@ -482,43 +423,30 @@ export default function DonatePage() {
                             {/* Khung giờ */}
                             <div>
                               <Label htmlFor="timeSlot">Khung giờ hiến máu</Label>
-                              {timeSlots.length > 0 ? (
-                                <Select
-                                  value={`${formData.available_time_range.from} - ${formData.available_time_range.to}`}
-                                  onValueChange={(value) => {
-                                    const [from, to] = value.split(' - ');
-                                    setFormData((prev) => ({
-                                      ...prev,
-                                      available_time_range: {
-                                        from: from,
-                                        to: to,
-                                      },
-                                    }))
-                                  }}
-                                >
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Chọn khung giờ phù hợp" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {timeSlots.map((slot) => (
-                                      <SelectItem key={slot} value={slot}>
-                                        {slot}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              ) : (
-                                <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-                                  <p className="text-sm text-yellow-800">
-                                    ⚠️ Không có khung giờ nào khả dụng cho ngày hôm nay. Vui lòng chọn ngày khác.
-                                  </p>
-                                </div>
-                              )}
-                              {timeSlots.length > 0 && (
-                                <p className="text-xs text-gray-500 mt-1">
-                                  {timeSlots.length} khung giờ khả dụng
-                                </p>
-                              )}
+                              <Select
+                                value={`${formData.available_time_range.from} - ${formData.available_time_range.to}`}
+                                onValueChange={(value) => {
+                                  const [from, to] = value.split(' - ');
+                                  setFormData((prev) => ({
+                                    ...prev,
+                                    available_time_range: {
+                                      from: from,
+                                      to: to,
+                                    },
+                                  }))
+                                }}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Chọn khung giờ phù hợp" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {timeSlots.map((slot) => (
+                                    <SelectItem key={slot} value={slot}>
+                                      {slot}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
                             </div>
 
                             {/* Khung giờ */}
@@ -581,11 +509,9 @@ export default function DonatePage() {
                             {/* Submit */}
                             <Button
                               type="submit"
-                              disabled={loading || showSuccessMessage || timeSlots.length === 0}
+                              disabled={loading || showSuccessMessage}
                               className={`w-full transition-all duration-300 ${showSuccessMessage
                                 ? 'bg-green-600 hover:bg-green-700'
-                                : timeSlots.length === 0
-                                ? 'bg-gray-400 cursor-not-allowed'
                                 : 'bg-red-600 hover:bg-red-700'
                                 }`}
                             >
@@ -599,8 +525,6 @@ export default function DonatePage() {
                                   <CheckCircle className="w-4 h-4 mr-2" />
                                   Đăng ký thành công!
                                 </>
-                              ) : timeSlots.length === 0 ? (
-                                "Không có khung giờ khả dụng"
                               ) : (
                                 "Đăng ký hiến máu"
                               )}

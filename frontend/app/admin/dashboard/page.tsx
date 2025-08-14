@@ -83,7 +83,7 @@ export default function AdminDashboard() {
         console.error("Lỗi khi lấy danh sách người dùng:", error);
       }
     }
-    
+
     // Only call the function if user is loaded
     if (user) {
       use();
@@ -147,7 +147,7 @@ export default function AdminDashboard() {
     console.log(selectedUser);
     try {
       const originalUser = pendingUsers.find(u => u._id === selectedUser?._id);
-      
+
       const response = await api.put(`/users/edit/${selectedUser?._id}`, {
         full_name: selectedUser?.full_name,
         email: selectedUser?.email,
@@ -179,7 +179,7 @@ export default function AdminDashboard() {
         if (originalUser?.email !== selectedUser.email) changes.push('email');
         if (originalUser?.role !== selectedUser.role) changes.push('vai trò');
         if (originalUser?.phone !== selectedUser.phone) changes.push('số điện thoại');
-        
+
         const changeText = changes.length > 0 ? ` (${changes.join(', ')})` : '';
         addActivity('user_edited', `Thông tin ${selectedUser.full_name} đã được cập nhật${changeText}`, selectedUser.full_name, selectedUser.role);
       }
@@ -196,15 +196,15 @@ export default function AdminDashboard() {
   const handleDeleteUser = async (user_Id: any) => {
     try {
       const userToDelete = pendingUsers.find(u => u._id === user_Id);
-      
+
       await api.delete(`/users/admin/users/delete/${user?._id}/${user_Id}`)
       setPendingUsers(prev => prev.filter(user => user._id !== user_Id));
-      
+
       // Add activity for user deletion
       if (userToDelete) {
         addActivity('user_deleted', `Tài khoản ${userToDelete.full_name} (${userToDelete.role}) đã bị xóa`, userToDelete.full_name, userToDelete.role);
       }
-      
+
       toast.success("Xóa tài khoản thành công")
     } catch (error) {
       toast.error("Không thể xóa user");
@@ -340,7 +340,7 @@ export default function AdminDashboard() {
     try {
       const bloodInvent = await api.get(`/blood-in/blood-inventory/hospital/${hospital._id}`);
       setBloodInven(bloodInvent.data.inventories);
-      
+
       // Add activity for hospital selection
       addActivity('blood_updated', `Đã chọn bệnh viện ${hospital.name} - ${bloodInvent.data.inventories.length} loại máu có sẵn`);
     } catch (error) {
@@ -395,7 +395,7 @@ export default function AdminDashboard() {
   }
 
   const bloodTypeColors = [
-    "bg-red-500", "bg-red-400", "bg-blue-500", "bg-blue-400", 
+    "bg-red-500", "bg-red-400", "bg-blue-500", "bg-blue-400",
     "bg-green-500", "bg-green-400", "bg-purple-500", "bg-purple-400"
   ]
 
@@ -414,7 +414,7 @@ export default function AdminDashboard() {
 
     const colors = {
       user_created: "text-blue-600",
-      user_verified: "text-green-600", 
+      user_verified: "text-green-600",
       user_deleted: "text-red-600",
       user_edited: "text-orange-600",
       blood_updated: "text-red-500",
@@ -575,256 +575,12 @@ export default function AdminDashboard() {
 
         <div className="container mx-auto px-4 py-8 flex-grow">
           <Tabs defaultValue="overview" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="overview">Tổng quan</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="users">Người dùng</TabsTrigger>
-              <TabsTrigger value="inventory">Kho máu</TabsTrigger>
               <TabsTrigger value="create-users">Tạo tài khoản</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="overview" className="space-y-6">
-              {/* Top Stats Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                <Card className="border-l-4 border-l-blue-500">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-gray-600">Tổng người dùng</p>
-                        <p className="text-2xl font-bold text-gray-900">{pendingUsers.length}</p>
-                      </div>
-                      <Users className="w-8 h-8 text-blue-500" />
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                <Card className="border-l-4 border-l-green-500">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-gray-600">Đã xác minh</p>
-                        <p className="text-2xl font-bold text-gray-900">{pendingUsers.filter(user => user.is_verified).length}</p>
-                      </div>
-                      <UserCheck className="w-8 h-8 text-green-500" />
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                <Card className="border-l-4 border-l-red-500">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-gray-600">Tổng kho máu</p>
-                        <p className="text-2xl font-bold text-gray-900">{bloodInventoryQuantity.toLocaleString()}</p>
-                        <p className="text-xs text-gray-500">ml</p>
-                      </div>
-                      <Droplets className="w-8 h-8 text-red-500" />
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                <Card className="border-l-4 border-l-orange-500">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-gray-600">Sắp hết hạn</p>
-                        <p className="text-2xl font-bold text-gray-900">{bloodInventoryExpiringQuantity.toLocaleString()}</p>
-                        <p className="text-xs text-gray-500">ml</p>
-                      </div>
-                      <AlertTriangle className="w-8 h-8 text-orange-500" />
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
 
-              <div className="grid lg:grid-cols-2 gap-6">
-                {/* System Health */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center">
-                      <Activity className="w-5 h-5 mr-2 text-green-600" />
-                      Thống kê hệ thống
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div>
-                        <div className="flex justify-between mb-2">
-                          <span className="text-sm text-gray-600">Tổng người dùng</span>
-                          <span className="text-sm font-semibold text-gray-900">{pendingUsers.length}</span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div 
-                            className="bg-blue-500 h-2 rounded-full transition-all duration-300" 
-                            style={{ width: `${Math.min((pendingUsers.length / 5000) * 100, 100)}%` }}
-                          ></div>
-                        </div>
-                      </div>
-                      <div>
-                        <div className="flex justify-between mb-2">
-                          <span className="text-sm text-gray-600">Người dùng đã xác minh</span>
-                          <span className="text-sm font-semibold text-gray-900">
-                            {pendingUsers.filter(user => user.is_verified).length} / {pendingUsers.length}
-                          </span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div 
-                            className="bg-green-500 h-2 rounded-full transition-all duration-300" 
-                            style={{ width: `${pendingUsers.length > 0 ? (pendingUsers.filter(user => user.is_verified).length / pendingUsers.length) * 100 : 0}%` }}
-                          ></div>
-                        </div>
-                      </div>
-                      <div>
-                        <div className="flex justify-between mb-2">
-                          <span className="text-sm text-gray-600">Tổng kho máu</span>
-                          <span className="text-sm font-semibold text-red-600">{bloodInventoryQuantity.toLocaleString()} ml</span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div 
-                            className="bg-red-500 h-2 rounded-full transition-all duration-300" 
-                            style={{ width: `${Math.min((bloodInventoryQuantity / 400000) * 100, 100)}%` }}
-                          ></div>
-                        </div>
-                      </div>
-                      <div>
-                        <div className="flex justify-between mb-2">
-                          <span className="text-sm text-gray-600">Máu sắp hết hạn</span>
-                          <span className="text-sm font-semibold text-orange-600">{bloodInventoryExpiringQuantity.toLocaleString()} ml</span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div 
-                            className="bg-orange-400 h-2 rounded-full transition-all duration-300" 
-                            style={{ width: `${bloodInventoryQuantity > 0 ? (bloodInventoryExpiringQuantity / bloodInventoryQuantity) * 100 : 0}%` }}
-                          ></div>
-                        </div>
-                      </div>
-                      
-                      {/* User Role Statistics */}
-                      <div className="pt-4 border-t">
-                        <h4 className="text-sm font-medium text-gray-700 mb-3">Thống kê theo vai trò</h4>
-                        {['donor', 'recipient', 'staff', 'admin'].map((role) => {
-                          const count = pendingUsers.filter(user => user.role === role).length;
-                          const percentage = pendingUsers.length > 0 ? (count / pendingUsers.length) * 100 : 0;
-                          return (
-                            <div key={role} className="mb-2">
-                              <div className="flex justify-between mb-1">
-                                <span className="text-xs text-gray-600 capitalize">
-                                  {role === 'donor' ? 'Người hiến máu' : 
-                                   role === 'recipient' ? 'Người nhận máu' :
-                                   role === 'staff' ? 'Nhân viên' : 'Quản trị viên'}
-                                </span>
-                                <span className="text-xs font-medium text-gray-900">{count}</span>
-                              </div>
-                              <div className="w-full bg-gray-200 rounded-full h-1.5">
-                                <div 
-                                  className={`h-1.5 rounded-full transition-all duration-300 ${
-                                    role === 'donor' ? 'bg-red-400' :
-                                    role === 'recipient' ? 'bg-blue-400' :
-                                    role === 'staff' ? 'bg-green-400' : 'bg-purple-400'
-                                  }`}
-                                  style={{ width: `${percentage}%` }}
-                                ></div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Recent Activities */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                      <span>Hoạt động gần đây</span>
-                      <Badge variant="outline">{recentActivities.length} hoạt động</Badge>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3 max-h-96 overflow-y-auto">
-                      {recentActivities.length > 0 ? (
-                        recentActivities.map((activity) => (
-                          <div key={activity.id} className="flex items-start space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors">
-                            <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
-                              <activity.icon className={`w-4 h-4 ${activity.color}`} />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm text-gray-900 font-medium">{activity.message}</p>
-                              {activity.user_name && (
-                                <p className="text-xs text-gray-600">
-                                  Người dùng: {activity.user_name} 
-                                  {activity.user_role && <span className="ml-1 text-gray-500">({activity.user_role})</span>}
-                                </p>
-                              )}
-                              <p className="text-xs text-gray-500">
-                                {new Date(activity.timestamp).toLocaleString("vi-VN", {
-                                  year: 'numeric',
-                                  month: 'short', 
-                                  day: 'numeric',
-                                  hour: '2-digit',
-                                  minute: '2-digit'
-                                })}
-                              </p>
-                            </div>
-                            <div className="flex-shrink-0">
-                              <Badge 
-                                variant="outline" 
-                                className={`text-xs ${
-                                  activity.type === 'user_verified' ? 'border-green-200 text-green-700' :
-                                  activity.type === 'user_created' ? 'border-blue-200 text-blue-700' :
-                                  activity.type === 'user_deleted' ? 'border-red-200 text-red-700' :
-                                  activity.type === 'user_edited' ? 'border-orange-200 text-orange-700' :
-                                  activity.type === 'blood_updated' ? 'border-red-200 text-red-700' :
-                                  activity.type === 'login' ? 'border-purple-200 text-purple-700' :
-                                  'border-gray-200 text-gray-700'
-                                }`}
-                              >
-                                {activity.type === 'user_verified' ? 'Xác minh' :
-                                 activity.type === 'user_created' ? 'Tạo mới' :
-                                 activity.type === 'user_deleted' ? 'Xóa' :
-                                 activity.type === 'user_edited' ? 'Chỉnh sửa' :
-                                 activity.type === 'blood_updated' ? 'Cập nhật máu' :
-                                 activity.type === 'login' ? 'Đăng nhập' :
-                                 activity.type === 'logout' ? 'Đăng xuất' :
-                                 'Hệ thống'}
-                              </Badge>
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="text-center py-8 text-gray-500">
-                          <Activity className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                          <p className="text-sm font-medium">Chưa có hoạt động nào</p>
-                          <p className="text-xs mt-1">Các hoạt động sẽ hiển thị tại đây</p>
-                        </div>
-                      )}
-                    </div>
-                    
-                    {recentActivities.length > 0 && (
-                      <div className="mt-4 pt-3 border-t">
-                        <div className="flex items-center justify-between text-xs text-gray-500">
-                          <span>Hiển thị {Math.min(recentActivities.length, 10)} hoạt động gần nhất</span>
-                          <div className="flex items-center space-x-4">
-                            <span className="flex items-center">
-                              <div className="w-2 h-2 bg-green-500 rounded-full mr-1"></div>
-                              Xác minh
-                            </span>
-                            <span className="flex items-center">
-                              <div className="w-2 h-2 bg-blue-500 rounded-full mr-1"></div>
-                              Tạo mới
-                            </span>
-                            <span className="flex items-center">
-                              <div className="w-2 h-2 bg-red-500 rounded-full mr-1"></div>
-                              Xóa/Cập nhật
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
 
             <TabsContent value="users" className="space-y-6">
               <Card>
@@ -1066,7 +822,7 @@ export default function AdminDashboard() {
                       {confirmAction === 'delete' ? 'Xác nhận xóa người dùng' : 'Xác nhận duyệt người dùng'}
                     </DialogTitle>
                     <DialogDescription>
-                      {confirmAction === 'delete' 
+                      {confirmAction === 'delete'
                         ? 'Bạn có chắc chắn muốn xóa người dùng này? Hành động này không thể hoàn tác.'
                         : 'Bạn có chắc chắn muốn duyệt người dùng này?'
                       }
@@ -1076,7 +832,7 @@ export default function AdminDashboard() {
                     <Button variant="outline" onClick={() => setOpenConfirmDialog(false)}>
                       Hủy
                     </Button>
-                    <Button 
+                    <Button
                       variant={confirmAction === 'delete' ? 'destructive' : 'default'}
                       onClick={handleConfirmAction}
                     >
@@ -1088,104 +844,7 @@ export default function AdminDashboard() {
             </TabsContent>
 
 
-            <TabsContent value="inventory" className="space-y-6">
-              {/* Blood Inventory Management */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                      <Users className="w-6 h-6 text-blue-600" />
-                    </div>
-                    <div>
-                      <p className="font-medium">Lựa chọn Bệnh Viện</p>
-                    </div>
-                  </div>
-                  <div className="flex space-x-2">
-                    <div className="relative" ref={containerRef}>
-                      <MapPin className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                      <Input
-                        id="hospital_name"
-                        placeholder="ex: Bệnh viện Hùng Vương"
-                        value={hospitalInput}
-                        onChange={handleChange}
-                        onKeyDown={handleKeyDown}
-                        onFocus={() => {
-                          setIsFocused(true);
-                          setShowSuggestions(true); // hiện suggestions khi nhấp
-                        }}
-                        className="pl-10"
-                        required
-                        disabled={locationAllowed === false}
-                      />
-                      {showSuggestions && isFocused && filteredHospitals.length > 0 && (
-                        <ul className="absolute z-10 bg-white border border-gray-300 w-full max-h-60 overflow-y-auto shadow-lg rounded">
-                          {filteredHospitals.map((h, idx) => (
-                            <li
-                              key={idx}
-                              ref={highlightIndex === idx ? (el) => el?.scrollIntoView({ block: "nearest" }) : null}
-                              className={`px-4 py-2 hover:bg-gray-100 cursor-pointer ${highlightIndex === idx ? "bg-gray-200" : ""}`}
-                              onClick={() => handleSelect(h)}
-                            >
-                              <strong>{h.name}</strong>
-                              {h.address && <div className="text-sm text-gray-500">{h.address}</div>}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {bloodInven.map((blood, index) => (
-                  <Card key={blood.blood_type}>
-                    <CardHeader className="pb-2">
-                      <div className="flex items-center justify-between">
-                        <div className={`w-12 h-12 ${bloodTypeColors[index % bloodTypeColors.length]} rounded-full flex items-center justify-center`}>
-                          <span className="text-xl font-bold text-white">{blood.blood_type}</span>
-                        </div>
-                        <Badge className={getStatusColor(blood.quantity)}>
-                          {blood.quantity < 30
-                            ? "Rất thấp"
-                            : blood.quantity < 100
-                              ? "Thấp"
-                              : blood.quantity < 150
-                                ? "Trung bình" :
-                                "Tốt"}
-                        </Badge>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-2">
-                        <div className="flex justify-between">
-                          <span className="text-2xl font-bold">{blood.quantity}</span>
-                          <span className="text-sm text-gray-500">/ 50000</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-sm text-gray-500"></span>
-                          <span className="text-2xl font-bold text-orange-600">sắp hết hạn: {blood.expiring_quantity}</span>
-                        </div>
-                        <Progress value={Math.min((blood.quantity / 50000) * 100, 100)} className="h-2" />
-                        <div className="flex justify-between text-xs text-gray-500">
-                          <span>Hiện có</span>
-                          <span>Mục tiêu</span>
-                        </div>
-                      </div>
-                      <div className="flex space-x-2 mt-4">
-                        <Button size="sm" variant="outline" className="flex-1" onClick={handleNavigateToInventory}>
-                          <Edit className="w-3 h-3 mr-1" />
-                          Sửa
-                        </Button>
-                        <Button size="sm" className="flex-1" onClick={handleNavigateToInventory}>
-                          <Plus className="w-3 h-3 mr-1" />
-                          Thêm
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </TabsContent>
+
 
             <TabsContent value="create-users" className="space-y-6">
               {/* Form tạo tài khoản */}
