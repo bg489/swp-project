@@ -25,7 +25,26 @@ export default function HealthCheckFormPage() {
   const searchParams = useSearchParams()
   const bloodUnitId = searchParams.get("bloodUnitId") || ""
   const name = searchParams.get("name") || ""
-  const [form, setForm] = useState({
+  interface FormState {
+    bloodGroupABO?: string;
+    bloodGroupRh?: string;
+    collectionDate: string;
+    anticoagulantSolution: string;
+    expiryDate: string;
+    storageTemperature: string;
+    irradiated: boolean;
+    notes: string;
+    volumeOrWeight: number;
+    name: string;
+    email: string;
+    phone: string;
+    gender: string;
+    birth: string;
+    cccd: string;
+    user_id: string;
+  }
+
+  const [form, setForm] = useState<FormState>({
     bloodGroupABO: undefined,
     bloodGroupRh: undefined,
     collectionDate: "",
@@ -92,11 +111,26 @@ export default function HealthCheckFormPage() {
 
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value, type, checked } = e.target;
-    setForm((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
+    const target = e.target as HTMLInputElement | HTMLTextAreaElement;
+    const { name, value } = target;
+    setForm((prev) => {
+      switch (name) {
+        case "collectionDate":
+          return { ...prev, collectionDate: value };
+        case "expiryDate":
+          return { ...prev, expiryDate: value };
+        case "volumeOrWeight":
+          return { ...prev, volumeOrWeight: Number(value) || 0 };
+        case "storageTemperature":
+          return { ...prev, storageTemperature: value };
+        case "notes":
+          return { ...prev, notes: value };
+        case "irradiated":
+          return { ...prev, irradiated: (target as HTMLInputElement).checked };
+        default:
+          return prev;
+      }
+    });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -141,7 +175,7 @@ export default function HealthCheckFormPage() {
     try {
       await api.put(`/whole-blood/red-blood-cell/${bloodUnitId}/donate`);
       toast.success("Dán nhãn hiến máu thành công!")
-      router.push("/staff/dashboard");
+  router.push("/staff/dashboard/donation-requests");
     } catch (error) {
       toast.error("Có lỗi xảy ra khi chấp nhận đơn khám!")
     }
@@ -151,7 +185,7 @@ export default function HealthCheckFormPage() {
     try {
       await api.put(`/whole-blood/red-blood-cell/${bloodUnitId}/not-eligible`);
       toast.success("Dán nhãn không phù hợp thành công!")
-      router.push("/staff/dashboard");
+  router.push("/staff/dashboard/donation-requests");
     } catch (error) {
       toast.error("Có lỗi xảy ra khi chấp nhận đơn khám!")
     }

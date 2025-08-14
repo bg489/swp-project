@@ -26,20 +26,6 @@ function translateDonationType(type: "whole" | "separated"): string {
 }
 
 
-function translateStatus(status: "pending" | "approved" | "rejected"): string {
-  switch (status) {
-    case "pending":
-      return "Chờ duyệt"
-    case "approved":
-      return "Đã chấp nhận"
-    case "rejected":
-      return "Đã từ chối"
-    default:
-      return "Không xác định"
-  }
-}
-
-
 interface DonorRequest {
   _id: string
   donor_id: {
@@ -81,9 +67,9 @@ interface DonorDonationRequest {
     from: string
     to: string
   }
-  separated_component?: ["RBC" | "plasma" | "platelet"]
+  separated_component?: Array<"RBC" | "plasma" | "platelet">
   notes: string
-  status: "pending" | "approved" | "rejected"
+  status: "pending" | "approved" | "rejected" | "matched" | "in_progress" | "completed" | "cancelled"
   createdAt: string
   updatedAt: string
 }
@@ -91,7 +77,6 @@ interface DonorDonationRequest {
 
 export default function DonorRequestHistoryPage() {
   const { user, isLoading } = useAuth()
-  const [bloodRequests, setBloodRequests] = useState<DonorRequest[]>([])
   const [donationRequests, setDonationRequests] = useState<DonorDonationRequest[]>([])
   const [loading, setLoading] = useState(true)
   const [total, setTotal] = useState(0);
@@ -138,7 +123,7 @@ export default function DonorRequestHistoryPage() {
           console.error("Server error occurred")
         }
 
-        setBloodRequests([])
+  setDonationRequests([])
       } finally {
         setLoading(false)
       }
@@ -219,34 +204,41 @@ export default function DonorRequestHistoryPage() {
     }
   }
 
-  // Hàm sắp xếp
-  const sortedRequests = [...bloodRequests].sort((a, b) => {
+  // Hàm sắp xếp cho danh sách yêu cầu hiến máu (đúng dữ liệu đang render)
+  const sortedDonationRequests = [...donationRequests].sort((a, b) => {
     switch (sortOrder) {
       case "newest":
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       case "oldest":
         return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-      case "status":
-        const statusOrder = ["pending", "in_progress", "approved", "matched", "completed", "cancelled", "rejected"]
-        const statusA = statusOrder.indexOf(a.status)
-        const statusB = statusOrder.indexOf(b.status)
-        // Nếu không tìm thấy status, đặt ở cuối
+      case "status": {
+        const statusOrder = [
+          "pending",
+          "in_progress",
+          "approved",
+          "matched",
+          "completed",
+          "cancelled",
+          "rejected",
+        ] as const
+        const statusA = statusOrder.indexOf(a.status as typeof statusOrder[number])
+        const statusB = statusOrder.indexOf(b.status as typeof statusOrder[number])
         const indexA = statusA === -1 ? statusOrder.length : statusA
         const indexB = statusB === -1 ? statusOrder.length : statusB
         return indexA - indexB
+      }
       default:
-        // Mặc định sắp xếp theo ngày mới nhất
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     }
   })
 
-  function translateStatus(status: string) {
+  function translateStatusLabel(status: string) {
     const map: Record<string, string> = {
       pending: "Đang xử lý",
       approved: "Đã duyệt",
       matched: "Đã ghép",
       in_progress: "Đang xử lý",
-      completed: "Hoàn tất",
+      completed: "Đã duyệt",
       cancelled: "Đã hủy",
       rejected: "Từ chối",
     }
@@ -376,7 +368,7 @@ export default function DonorRequestHistoryPage() {
                     <div className="text-2xl font-bold text-green-600">
                       {approved}
                     </div>
-                    <p className="text-sm text-gray-600">Hoàn tất</p>
+                    <p className="text-sm text-gray-600">Đã duyệt</p>
                   </CardContent>
                 </Card>
                 <Card>
@@ -417,7 +409,7 @@ export default function DonorRequestHistoryPage() {
                 </Card>
               ) : (
                 <div className="space-y-6">
-                  {donationRequests.map((request, index) => (
+                  {sortedDonationRequests.map((request, index) => (
                     <Card key={request._id} className="overflow-hidden">
                       <CardHeader className="pb-4">
                         <div className="flex justify-between items-start">
@@ -432,7 +424,7 @@ export default function DonorRequestHistoryPage() {
                           </div>
                           <div className="flex items-center gap-2">
                             <Badge className={getStatusColor(request.status)}>
-                              {translateStatus(request.status)}
+                              {translateStatusLabel(request.status)}
                             </Badge>
                             {/* Nút hủy yêu cầu */}
                             {(request.status === "pending") && (
@@ -473,8 +465,8 @@ export default function DonorRequestHistoryPage() {
                                 <div className="flex flex-wrap gap-1 mt-1">
                                   {translateDonationType(request.donation_type)}
                                   <br />
-                                  {request.donation_type === "separated" && request.separated_component?.length > 0 ? (
-                                    "Những thành phần: " + request.separated_component.map(translateBloodComponent).join(", ")
+                                  {request.donation_type === "separated" && ((request.separated_component?.length ?? 0) > 0) ? (
+                                    "Những thành phần: " + request.separated_component!.map(translateBloodComponent).join(", ")
                                   ) : ""}
                                 </div>
                               </div>

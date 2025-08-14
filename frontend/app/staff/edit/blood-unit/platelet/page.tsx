@@ -25,7 +25,28 @@ export default function HealthCheckFormPage() {
   const searchParams = useSearchParams()
   const bloodUnitId = searchParams.get("bloodUnitId") || ""
   const name = searchParams.get("name") || ""
-  const [form, setForm] = useState({
+  type ABOType = "A" | "B" | "AB" | "O";
+  type RhType = "+" | "-";
+  type FormValues = {
+    bloodGroupABO: ABOType | undefined;
+    bloodGroupRh: RhType | undefined;
+    collectionDate: string; // yyyy-MM-dd
+    anticoagulantSolution: string;
+    expiryDate: string; // yyyy-MM-dd
+    storageTemperature: string;
+    irradiated: boolean;
+    notes: string;
+    volumeOrWeight: number;
+    name: string;
+    email: string;
+    phone: string;
+    gender: string;
+    birth: string;
+    cccd: string;
+    user_id: string;
+  };
+
+  const [form, setForm] = useState<FormValues>({
     bloodGroupABO: undefined,
     bloodGroupRh: undefined,
     collectionDate: "",
@@ -92,11 +113,23 @@ export default function HealthCheckFormPage() {
 
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value, type, checked } = e.target;
-    setForm((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
+    const target = e.target as HTMLInputElement | HTMLTextAreaElement;
+    const name = (target as any).name as keyof FormValues;
+    const isCheckbox = (target as HTMLInputElement).type === "checkbox";
+    const rawValue = isCheckbox
+      ? (target as HTMLInputElement).checked
+      : (target as any).value;
+
+    setForm((prev) => {
+      if (name === "volumeOrWeight") {
+        const num = typeof rawValue === "string" ? parseFloat(rawValue) : Number(rawValue);
+        return { ...prev, volumeOrWeight: isNaN(num) ? 0 : num };
+      }
+      if (name === "irradiated") {
+        return { ...prev, irradiated: Boolean(rawValue) };
+      }
+      return { ...prev, [name]: rawValue } as FormValues;
+    });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -141,7 +174,7 @@ export default function HealthCheckFormPage() {
     try {
       await api.put(`/whole-blood/platelet/${bloodUnitId}/donate`);
       toast.success("Dán nhãn hiến máu thành công!")
-      router.push("/staff/dashboard");
+  router.push("/staff/dashboard/donation-requests");
     } catch (error) {
       toast.error("Có lỗi xảy ra khi chấp nhận đơn khám!")
     }
@@ -151,7 +184,7 @@ export default function HealthCheckFormPage() {
     try {
       await api.put(`/whole-blood/platelet/${bloodUnitId}/not-eligible`);
       toast.success("Dán nhãn không phù hợp thành công!")
-      router.push("/staff/dashboard");
+  router.push("/staff/dashboard/donation-requests");
     } catch (error) {
       toast.error("Có lỗi xảy ra khi chấp nhận đơn khám!")
     }
@@ -190,7 +223,7 @@ export default function HealthCheckFormPage() {
                       onValueChange={(value) => {
                         setForm((prev) => ({
                           ...prev,
-                          bloodGroupABO: value,
+                          bloodGroupABO: value as ABOType,
                         }))
                       }}
                     >
@@ -227,7 +260,7 @@ export default function HealthCheckFormPage() {
                       onValueChange={(value) => {
                         setForm((prev) => ({
                           ...prev,
-                          bloodGroupRh: value,
+                          bloodGroupRh: value as RhType,
                         }))
                       }}
                     >

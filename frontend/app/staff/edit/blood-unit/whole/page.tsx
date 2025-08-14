@@ -20,12 +20,39 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import toast, { Toaster } from "react-hot-toast";
 import api from "@/lib/axios";
 
+// Form state typing for safety
+type FormState = {
+  bloodGroupABO?: string;
+  bloodGroupRh?: string;
+  collectionDate: string; // yyyy-mm-dd
+  anticoagulantSolution: string;
+  expiryDate: string; // yyyy-mm-dd
+  storageTemperature: string;
+  irradiated: boolean;
+  notes: string;
+  volumeOrWeight: number;
+  name: string;
+  email: string;
+  phone: string;
+  gender: string;
+  birth: string; // ISO or date string
+  cccd: string;
+  user_id: string;
+  abnormalAntibodyDetected: boolean;
+  hivPositive: boolean;
+  hbvPositive: boolean;
+  hcvPositive: boolean;
+  syphilisPositive: boolean;
+  malariaPositive: boolean;
+  cmvPositive: boolean;
+};
+
 export default function HealthCheckFormPage() {
   const router = useRouter();
   const searchParams = useSearchParams()
   const bloodUnitId = searchParams.get("bloodUnitId") || ""
   const name = searchParams.get("name") || ""
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<FormState>({
     bloodGroupABO: undefined,
     bloodGroupRh: undefined,
     collectionDate: "",
@@ -48,7 +75,7 @@ export default function HealthCheckFormPage() {
     hcvPositive: false,
     syphilisPositive: false,
     malariaPositive: false,
-    cmvPositive: false
+    cmvPositive: false,
   });
 
   function getGenderLabel(gender: string) {
@@ -59,7 +86,9 @@ export default function HealthCheckFormPage() {
 
 
   const formatDate = (dateStr: string) => {
+    if (!dateStr) return "-";
     const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return "-";
     const day = String(date.getDate()).padStart(2, "0");
     const month = String(date.getMonth() + 1).padStart(2, "0"); // tháng tính từ 0
     const year = date.getFullYear();
@@ -67,50 +96,64 @@ export default function HealthCheckFormPage() {
   };
 
   useEffect(() => {
-    async function fetch() {
+    async function fetchData() {
+      if (!bloodUnitId) return; // nothing to load
       try {
         const response = await api.get(`/whole-blood/whole-blood-unit/${bloodUnitId}`);
         const data = response.data;
-        setForm({
-          bloodGroupABO: data.unit.bloodGroupABO,
-          bloodGroupRh: data.unit.bloodGroupRh,
-          collectionDate: new Date(data.unit.collectionDate).toISOString().split("T")[0],
-          anticoagulantSolution: data.unit.anticoagulantSolution,
-          expiryDate: new Date(data.unit.expiryDate).toISOString().split("T")[0],
-          storageTemperature: data.unit.storageTemperature,
-          irradiated: data.unit.irradiated,
-          notes: data.unit.notes,
-          volumeOrWeight: data.unit.volumeOrWeight,
-          name: data.unit.user_id.full_name,
-          email: data.unit.user_id.email,
-          phone: data.unit.user_id.phone,
-          gender: data.unit.user_id.gender,
-          birth: data.unit.user_id.date_of_birth,
-          cccd: data.unit.user_profile_id.cccd,
-          user_id: data.unit.user_id._id,
-          abnormalAntibodyDetected: data.unit.abnormalAntibodyDetected,
-          hivPositive: data.unit.hivPositive,
-          hbvPositive: data.unit.hbvPositive,
-          hcvPositive: data.unit.hcvPositive,
-          syphilisPositive: data.unit.syphilisPositive,
-          malariaPositive: data.unit.malariaPositive,
-          cmvPositive: data.unit.cmvPositive
-        })
+        const unit = data?.unit ?? {};
+        const user = unit?.user_id ?? {};
+        const profile = unit?.user_profile_id ?? {};
 
+        setForm({
+          bloodGroupABO: unit.bloodGroupABO,
+          bloodGroupRh: unit.bloodGroupRh,
+          collectionDate: unit.collectionDate ? new Date(unit.collectionDate).toISOString().split("T")[0] : "",
+          anticoagulantSolution: unit.anticoagulantSolution ?? "",
+          expiryDate: unit.expiryDate ? new Date(unit.expiryDate).toISOString().split("T")[0] : "",
+          storageTemperature: unit.storageTemperature ?? "",
+          irradiated: Boolean(unit.irradiated),
+          notes: unit.notes ?? "",
+          volumeOrWeight: Number(unit.volumeOrWeight ?? 0),
+          name: user.full_name ?? "",
+          email: user.email ?? "",
+          phone: user.phone ?? "",
+          gender: user.gender ?? "",
+          birth: user.date_of_birth ?? "",
+          cccd: profile.cccd ?? "",
+          user_id: user._id ?? "",
+          abnormalAntibodyDetected: Boolean(unit.abnormalAntibodyDetected),
+          hivPositive: Boolean(unit.hivPositive),
+          hbvPositive: Boolean(unit.hbvPositive),
+          hcvPositive: Boolean(unit.hcvPositive),
+          syphilisPositive: Boolean(unit.syphilisPositive),
+          malariaPositive: Boolean(unit.malariaPositive),
+          cmvPositive: Boolean(unit.cmvPositive),
+        });
       } catch (error) {
-        toast.error("Có lỗi khi fetch data")
+        toast.error("Có lỗi khi fetch data");
       }
     }
-    fetch();
-  }, []);
+    fetchData();
+  }, [bloodUnitId]);
 
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value, type, checked } = e.target;
+    const { name, value } = e.target;
     setForm((prev) => ({
       ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
+      // Only text/date fields handled here
+      [name]: value,
+    } as FormState));
+  };
+
+  const handleNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    const num = value === "" ? 0 : Number(value);
+    setForm((prev) => ({
+      ...prev,
+      [name]: isNaN(num) ? 0 : num,
+    } as FormState));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -140,16 +183,16 @@ export default function HealthCheckFormPage() {
         cmvPositive: form.cmvPositive
       })
 
-      const inputDate = new Date(form.expiryDate);
-      const today = new Date();
-
-      // Đặt giờ phút giây mili giây về 0 để so sánh theo ngày
-      inputDate.setHours(0, 0, 0, 0);
-      today.setHours(0, 0, 0, 0);
-
-      if (inputDate <= today) {
-        await api.put(`/whole-blood/whole-blood-unit/${bloodUnitId}/expire`);
-        toast.success("Đã dán nhãn hết hạn!")
+      if (form.expiryDate) {
+        const inputDate = new Date(form.expiryDate);
+        const today = new Date();
+        // Đặt giờ phút giây mili giây về 0 để so sánh theo ngày
+        inputDate.setHours(0, 0, 0, 0);
+        today.setHours(0, 0, 0, 0);
+        if (!isNaN(inputDate.getTime()) && inputDate <= today) {
+          await api.put(`/whole-blood/whole-blood-unit/${bloodUnitId}/expire`);
+          toast.success("Đã dán nhãn hết hạn!");
+        }
       }
       toast.success("Đã lưu thành công!")
     } catch (error) {
@@ -162,9 +205,10 @@ export default function HealthCheckFormPage() {
       const responseBoolean = await api.get(`/whole-blood/whole-blood-unit/${bloodUnitId}/check-blood-type`);
       if (responseBoolean.data.isComplete) {
         await api.get(`/whole-blood/whole-blood-unit/${bloodUnitId}/email-blood-type`);
+        const blood_type = `${form.bloodGroupABO ?? ""}${form.bloodGroupRh ?? ""}`;
         await api.put(`/users/user-profile/set-blood-type`, {
           user_id: form.user_id,
-          blood_type: form.bloodGroupABO + form.bloodGroupRh,
+          blood_type,
         });
         toast.success("Đã gửi email thông tin nhóm máu cho người dùng");
       }
@@ -178,8 +222,8 @@ export default function HealthCheckFormPage() {
     try {
       await api.put(`/whole-blood/whole-blood-unit/${bloodUnitId}/donate`);
       toast.success("Dán nhãn hiến máu thành công!")
-      emailBloodTypeToUser();
-      router.push("/staff/dashboard");
+      await emailBloodTypeToUser();
+      router.push("/staff/dashboard/donation-requests");
     } catch (error) {
       toast.error("Có lỗi xảy ra khi chấp nhận đơn khám!")
     }
@@ -189,7 +233,7 @@ export default function HealthCheckFormPage() {
     try {
       await api.put(`/whole-blood/whole-blood-unit/${bloodUnitId}/not-eligible`);
       toast.success("Dán nhãn không phù hợp thành công!")
-      router.push("/staff/dashboard");
+      router.push("/staff/dashboard/donation-requests");
     } catch (error) {
       toast.error("Có lỗi xảy ra khi chấp nhận đơn khám!")
     }
@@ -326,7 +370,7 @@ export default function HealthCheckFormPage() {
                 <div className="flex items-end gap-2">
                   <div className="flex-1">
                     <Label htmlFor="volumeOrWeight">Thể tích máu (ml)</Label>
-                    <Input name="volumeOrWeight" type="number" value={form.volumeOrWeight} onChange={handleChange} />
+                    <Input name="volumeOrWeight" type="number" value={form.volumeOrWeight} onChange={handleNumberChange} />
                   </div>
                   <Button type="button" onClick={() => saveField()} className="mt-6">
                     Lưu

@@ -43,6 +43,7 @@ export default function HealthCheckFormPage() {
     can_donate_whole_blood: false,
     donor_feeling_healthy: false,
     last_donation_date: false,
+  has_received_blood: false,
     has_cardiovascular_disease: false,
     has_liver_disease: false,
     has_kidney_disease: false,
@@ -98,6 +99,7 @@ export default function HealthCheckFormPage() {
           can_donate_whole_blood: data.healthCheck?.can_donate_whole_blood || false,
           donor_feeling_healthy: data.healthCheck?.donor_feeling_healthy || false,
           last_donation_date: data.healthCheck?.last_donation_date || false,
+          has_received_blood: data.healthCheck?.has_received_blood || false,
           has_cardiovascular_disease: data.healthCheck?.has_cardiovascular_disease || false,
           has_liver_disease: data.healthCheck?.has_liver_disease || false,
           has_kidney_disease: data.healthCheck?.has_kidney_disease || false,
@@ -167,10 +169,11 @@ export default function HealthCheckFormPage() {
 
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value, type, checked } = e.target;
+    const target = e.target as HTMLInputElement | HTMLTextAreaElement;
+    const { name, value } = target;
     setForm((prev) => ({
       ...prev,
-      [name]: type === "checkbox" ? checked : value,
+      [name]: value,
     }));
   };
 
@@ -200,6 +203,7 @@ export default function HealthCheckFormPage() {
         abnormal_symptoms: form.abnormal_symptoms,
         donor_feeling_healthy: form.donor_feeling_healthy,
         last_donation_date: form.last_donation_date,
+  has_received_blood: form.has_received_blood,
         has_cardiovascular_disease: form.has_cardiovascular_disease,
         has_liver_disease: form.has_liver_disease,
         has_kidney_disease: form.has_kidney_disease,
@@ -240,7 +244,7 @@ export default function HealthCheckFormPage() {
     try {
       await api.put(`/health-check/health-check/${healthCheck}/fail`);
       toast.success("Từ chối thành công!")
-      router.push("/staff/dashboard");
+  router.push("/staff/dashboard/donation-requests");
     } catch (error) {
       toast.error("Có lỗi xảy ra khi từ chối đơn khám!")
     }
@@ -264,7 +268,7 @@ export default function HealthCheckFormPage() {
       })
 
       toast.success("Chấp nhận thành công!")
-      router.push("/staff/dashboard");
+  router.push("/staff/dashboard/donation-requests");
     } catch (error) {
       toast.error("Có lỗi xảy ra khi chấp nhận đơn khám!")
     }
@@ -273,102 +277,62 @@ export default function HealthCheckFormPage() {
   return (
     <div>
       <Header />
-      <div className="max-w-2xl mx-auto p-6">
+      <div className="max-w-3xl mx-auto p-8">
         <Card>
           <CardHeader>
-            <CardTitle>Form kiểm tra sức khỏe hiến máu toàn phần của {name}</CardTitle>
+            <CardTitle className="text-xl md:text-2xl">Form kiểm tra sức khỏe hiến máu toàn phần của {name}</CardTitle>
           </CardHeader>
-          <CardContent>
-            <h1>Thông tin cơ bản</h1>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <div className="flex items-end gap-2">
-                  <div className="flex-1">
-                    <Label htmlFor="weight">Cân nặng (kg). Lớn hơn 42 kg đối với phụ nữ, 45 kg đối với nam giới</Label>
-                    <Input name="weight" type="number" value={form.weight} onChange={handleChange} />
-                  </div>
-                  <Button type="button" onClick={() => saveField()} className="mt-6">
-                    Lưu
-                  </Button>
+          <CardContent className="space-y-8">
+            <h1 className="text-xl font-semibold">Thông tin cơ bản</h1>
+            <form onSubmit={handleSubmit} className="space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <Label htmlFor="weight">Cân nặng (kg). ≥42 (nữ) / ≥45 (nam)</Label>
+                  <Input className="h-11 text-base" name="weight" type="number" value={form.weight} onChange={handleChange} />
+                </div>
+                <div>
+                  <Label htmlFor="blood_volume_allowed">Thể tích máu cho phép (ml)</Label>
+                  <Input className="h-11 text-base" name="blood_volume_allowed" type="number" value={form.blood_volume_allowed} onChange={handleChange} />
+                </div>
+                <div>
+                  <Label htmlFor="systolic_bp">Huyết áp tâm thu (100 - 159 mmHg)</Label>
+                  <Input className="h-11 text-base" name="systolic_bp" type="number" value={form.systolic_bp} onChange={handleChange} />
+                </div>
+                <div>
+                  <Label htmlFor="diastolic_bp">Huyết áp tâm trương (60 - 99 mmHg)</Label>
+                  <Input className="h-11 text-base" name="diastolic_bp" type="number" value={form.diastolic_bp} onChange={handleChange} />
+                </div>
+                <div>
+                  <Label htmlFor="heart_rate">Nhịp tim (60 - 90 lần/phút)</Label>
+                  <Input className="h-11 text-base" name="heart_rate" type="number" value={form.heart_rate} onChange={handleChange} />
+                </div>
+                <div>
+                  <Label htmlFor="timeSlot">Triệu chứng bất thường</Label>
+                  <Select
+                    value={form.abnormal_symptoms}
+                    onValueChange={(value) => {
+                      setForm((prev) => ({
+                        ...prev,
+                        abnormal_symptoms: value,
+                      }))
+                    }}
+                  >
+                    <SelectTrigger className="h-11 text-base">
+                      <SelectValue className="text-base" placeholder="VD: Sụt cân nhanh, da nhợt nhạt, v.v" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {symptoms.map((symptom) => (
+                        <SelectItem key={symptom.value} value={symptom.value}>
+                          {symptom.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
-              <div>
-                <div className="flex items-end gap-2">
-                  <div className="flex-1">
-                    <Label htmlFor="systolic_bp">Huyết áp tâm thu (Từ 100 mmHg đến dưới 160 mmHg)</Label>
-                    <Input name="systolic_bp" type="number" value={form.systolic_bp} onChange={handleChange} />
-                  </div>
-                  <Button type="button" onClick={() => saveField()} className="mt-6">
-                    Lưu
-                  </Button>
-                </div>
-              </div>
-              <div>
-                <div className="flex items-end gap-2">
-                  <div className="flex-1">
-                    <Label htmlFor="diastolic_bp">Huyết áp tâm trương (Từ 60 mmHg đến dưới 100 mmHg)</Label>
-                    <Input name="diastolic_bp" type="number" value={form.diastolic_bp} onChange={handleChange} />
-                  </div>
-                  <Button type="button" onClick={() => saveField()} className="mt-6">
-                    Lưu
-                  </Button>
-                </div>
-              </div>
-              <div>
-                <div className="flex items-end gap-2">
-                  <div className="flex-1">
-                    <Label htmlFor="heart_rate">Nhịp tim (Tần số trong khoảng từ 60 lần đến 90 lần/phút)</Label>
-                    <Input name="heart_rate" type="number" value={form.heart_rate} onChange={handleChange} />
-                  </div>
-                  <Button type="button" onClick={() => saveField()} className="mt-6">
-                    Lưu
-                  </Button>
-                </div>
-              </div>
-              <div>
-                <div className="flex items-end gap-2">
-                  <div className="flex-1">
-                    <Label htmlFor="blood_volume_allowed">Thể tích máu cho phép (ml)</Label>
-                    <Input name="blood_volume_allowed" type="number" value={form.blood_volume_allowed} onChange={handleChange} />
-                  </div>
-                  <Button type="button" onClick={() => saveField()} className="mt-6">
-                    Lưu
-                  </Button>
-                </div>
-              </div>
-              <div>
-                <div className="flex items-end gap-2">
-                  <div className="flex-1">
-                    <Label htmlFor="timeSlot">Triệu chứng bất thường</Label>
-                    <Select
-                      value={form.abnormal_symptoms}
-                      onValueChange={(value) => {
-                        setForm((prev) => ({
-                          ...prev,
-                          abnormal_symptoms: value,
-                        }))
-                      }}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="VD: Sụt cân nhanh, da nhợt nhạt, v.v" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {symptoms.map((symptom) => (
-                          <SelectItem key={symptom.value} value={symptom.value}>
-                            {symptom.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <Button type="button" onClick={() => saveField()} className="mt-6">
-                    Lưu
-                  </Button>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <Label>
-                  <Checkbox name="has_chronic_disease" checked={form.has_chronic_disease} onCheckedChange={(checked) =>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Label className="flex items-center gap-3 text-base">
+                  <Checkbox className="h-5 w-5" name="has_chronic_disease" checked={form.has_chronic_disease} onCheckedChange={(checked) =>
                     setForm((prev) => ({
                       ...prev,
                       has_chronic_disease: Boolean(checked),
@@ -376,8 +340,8 @@ export default function HealthCheckFormPage() {
                   } />
                   Có bệnh mãn tính
                 </Label>
-                <Label>
-                  <Checkbox name="is_pregnant" checked={form.is_pregnant} onCheckedChange={(checked) =>
+                <Label className="flex items-center gap-3 text-base">
+                  <Checkbox className="h-5 w-5" name="is_pregnant" checked={form.is_pregnant} onCheckedChange={(checked) =>
                     setForm((prev) => ({
                       ...prev,
                       is_pregnant: Boolean(checked),
@@ -385,8 +349,8 @@ export default function HealthCheckFormPage() {
                   } />
                   Đang mang thai
                 </Label>
-                <Label>
-                  <Checkbox name="has_history_of_transplant" checked={form.has_history_of_transplant} onCheckedChange={(checked) =>
+                <Label className="flex items-center gap-3 text-base">
+                  <Checkbox className="h-5 w-5" name="has_history_of_transplant" checked={form.has_history_of_transplant} onCheckedChange={(checked) =>
                     setForm((prev) => ({
                       ...prev,
                       has_history_of_transplant: Boolean(checked),
@@ -394,8 +358,8 @@ export default function HealthCheckFormPage() {
                   } />
                   Có ghép tạng trong quá khứ
                 </Label>
-                <Label>
-                  <Checkbox name="drug_use_violation" checked={form.drug_use_violation} onCheckedChange={(checked) =>
+                <Label className="flex items-center gap-3 text-base">
+                  <Checkbox className="h-5 w-5" name="drug_use_violation" checked={form.drug_use_violation} onCheckedChange={(checked) =>
                     setForm((prev) => ({
                       ...prev,
                       drug_use_violation: Boolean(checked),
@@ -403,8 +367,8 @@ export default function HealthCheckFormPage() {
                   } />
                   Sử dụng chất kích thích
                 </Label>
-                <Label>
-                  <Checkbox name="infectious_disease" checked={form.infectious_disease} onCheckedChange={(checked) =>
+                <Label className="flex items-center gap-3 text-base">
+                  <Checkbox className="h-5 w-5" name="infectious_disease" checked={form.infectious_disease} onCheckedChange={(checked) =>
                     setForm((prev) => ({
                       ...prev,
                       infectious_disease: Boolean(checked),
@@ -412,8 +376,8 @@ export default function HealthCheckFormPage() {
                   } />
                   Bệnh truyền nhiễm
                 </Label>
-                <Label>
-                  <Checkbox name="sexually_transmitted_disease" checked={form.sexually_transmitted_disease} onCheckedChange={(checked) =>
+                <Label className="flex items-center gap-3 text-base">
+                  <Checkbox className="h-5 w-5" name="sexually_transmitted_disease" checked={form.sexually_transmitted_disease} onCheckedChange={(checked) =>
                     setForm((prev) => ({
                       ...prev,
                       sexually_transmitted_disease: Boolean(checked),
@@ -421,8 +385,8 @@ export default function HealthCheckFormPage() {
                   } />
                   Bệnh lây qua đường tình dục
                 </Label>
-                <Label>
-                  <Checkbox name="is_clinically_alert" checked={form.is_clinically_alert} onCheckedChange={(checked) =>
+                <Label className="flex items-center gap-3 text-base">
+                  <Checkbox className="h-5 w-5" name="is_clinically_alert" checked={form.is_clinically_alert} onCheckedChange={(checked) =>
                     setForm((prev) => ({
                       ...prev,
                       is_clinically_alert: Boolean(checked),
@@ -431,10 +395,10 @@ export default function HealthCheckFormPage() {
                   Tỉnh táo về mặt lâm sàng
                 </Label>
               </div>
-              <h1>Khám và tư vấn</h1>
-              <div className="grid grid-cols-2 gap-4">
-                <Label>
-                  <Checkbox name="donor_feeling_healthy" checked={form.donor_feeling_healthy} onCheckedChange={(checked) =>
+              <h1 className="text-xl font-semibold mt-8">Khám và tư vấn</h1>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Label className="flex items-center gap-3 text-base">
+                  <Checkbox className="h-5 w-5" name="donor_feeling_healthy" checked={form.donor_feeling_healthy} onCheckedChange={(checked) =>
                     setForm((prev) => ({
                       ...prev,
                       donor_feeling_healthy: Boolean(checked),
@@ -443,8 +407,8 @@ export default function HealthCheckFormPage() {
                   Người hiến tự cảm thấy khỏe
                 </Label>
 
-                <Label>
-                  <Checkbox name="last_donation_date" checked={form.last_donation_date} onCheckedChange={(checked) =>
+                <Label className="flex items-center gap-3 text-base">
+                  <Checkbox className="h-5 w-5" name="last_donation_date" checked={form.last_donation_date} onCheckedChange={(checked) =>
                     setForm((prev) => ({
                       ...prev,
                       last_donation_date: Boolean(checked),
@@ -453,10 +417,10 @@ export default function HealthCheckFormPage() {
                   Lần hiến máu gần đây dưới 12 tuần
                 </Label>
               </div>
-              <h1>Tiền sử sức khoẻ chung và bệnh tật</h1>
-              <div className="grid grid-cols-2 gap-4">
-                <Label>
-                  <Checkbox name="has_cardiovascular_disease" checked={form.has_cardiovascular_disease} onCheckedChange={(checked) =>
+              <h1 className="text-xl font-semibold mt-8">Tiền sử sức khoẻ chung và bệnh tật</h1>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Label className="flex items-center gap-3 text-base">
+                  <Checkbox className="h-5 w-5" name="has_cardiovascular_disease" checked={form.has_cardiovascular_disease} onCheckedChange={(checked) =>
                     setForm((prev) => ({
                       ...prev,
                       has_cardiovascular_disease: Boolean(checked),
@@ -465,8 +429,8 @@ export default function HealthCheckFormPage() {
                   Mắc bệnh tim mạch
                 </Label>
 
-                <Label>
-                  <Checkbox name="has_liver_disease" checked={form.has_liver_disease} onCheckedChange={(checked) =>
+                <Label className="flex items-center gap-3 text-base">
+                  <Checkbox className="h-5 w-5" name="has_liver_disease" checked={form.has_liver_disease} onCheckedChange={(checked) =>
                     setForm((prev) => ({
                       ...prev,
                       has_liver_disease: Boolean(checked),
@@ -475,8 +439,8 @@ export default function HealthCheckFormPage() {
                   Mắc bệnh gan
                 </Label>
 
-                <Label>
-                  <Checkbox name="has_kidney_disease" checked={form.has_kidney_disease} onCheckedChange={(checked) =>
+                <Label className="flex items-center gap-3 text-base">
+                  <Checkbox className="h-5 w-5" name="has_kidney_disease" checked={form.has_kidney_disease} onCheckedChange={(checked) =>
                     setForm((prev) => ({
                       ...prev,
                       has_kidney_disease: Boolean(checked),
@@ -485,8 +449,8 @@ export default function HealthCheckFormPage() {
                   Mắc bệnh thận
                 </Label>
 
-                <Label>
-                  <Checkbox name="has_endocrine_disorder" checked={form.has_endocrine_disorder} onCheckedChange={(checked) =>
+                <Label className="flex items-center gap-3 text-base">
+                  <Checkbox className="h-5 w-5" name="has_endocrine_disorder" checked={form.has_endocrine_disorder} onCheckedChange={(checked) =>
                     setForm((prev) => ({
                       ...prev,
                       has_endocrine_disorder: Boolean(checked),
@@ -495,8 +459,8 @@ export default function HealthCheckFormPage() {
                   Rối loạn nội tiết
                 </Label>
 
-                <Label>
-                  <Checkbox name="has_tuberculosis_or_respiratory_disease" checked={form.has_tuberculosis_or_respiratory_disease} onCheckedChange={(checked) =>
+                <Label className="flex items-center gap-3 text-base">
+                  <Checkbox className="h-5 w-5" name="has_tuberculosis_or_respiratory_disease" checked={form.has_tuberculosis_or_respiratory_disease} onCheckedChange={(checked) =>
                     setForm((prev) => ({
                       ...prev,
                       has_tuberculosis_or_respiratory_disease: Boolean(checked),
@@ -505,8 +469,8 @@ export default function HealthCheckFormPage() {
                   Mắc bệnh lao hoặc bệnh đường hô hấp
                 </Label>
 
-                <Label>
-                  <Checkbox name="has_blood_disease" checked={form.has_blood_disease} onCheckedChange={(checked) =>
+                <Label className="flex items-center gap-3 text-base">
+                  <Checkbox className="h-5 w-5" name="has_blood_disease" checked={form.has_blood_disease} onCheckedChange={(checked) =>
                     setForm((prev) => ({
                       ...prev,
                       has_blood_disease: Boolean(checked),
@@ -515,8 +479,8 @@ export default function HealthCheckFormPage() {
                   Mắc bệnh máu
                 </Label>
 
-                <Label>
-                  <Checkbox name="has_mental_or_neurological_disorder" checked={form.has_mental_or_neurological_disorder} onCheckedChange={(checked) =>
+                <Label className="flex items-center gap-3 text-base">
+                  <Checkbox className="h-5 w-5" name="has_mental_or_neurological_disorder" checked={form.has_mental_or_neurological_disorder} onCheckedChange={(checked) =>
                     setForm((prev) => ({
                       ...prev,
                       has_mental_or_neurological_disorder: Boolean(checked),
@@ -525,8 +489,8 @@ export default function HealthCheckFormPage() {
                   Rối loạn tâm thần hoặc thần kinh
                 </Label>
 
-                <Label>
-                  <Checkbox name="has_malaria" checked={form.has_malaria} onCheckedChange={(checked) =>
+                <Label className="flex items-center gap-3 text-base">
+                  <Checkbox className="h-5 w-5" name="has_malaria" checked={form.has_malaria} onCheckedChange={(checked) =>
                     setForm((prev) => ({
                       ...prev,
                       has_malaria: Boolean(checked),
@@ -535,8 +499,8 @@ export default function HealthCheckFormPage() {
                   Mắc bệnh sốt rét
                 </Label>
 
-                <Label>
-                  <Checkbox name="has_syphilis" checked={form.has_syphilis} onCheckedChange={(checked) =>
+                <Label className="flex items-center gap-3 text-base">
+                  <Checkbox className="h-5 w-5" name="has_syphilis" checked={form.has_syphilis} onCheckedChange={(checked) =>
                     setForm((prev) => ({
                       ...prev,
                       has_syphilis: Boolean(checked),
@@ -545,8 +509,8 @@ export default function HealthCheckFormPage() {
                   Mắc bệnh giang mai
                 </Label>
 
-                <Label>
-                  <Checkbox name="has_hiv_or_aids" checked={form.has_hiv_or_aids} onCheckedChange={(checked) =>
+                <Label className="flex items-center gap-3 text-base">
+                  <Checkbox className="h-5 w-5" name="has_hiv_or_aids" checked={form.has_hiv_or_aids} onCheckedChange={(checked) =>
                     setForm((prev) => ({
                       ...prev,
                       has_hiv_or_aids: Boolean(checked),
@@ -555,8 +519,8 @@ export default function HealthCheckFormPage() {
                   Mắc HIV hoặc AIDS
                 </Label>
 
-                <Label>
-                  <Checkbox name="has_other_transmissible_diseases" checked={form.has_other_transmissible_diseases} onCheckedChange={(checked) =>
+                <Label className="flex items-center gap-3 text-base">
+                  <Checkbox className="h-5 w-5" name="has_other_transmissible_diseases" checked={form.has_other_transmissible_diseases} onCheckedChange={(checked) =>
                     setForm((prev) => ({
                       ...prev,
                       has_other_transmissible_diseases: Boolean(checked),
@@ -565,8 +529,8 @@ export default function HealthCheckFormPage() {
                   Mắc các bệnh truyền nhiễm khác
                 </Label>
 
-                <Label>
-                  <Checkbox name="has_surgical_or_medical_history" checked={form.has_surgical_or_medical_history} onCheckedChange={(checked) =>
+                <Label className="flex items-center gap-3 text-base">
+                  <Checkbox className="h-5 w-5" name="has_surgical_or_medical_history" checked={form.has_surgical_or_medical_history} onCheckedChange={(checked) =>
                     setForm((prev) => ({
                       ...prev,
                       has_surgical_or_medical_history: Boolean(checked),
@@ -575,8 +539,8 @@ export default function HealthCheckFormPage() {
                   Có tiền sử phẫu thuật hoặc bệnh lý
                 </Label>
 
-                <Label>
-                  <Checkbox name="exposure_to_blood_or_body_fluids" checked={form.exposure_to_blood_or_body_fluids} onCheckedChange={(checked) =>
+                <Label className="flex items-center gap-3 text-base">
+                  <Checkbox className="h-5 w-5" name="exposure_to_blood_or_body_fluids" checked={form.exposure_to_blood_or_body_fluids} onCheckedChange={(checked) =>
                     setForm((prev) => ({
                       ...prev,
                       exposure_to_blood_or_body_fluids: Boolean(checked),
@@ -585,8 +549,8 @@ export default function HealthCheckFormPage() {
                   Tiếp xúc với máu hoặc dịch cơ thể của người khác
                 </Label>
 
-                <Label>
-                  <Checkbox name="received_vaccine_or_biologics" checked={form.received_vaccine_or_biologics} onCheckedChange={(checked) =>
+                <Label className="flex items-center gap-3 text-base">
+                  <Checkbox className="h-5 w-5" name="received_vaccine_or_biologics" checked={form.received_vaccine_or_biologics} onCheckedChange={(checked) =>
                     setForm((prev) => ({
                       ...prev,
                       received_vaccine_or_biologics: Boolean(checked),
@@ -595,8 +559,8 @@ export default function HealthCheckFormPage() {
                   Đã tiêm vắc xin hoặc sử dụng chế phẩm sinh học (biologics) trong thời gian gần đây
                 </Label>
 
-                <Label>
-                  <Checkbox name="tattoo_or_organ_transplant" checked={form.tattoo_or_organ_transplant} onCheckedChange={(checked) =>
+                <Label className="flex items-center gap-3 text-base">
+                  <Checkbox className="h-5 w-5" name="tattoo_or_organ_transplant" checked={form.tattoo_or_organ_transplant} onCheckedChange={(checked) =>
                     setForm((prev) => ({
                       ...prev,
                       tattoo_or_organ_transplant: Boolean(checked),
@@ -606,11 +570,24 @@ export default function HealthCheckFormPage() {
                 </Label>
               </div>
 
-              <h1>Các biểu hiện bất thường bệnh lý</h1>
+              <h1 className="text-xl font-semibold mt-8">Tiền sử truyền máu</h1>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Label className="flex items-center gap-3 text-base">
+                  <Checkbox className="h-5 w-5" name="has_received_blood" checked={form.has_received_blood} onCheckedChange={(checked) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      has_received_blood: Boolean(checked),
+                    }))
+                  } />
+                  Đã từng nhận truyền máu
+                </Label>
+              </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <Label>
-                  <Checkbox name="has_unexplained_weight_loss" checked={form.has_unexplained_weight_loss} onCheckedChange={(checked) =>
+              <h1 className="text-xl font-semibold mt-8">Các biểu hiện bất thường bệnh lý</h1>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Label className="flex items-center gap-3 text-base">
+                  <Checkbox className="h-5 w-5" name="has_unexplained_weight_loss" checked={form.has_unexplained_weight_loss} onCheckedChange={(checked) =>
                     setForm((prev) => ({
                       ...prev,
                       has_unexplained_weight_loss: Boolean(checked),
@@ -619,8 +596,8 @@ export default function HealthCheckFormPage() {
                   Bị sụt cân không rõ nguyên nhân
                 </Label>
 
-                <Label>
-                  <Checkbox name="has_night_sweats" checked={form.has_night_sweats} onCheckedChange={(checked) =>
+                <Label className="flex items-center gap-3 text-base">
+                  <Checkbox className="h-5 w-5" name="has_night_sweats" checked={form.has_night_sweats} onCheckedChange={(checked) =>
                     setForm((prev) => ({
                       ...prev,
                       has_night_sweats: Boolean(checked),
@@ -629,8 +606,8 @@ export default function HealthCheckFormPage() {
                   Đổ mồ hôi về đêm
                 </Label>
 
-                <Label>
-                  <Checkbox name="has_skin_or_mucosal_tumors" checked={form.has_skin_or_mucosal_tumors} onCheckedChange={(checked) =>
+                <Label className="flex items-center gap-3 text-base">
+                  <Checkbox className="h-5 w-5" name="has_skin_or_mucosal_tumors" checked={form.has_skin_or_mucosal_tumors} onCheckedChange={(checked) =>
                     setForm((prev) => ({
                       ...prev,
                       has_skin_or_mucosal_tumors: Boolean(checked),
@@ -639,8 +616,8 @@ export default function HealthCheckFormPage() {
                   Có u bướu ở da hoặc niêm mạc
                 </Label>
 
-                <Label>
-                  <Checkbox name="has_enlarged_lymph_nodes" checked={form.has_enlarged_lymph_nodes} onCheckedChange={(checked) =>
+                <Label className="flex items-center gap-3 text-base">
+                  <Checkbox className="h-5 w-5" name="has_enlarged_lymph_nodes" checked={form.has_enlarged_lymph_nodes} onCheckedChange={(checked) =>
                     setForm((prev) => ({
                       ...prev,
                       has_enlarged_lymph_nodes: Boolean(checked),
@@ -649,8 +626,8 @@ export default function HealthCheckFormPage() {
                   Có hạch to bất thường
                 </Label>
 
-                <Label>
-                  <Checkbox name="has_digestive_disorder" checked={form.has_digestive_disorder} onCheckedChange={(checked) =>
+                <Label className="flex items-center gap-3 text-base">
+                  <Checkbox className="h-5 w-5" name="has_digestive_disorder" checked={form.has_digestive_disorder} onCheckedChange={(checked) =>
                     setForm((prev) => ({
                       ...prev,
                       has_digestive_disorder: Boolean(checked),
@@ -659,8 +636,8 @@ export default function HealthCheckFormPage() {
                   Rối loạn tiêu hóa
                 </Label>
 
-                <Label>
-                  <Checkbox name="has_fever_over_37_5_long" checked={form.has_fever_over_37_5_long} onCheckedChange={(checked) =>
+                <Label className="flex items-center gap-3 text-base">
+                  <Checkbox className="h-5 w-5" name="has_fever_over_37_5_long" checked={form.has_fever_over_37_5_long} onCheckedChange={(checked) =>
                     setForm((prev) => ({
                       ...prev,
                       has_fever_over_37_5_long: Boolean(checked),
@@ -670,11 +647,11 @@ export default function HealthCheckFormPage() {
                 </Label>
               </div>
 
-              <h1>Hành vi rủi ro</h1>
+              <h1 className="text-xl font-semibold mt-8">Hành vi rủi ro</h1>
 
-              <div className="grid grid-cols-2 gap-4">
-                <Label>
-                  <Checkbox name="uses_illegal_drugs" checked={form.uses_illegal_drugs} onCheckedChange={(checked) =>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Label className="flex items-center gap-3 text-base">
+                  <Checkbox className="h-5 w-5" name="uses_illegal_drugs" checked={form.uses_illegal_drugs} onCheckedChange={(checked) =>
                     setForm((prev) => ({
                       ...prev,
                       uses_illegal_drugs: Boolean(checked),
@@ -683,8 +660,8 @@ export default function HealthCheckFormPage() {
                   Sử dụng ma túy bất hợp pháp
                 </Label>
 
-                <Label>
-                  <Checkbox name="has_sexual_contact_with_risk_person" checked={form.has_sexual_contact_with_risk_person} onCheckedChange={(checked) =>
+                <Label className="flex items-center gap-3 text-base">
+                  <Checkbox className="h-5 w-5" name="has_sexual_contact_with_risk_person" checked={form.has_sexual_contact_with_risk_person} onCheckedChange={(checked) =>
                     setForm((prev) => ({
                       ...prev,
                       has_sexual_contact_with_risk_person: Boolean(checked),
@@ -694,11 +671,11 @@ export default function HealthCheckFormPage() {
                 </Label>
               </div>
 
-              <h1>Sau sinh</h1>
+              <h1 className="text-xl font-semibold mt-8">Sau sinh</h1>
 
-              <div className="grid grid-cols-2 gap-4">
-                <Label>
-                  <Checkbox name="has_infant_under_12_months" checked={form.has_infant_under_12_months} onCheckedChange={(checked) =>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Label className="flex items-center gap-3 text-base">
+                  <Checkbox className="h-5 w-5" name="has_infant_under_12_months" checked={form.has_infant_under_12_months} onCheckedChange={(checked) =>
                     setForm((prev) => ({
                       ...prev,
                       has_infant_under_12_months: Boolean(checked),
@@ -708,11 +685,11 @@ export default function HealthCheckFormPage() {
                 </Label>
               </div>
 
-              <h1>Tiền sử dụng thuốc</h1>
+              <h1 className="text-xl font-semibold mt-8">Tiền sử sử dụng thuốc</h1>
 
-              <div className="grid grid-cols-2 gap-4">
-                <Label>
-                  <Checkbox name="has_taken_medicine_last_week" checked={form.has_taken_medicine_last_week} onCheckedChange={(checked) =>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Label className="flex items-center gap-3 text-base">
+                  <Checkbox className="h-5 w-5" name="has_taken_medicine_last_week" checked={form.has_taken_medicine_last_week} onCheckedChange={(checked) =>
                     setForm((prev) => ({
                       ...prev,
                       has_taken_medicine_last_week: Boolean(checked),
@@ -722,11 +699,11 @@ export default function HealthCheckFormPage() {
                 </Label>
               </div>
 
-              <h1>Lời cam đoan của người hiến máu</h1>
+              <h1 className="text-xl font-semibold mt-8">Lời cam đoan của người hiến máu</h1>
 
-              <div className="grid grid-cols-2 gap-4">
-                <Label>
-                  <Checkbox name="declaration_understood_questions" checked={form.declaration_understood_questions} onCheckedChange={(checked) =>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Label className="flex items-center gap-3 text-base">
+                  <Checkbox className="h-5 w-5" name="declaration_understood_questions" checked={form.declaration_understood_questions} onCheckedChange={(checked) =>
                     setForm((prev) => ({
                       ...prev,
                       declaration_understood_questions: Boolean(checked),
@@ -735,8 +712,8 @@ export default function HealthCheckFormPage() {
                   Tôi đã hiểu rõ các câu hỏi trong phiếu sàng lọc
                 </Label>
 
-                <Label>
-                  <Checkbox name="declaration_feels_healthy" checked={form.declaration_feels_healthy} onCheckedChange={(checked) =>
+                <Label className="flex items-center gap-3 text-base">
+                  <Checkbox className="h-5 w-5" name="declaration_feels_healthy" checked={form.declaration_feels_healthy} onCheckedChange={(checked) =>
                     setForm((prev) => ({
                       ...prev,
                       declaration_feels_healthy: Boolean(checked),
@@ -745,8 +722,8 @@ export default function HealthCheckFormPage() {
                   Tôi hiện cảm thấy khỏe mạnh
                 </Label>
 
-                <Label>
-                  <Checkbox name="declaration_voluntary" checked={form.declaration_voluntary} onCheckedChange={(checked) =>
+                <Label className="flex items-center gap-3 text-base">
+                  <Checkbox className="h-5 w-5" name="declaration_voluntary" checked={form.declaration_voluntary} onCheckedChange={(checked) =>
                     setForm((prev) => ({
                       ...prev,
                       declaration_voluntary: Boolean(checked),
@@ -755,8 +732,8 @@ export default function HealthCheckFormPage() {
                   Tôi tự nguyện tham gia hiến máu
                 </Label>
 
-                <Label>
-                  <Checkbox name="declaration_will_report_if_risk_found" checked={form.declaration_will_report_if_risk_found} onCheckedChange={(checked) =>
+                <Label className="flex items-center gap-3 text-base">
+                  <Checkbox className="h-5 w-5" name="declaration_will_report_if_risk_found" checked={form.declaration_will_report_if_risk_found} onCheckedChange={(checked) =>
                     setForm((prev) => ({
                       ...prev,
                       declaration_will_report_if_risk_found: Boolean(checked),
@@ -766,13 +743,13 @@ export default function HealthCheckFormPage() {
                 </Label>
               </div>
               <div className="grid grid-cols-3 gap-4 mt-6">
-                <Button type="button" onClick={() => saveField()}>
+                <Button size="lg" type="button" onClick={() => saveField()}>
                   Lưu
                 </Button>
-                <Button type="button" variant="destructive" onClick={() => rejectForm()}>
+                <Button size="lg" type="button" variant="destructive" onClick={() => rejectForm()}>
                   Từ chối
                 </Button>
-                <Button type="submit" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => acceptForm()}>
+                <Button size="lg" type="submit" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => acceptForm()}>
                   Chấp nhận
                 </Button>
               </div>

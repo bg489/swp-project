@@ -70,7 +70,11 @@ export default function HealthCheckFormPage() {
 
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value, type, checked } = e.target;
+    const target = e.target as HTMLInputElement | HTMLTextAreaElement;
+    const name = (target as HTMLInputElement).name;
+    const type = (target as HTMLInputElement).type;
+    const value = (target as HTMLInputElement).value;
+    const checked = (target as HTMLInputElement).checked;
     setForm((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
@@ -104,7 +108,7 @@ export default function HealthCheckFormPage() {
     try {
       await api.put(`/blood-test/blood-test/${bloodTestId}/fail`);
       toast.success("Từ chối thành công!")
-      router.push("/staff/dashboard");
+  router.push("/staff/dashboard/donation-requests");
     } catch (error) {
       toast.error("Có lỗi xảy ra khi từ chối đơn khám!")
     }
@@ -187,7 +191,7 @@ export default function HealthCheckFormPage() {
 
 
       toast.success("Chấp nhận thành công!")
-      router.push("/staff/dashboard");
+  router.push("/staff/dashboard/donation-requests");
     } catch (error) {
       toast.error("Có lỗi xảy ra khi chấp nhận đơn khám!")
     }

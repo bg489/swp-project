@@ -11,8 +11,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Heart,
   ArrowLeft,
-  Search,
-  Filter,
   Clock,
   CheckCircle,
   X,
@@ -107,11 +105,9 @@ export default function DonationRequestsManagement() {
   const [plasmaUnits, setPlasmaUnits] = useState<any>([])
   const [platelet, setPlateletUnits] = useState<any>([])
   const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState("all")
-  const [searchTerm, setSearchTerm] = useState("")
-  const [sortBy, setSortBy] = useState("newest")
+  // Removed search/sort filters from UI
   const [bloodSeperated, setBloodSeperated] = useState("whole")
-  const [requestFilter, setRequestFilter] = useState("newest")
+  // const [requestFilter, setRequestFilter] = useState("newest")
 
   // Stats states
   const [total, setTotal] = useState(0)
@@ -329,22 +325,7 @@ export default function DonationRequestsManagement() {
     }
   }
 
-  const filteredRequests = donationRequests
-    .filter(req => {
-      if (filter === "all") return true
-      return req.status === filter
-    })
-    .filter(req =>
-      (req?.user_id.full_name || req.user_id.email || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-      req.user_id.email.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-    .sort((a, b) => {
-      if (sortBy === "newest") {
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      } else {
-        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-      }
-    })
+  // Note: search/sort handlers removed; list shows raw donationRequests
 
   const handleLogout = () => {
     logout()
@@ -546,48 +527,7 @@ export default function DonationRequestsManagement() {
           </Card>
         </div>
 
-        {/* Filters and Search */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Bộ lọc và tìm kiếm</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1">
-                <div className="relative">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Tìm kiếm theo tên hoặc email..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-              </div>
-              <Select value={filter} onValueChange={setFilter}>
-                <SelectTrigger className="w-48">
-                  <Filter className="h-4 w-4 mr-2" />
-                  <SelectValue placeholder="Lọc theo trạng thái" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tất cả</SelectItem>
-                  <SelectItem value="pending">Chờ xử lý</SelectItem>
-                  <SelectItem value="approved">Đã chấp nhận</SelectItem>
-                  <SelectItem value="rejected">Đã từ chối</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="Sắp xếp theo" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="newest">Mới nhất</SelectItem>
-                  <SelectItem value="oldest">Cũ nhất</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </CardContent>
-        </Card>
+  {/* Filters and Search removed as requested */}
 
         {/* Donation Requests List */}
         <Tabs defaultValue="donation-requests" className="space-y-6">
@@ -604,15 +544,6 @@ export default function DonationRequestsManagement() {
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
                   <span>Quản lý yêu cầu hiến máu</span>
-                  <Select onValueChange={setRequestFilter} defaultValue="newest">
-                    <SelectTrigger className="w-48">
-                      <SelectValue placeholder="Sắp xếp theo" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="newest">Mới nhất</SelectItem>
-                      <SelectItem value="oldest">Cũ nhất</SelectItem>
-                    </SelectContent>
-                  </Select>
                 </CardTitle>
                 <CardDescription>Quản lý các yêu cầu hiến máu đã gửi bởi người dùng</CardDescription>
                 <StatusSummary summary={{ pending: pending, approved: approved, rejected: rejected }} />
@@ -690,15 +621,6 @@ export default function DonationRequestsManagement() {
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
                   <span>Check in hiến máu</span>
-                  <Select defaultValue="newest">
-                    <SelectTrigger className="w-48">
-                      <SelectValue placeholder="Sắp xếp theo" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="newest">Mới nhất</SelectItem>
-                      <SelectItem value="oldest">Cũ nhất</SelectItem>
-                    </SelectContent>
-                  </Select>
                 </CardTitle>
                 <CardDescription>
                   Danh sách người dùng đến bệnh viện để check in
@@ -780,15 +702,6 @@ export default function DonationRequestsManagement() {
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
                   <span className="text-xl font-semibold text-gray-900">Quản lý khám hiến máu</span>
-                  <Select defaultValue="newest">
-                    <SelectTrigger className="w-48 border rounded-md bg-gray-100 focus:ring-2 focus:ring-blue-500">
-                      <SelectValue placeholder="Sắp xếp theo" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white shadow-md rounded-md">
-                      <SelectItem value="newest">Mới nhất</SelectItem>
-                      <SelectItem value="oldest">Cũ nhất</SelectItem>
-                    </SelectContent>
-                  </Select>
                 </CardTitle>
                 <CardDescription className="text-sm text-gray-500">
                   Danh sách người dùng khám để hiến máu
@@ -884,15 +797,6 @@ export default function DonationRequestsManagement() {
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
                   <span className="text-xl font-semibold text-gray-900">Xét nghiệm máu</span>
-                  <Select defaultValue="newest">
-                    <SelectTrigger className="w-48 border rounded-md bg-gray-100 focus:ring-2 focus:ring-blue-500">
-                      <SelectValue placeholder="Sắp xếp theo" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white shadow-md rounded-md">
-                      <SelectItem value="newest">Mới nhất</SelectItem>
-                      <SelectItem value="oldest">Cũ nhất</SelectItem>
-                    </SelectContent>
-                  </Select>
                 </CardTitle>
                 <CardDescription className="text-sm text-gray-500">
                   Danh sách người dùng xét nghiệm máu
