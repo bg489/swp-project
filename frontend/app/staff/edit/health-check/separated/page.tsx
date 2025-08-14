@@ -263,21 +263,27 @@ export default function HealthCheckFormPage() {
 
     try {
       const response = await api.put(`/health-check/health-check/${healthCheck}/pass`);
-      const response2 = await api.post(`/blood-test/create`, {
-        user_id: response.data.checkIn.user_id._id,
-        user_profile_id: response.data.checkIn.userprofile_id._id,
-        hospital_id: response.data.checkIn.hospital_id._id,
-        healthcheck_id: healthCheck,
-        HBsAg: false,
-        hemoglobin: 0
-      })
 
-      console.log(response2.data.bloodTest._id)
+      // Prefer the bloodTest auto-created by backend; fallback to manual create if missing
+      let bloodTestId = response?.data?.bloodTest?._id as string | undefined;
+      if (!bloodTestId) {
+        const response2 = await api.post(`/blood-test/create`, {
+          user_id: response.data.checkIn.user_id._id,
+          user_profile_id: response.data.checkIn.userprofile_id._id,
+          hospital_id: response.data.checkIn.hospital_id._id,
+          healthcheck_id: healthCheck,
+          HBsAg: false,
+          hemoglobin: 0
+        });
+        bloodTestId = response2?.data?.bloodTest?._id as string | undefined;
+      }
 
-      await api.put(`/blood-test/blood-tests/${response2.data.bloodTest._id}/separation`, {
-        is_seperated: true,
-        separated_component: form.separated_component
-      });
+      if (bloodTestId) {
+        await api.put(`/blood-test/blood-tests/${bloodTestId}/separation`, {
+          is_seperated: true,
+          separated_component: form.separated_component
+        });
+      }
 
       toast.success("Chấp nhận thành công!")
       router.push("/staff/dashboard/donation-requests");

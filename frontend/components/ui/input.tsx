@@ -4,6 +4,13 @@ import { cn } from "@/lib/utils"
 
 const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
   ({ className, type, ...props }, ref) => {
+    // If a value prop is provided but is null/undefined, normalize to empty string to keep it controlled
+    const anyProps = props as any
+    const hasValueProp = Object.prototype.hasOwnProperty.call(anyProps, "value")
+    const normalizedValueProps = hasValueProp
+      ? { value: anyProps.value ?? "" }
+      : {}
+
     return (
       <input
         type={type}
@@ -12,7 +19,8 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
           className
         )}
         ref={ref}
-        {...props}
+        {...anyProps}
+        {...normalizedValueProps}
       />
     )
   }

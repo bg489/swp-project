@@ -70,10 +70,11 @@ export default function HealthCheckFormPage() {
 
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value, type, checked } = e.target;
+    const target = e.target as HTMLInputElement;
+    const { name, value, type } = target;
     setForm((prev) => ({
       ...prev,
-      [name]: type === "checkbox" ? checked : value,
+      [name]: type === "number" ? Number(value) : value,
     }));
   };
 
@@ -104,7 +105,7 @@ export default function HealthCheckFormPage() {
     try {
       await api.put(`/blood-test/blood-test/${bloodTestId}/fail`);
       toast.success("Từ chối thành công!")
-      router.push("/staff/dashboard");
+  router.push("/staff/dashboard/donation-requests");
     } catch (error) {
       toast.error("Có lỗi xảy ra khi từ chối đơn khám!")
     }
@@ -119,7 +120,7 @@ export default function HealthCheckFormPage() {
           user_id: response.data.bloodTest.user_id,
           user_profile_id: response.data.bloodTest.user_profile_id,
           hospital_id: response.data.bloodTest.hospital_id,
-          volumeOrWeight: response.data.blood_volume_allowed / separated_component.length
+          volumeOrWeight: 250
         });
 
 
@@ -145,7 +146,7 @@ export default function HealthCheckFormPage() {
           user_id: response.data.bloodTest.user_id,
           user_profile_id: response.data.bloodTest.user_profile_id,
           hospital_id: response.data.bloodTest.hospital_id,
-          volumeOrWeight: response.data.blood_volume_allowed / separated_component.length
+          volumeOrWeight: 250
         });
 
 
@@ -168,7 +169,7 @@ export default function HealthCheckFormPage() {
           user_id: response.data.bloodTest.user_id,
           user_profile_id: response.data.bloodTest.user_profile_id,
           hospital_id: response.data.bloodTest.hospital_id,
-          volumeOrWeight: response.data.blood_volume_allowed / separated_component.length
+          volumeOrWeight: 250
         });
 
         const now = new Date();
@@ -187,7 +188,7 @@ export default function HealthCheckFormPage() {
 
 
       toast.success("Chấp nhận thành công!")
-      router.push("/staff/dashboard");
+  router.push("/staff/dashboard/donation-requests");
     } catch (error) {
       toast.error("Có lỗi xảy ra khi chấp nhận đơn khám!")
     }
@@ -209,9 +210,6 @@ export default function HealthCheckFormPage() {
                     <Label htmlFor="hemoglobin">Huyết sắc tố (Trên 120g/l)</Label>
                     <Input name="hemoglobin" type="number" value={form.hemoglobin} onChange={handleChange} />
                   </div>
-                  <Button type="button" onClick={() => saveField()} className="mt-6">
-                    Lưu
-                  </Button>
                 </div>
               </div>
               {separated_component.includes("plasma") &&
@@ -221,9 +219,6 @@ export default function HealthCheckFormPage() {
                       <Label htmlFor="total_protein">Protein huyết thanh toàn phần (Trên 60g/l)</Label>
                       <Input name="total_protein" type="number" value={form.total_protein} onChange={handleChange} />
                     </div>
-                    <Button type="button" onClick={() => saveField()} className="mt-6">
-                      Lưu
-                    </Button>
                   </div>
                 </div>
               }
@@ -234,9 +229,6 @@ export default function HealthCheckFormPage() {
                       <Label htmlFor="platelet_count">Số lượng tiểu cầu (150x10^9/l)</Label>
                       <Input name="platelet_count" type="text" value={form.platelet_count} onChange={handleChange} />
                     </div>
-                    <Button type="button" onClick={() => saveField()} className="mt-6">
-                      Lưu
-                    </Button>
                   </div>
                 </div>
               }

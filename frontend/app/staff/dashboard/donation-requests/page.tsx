@@ -1045,6 +1045,7 @@ export default function DonationRequestsManagement() {
                         <p className="text-sm text-gray-600"><strong>Ngày sinh:</strong> {formatDate(bloodTestData.user_id.date_of_birth)}</p>
                         <p className="text-sm text-gray-600"><strong>Bệnh viện:</strong> {bloodTestData.hospital_id.name}</p>
                         <p className="text-sm text-gray-600"><strong>Địa chỉ:</strong> {bloodTestData.hospital_id.address}</p>
+                        
                       </div>
                     </div>
 
@@ -1056,15 +1057,26 @@ export default function DonationRequestsManagement() {
                     {/* Thông tin Xét nghiệm & Lịch hiến */}
                     <div className="mt-4 space-y-2">
 
-                      {/* Ngày hiến thực tế từ đơn vị máu (nếu có) */}
+                      {/* Thời gian và Ghi chú từ yêu cầu hiến máu (nếu có) */}
                       {(() => {
-                        const uid = bloodTestData?.user_id?._id ?? bloodTestData?.user_id;
-                        const hid = bloodTestData?.hospital_id?._id ?? bloodTestData?.hospital_id;
-                        const latest = getLatestDonationDate(uid, hid);
+                        const d =
+                          bloodTestData?.donorDonationRequest_id ??
+                          bloodTestData?.donor_donation_request_id ??
+                          bloodTestData?.checkin?.donorDonationRequest_id ??
+                          bloodTestData?.checkIn?.donorDonationRequest_id ??
+                          bloodTestData?.healthCheck?.donorDonationRequest_id;
+                        if (!d) return null;
+                        const timeFrom = d?.donation_time_range?.from ?? d?.donation_time_range?.start ?? d?.donation_time_range?.from_time;
+                        const timeTo = d?.donation_time_range?.to ?? d?.donation_time_range?.end ?? d?.donation_time_range?.to_time;
                         return (
-                          <div className="text-sm">
-                            <strong>Ngày hiến:</strong> {latest ? formatDate(latest.toString()) : "Chưa có"}
-                          </div>
+                          <>
+                            <div className="text-sm">
+                              <strong>Thời gian:</strong> {timeFrom && timeTo ? `${timeFrom} - ${timeTo}` : "Chưa có"}
+                            </div>
+                            <div className="text-sm">
+                              <strong>Ghi chú:</strong> {d?.notes ?? "Không có"}
+                            </div>
+                          </>
                         );
                       })()}
                       {bloodTestData.is_seperated ? <div className="text-sm">

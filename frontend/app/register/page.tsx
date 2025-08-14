@@ -70,27 +70,43 @@ export default function RegisterPage() {
 
 
   useEffect(() => {
+    // Only parse when there's an actual scan result
+    if (!scanResult) return;
     try {
       const informations = scanResult.split('|');
-      setFormData((prev) => ({ ...prev, name: informations[2] }))
-      if(informations[4] === "Nam"){
+
+      // Name
+      if (informations[2]) {
+        setFormData((prev) => ({ ...prev, name: informations[2] }))
+      }
+
+      // Gender
+      if (informations[4] === "Nam") {
         setFormData((prev) => ({ ...prev, gender: "male" }))
-      } else if(informations[4] === "Nữ"){
+      } else if (informations[4] === "Nữ") {
         setFormData((prev) => ({ ...prev, gender: "female" }))
       }
-      if(informations[3]){
+
+      // Date of birth (DDMMYYYY)
+      if (informations[3]) {
         const raw = informations[3];
         const formattedDateBirth = `${raw.slice(4)}-${raw.slice(2, 4)}-${raw.slice(0, 2)}`;
         setFormData((prev) => ({ ...prev, date_of_birth: formattedDateBirth }));
         toast.success("Render thông tin thành công");
       }
-      setFormData((prev) => ({ ...prev, cccd: informations[0] }))
-      setFormData((prev) => ({ ...prev, address: informations[5] }))
+
+      // CCCD
+      if (typeof informations[0] !== 'undefined') {
+        setFormData((prev) => ({ ...prev, cccd: informations[0] }))
+      }
+
+      // Address
+      if (informations[5]) {
+        setFormData((prev) => ({ ...prev, address: informations[5] }))
+      }
     } catch (error) {
       toast.error("Có lỗi khi render thông tin, vui lòng thử lại!");
     }
-    
-    
   }, [scanResult])
 
   useEffect(() => {
