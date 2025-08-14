@@ -81,7 +81,22 @@ export default function EditProfilePage() {
   const [searchTerm, setSearchTerm] = useState("");  // Giá trị thực người gõ -> để filter
   const [hospitalInput, setHospitalInput] = useState(""); // Giá trị hiện đang hiển thị trong input -> để hiển thị highlight
   const today = new Date().toISOString().split("T")[0]; // yyyy-mm-dd
+  // Giới hạn ngày sinh: từ 60 tuổi đến 18 tuổi tính theo hôm nay
+  const getDateStr = (d: Date) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  };
+  const _today = new Date();
+  const maxDOB = getDateStr(new Date(_today.getFullYear() - 18, _today.getMonth(), _today.getDate())); // trẻ nhất 18 tuổi
+  const minDOB = getDateStr(new Date(_today.getFullYear() - 60, _today.getMonth(), _today.getDate())); // lớn nhất 60 tuổi
 
+
+  // Regex helpers
+  // Cho phép: chữ cái (mọi ngôn ngữ, bao gồm tiếng Việt), khoảng trắng, dấu gạch nối (-) và dấu nháy đơn (')
+  const NAME_DISALLOWED = /[^\p{L}\s'-]+/gu;
+  const isValidName = (value: string) => /^[\p{L}\s'-]+$/u.test(value.trim());
 
 
 
@@ -163,12 +178,33 @@ export default function EditProfilePage() {
       return;
     }
 
-    if (formData.phone.length < 10) {
-      setError("Vui lòng nhập đúng số điện thoại");
+    // Validate số điện thoại: phải bắt đầu bằng 0 và đủ 10 chữ số
+    if (!/^0\d{9}$/.test(formData.phone)) {
+      setError("Số điện thoại phải bắt đầu bằng 0 và gồm 10 chữ số.");
       setIsLoading(false);
+      return;
     }
 
+    // Validate họ và tên: chỉ cho phép chữ và khoảng trắng
+    if (!formData.name || !isValidName(formData.name)) {
+      setError("Họ và tên chỉ gồm chữ cái, khoảng trắng, '-' và '\''.");
+      setIsLoading(false);
+      return;
+    }
+
+    // Validate ngày sinh trong khoảng 18-60 tuổi
+    if (!formData.date_of_birth) {
+      setError("Vui lòng chọn ngày sinh");
+      setIsLoading(false);
+      return;
+    }
     try {
+      const dobStr = formData.date_of_birth;
+      if (dobStr < minDOB || dobStr > maxDOB) {
+        setError("Ngày sinh phải nằm trong khoảng 18 đến 60 tuổi.");
+        setIsLoading(false);
+        return;
+      }
       // Update user base info
       const response = await api.put(`/users/edit/${user._id}`, {
         full_name: formData.name,
@@ -277,9 +313,20 @@ export default function EditProfilePage() {
                           id="name"
                           placeholder="Nguyễn Văn A"
                           value={formData.name}
-                          onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
+                          onChange={(e) => {
+                            // Chỉ cho phép chữ, khoảng trắng, dấu gạch nối (-) và dấu nháy (')
+                            const raw = e.target.value
+                            const sanitized = raw.replace(NAME_DISALLOWED, "")
+                            setFormData((prev) => ({ ...prev, name: sanitized }))
+                          }}
+                          onBlur={() => {
+                            if (formData.name && !isValidName(formData.name)) {
+                              setError("Họ và tên chỉ gồm chữ cái, khoảng trắng, '-' và '\''.")
+                            }
+                          }}
                           className="pl-10 h-12 border-gray-200 focus:border-red-500 focus:ring-red-500 transition-all duration-300 hover:border-gray-300"
                           required
+                          aria-invalid={!!error && error.includes("Họ và tên")}
                         />
                       </div>
                     </div>
@@ -403,8 +450,16 @@ export default function EditProfilePage() {
                               }
                             }
                           }}
+                          onBlur={() => {
+                            if (formData.phone && !/^0\d{9}$/.test(formData.phone)) {
+                              setError("Số điện thoại phải bắt đầu bằng 0 và gồm 10 chữ số.");
+                            }
+                          }}
                           minLength={10}
                           maxLength={10}
+                          pattern={"0\\d{9}"}
+                          title="Số điện thoại phải bắt đầu bằng 0 và gồm 10 chữ số"
+                          inputMode="numeric"
                           className="pl-10 h-12 border-gray-200 focus:border-green-500 focus:ring-green-500 transition-all duration-300 hover:border-gray-300"
                           required
                         />
@@ -467,6 +522,8 @@ export default function EditProfilePage() {
                         <Input
                           id="dob"
                           type="date"
+                          min={minDOB}
+                          max={maxDOB}
                           value={formData.date_of_birth}
                           onChange={(e) => setFormData((prev) => ({ ...prev, date_of_birth: e.target.value }))}
                           className="pl-10 h-12 border-gray-200 focus:border-orange-500 focus:ring-orange-500 transition-all duration-300 hover:border-gray-300"

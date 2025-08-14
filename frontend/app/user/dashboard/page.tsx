@@ -4,7 +4,6 @@ import Image from "next/image"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
 import { Input } from "@/components/ui/input"
 import { useRouter } from "next/navigation"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -15,7 +14,6 @@ import {
   Clock,
   Droplets,
   User,
-  Award,
   Bell,
   Settings,
   LogOut,
@@ -226,136 +224,7 @@ export default function UserDashboard() {
       return "Vô danh"
     }
   }
-
-
-
-  // Calculate achievements for donors based on real data
-  const getDonorAchievements = () => {
-    const totalDonations = donationRecords.count;
-    const completedDonations = donationRecords.data.filter(d => d.status === "completed").length;
-
-    return [
-      {
-        id: 1,
-        name: "Người hiến đầu tiên",
-        description: "Hoàn thành lần hiến máu đầu tiên",
-        icon: "🏆",
-        earned: completedDonations >= 1,
-        earnedDate: completedDonations >= 1 ? formatDate(donationRecords.data.find(d => d.status === "completed")?.donation_date) : null,
-      },
-      {
-        id: 2,
-        name: "Người hùng Đồng",
-        description: "Hiến máu 3 lần",
-        icon: "🥉",
-        earned: completedDonations >= 3,
-        earnedDate: completedDonations >= 3 ? formatDate(donationRecords.data.filter(d => d.status === "completed")[2]?.donation_date) : null,
-        progress: Math.min((completedDonations / 3) * 100, 100),
-      },
-      {
-        id: 3,
-        name: "Người hùng Bạc",
-        description: "Hiến máu 5 lần",
-        icon: "🥈",
-        earned: completedDonations >= 5,
-        earnedDate: completedDonations >= 5 ? formatDate(donationRecords.data.filter(d => d.status === "completed")[4]?.donation_date) : null,
-        progress: Math.min((completedDonations / 5) * 100, 100),
-      },
-      {
-        id: 4,
-        name: "Người hùng Vàng",
-        description: "Hiến máu 10 lần",
-        icon: "🥇",
-        earned: completedDonations >= 10,
-        earnedDate: completedDonations >= 10 ? formatDate(donationRecords.data.filter(d => d.status === "completed")[9]?.donation_date) : null,
-        progress: Math.min((completedDonations / 10) * 100, 100),
-      },
-      {
-        id: 5,
-        name: "Người hùng Kim cương",
-        description: "Hiến máu 20 lần",
-        icon: "💎",
-        earned: completedDonations >= 20,
-        earnedDate: completedDonations >= 20 ? formatDate(donationRecords.data.filter(d => d.status === "completed")[19]?.donation_date) : null,
-        progress: Math.min((completedDonations / 20) * 100, 100),
-      },
-      {
-        id: 6,
-        name: "Nhà từ thiện",
-        description: "Tổng thể tích hiến máu đạt 2000ml",
-        icon: "❤️",
-        earned: donationRecords.data.reduce((total, d) => d.status === "completed" ? total + (d.volume || 0) : total, 0) >= 2000,
-        earnedDate: null,
-        progress: Math.min((donationRecords.data.reduce((total, d) => d.status === "completed" ? total + (d.volume || 0) : total, 0) / 2000) * 100, 100),
-      },
-    ];
-  };
-
-  const achievements = getDonorAchievements();
-
-  // Calculate achievements for recipients based on real data
-  const getRecipientAchievements = () => {
-    const totalRequests = bloodRequests.length;
-    const completedRequests = bloodRequests.filter(r => r.status === "completed" || r.status === "matched").length;
-    const emergencyRequests = bloodRequests.filter(r => r.is_emergency).length;
-    const totalReceived = receiveCount;
-
-    return [
-      {
-        id: 1,
-        name: "Người nhận đầu tiên",
-        description: "Hoàn tất lần nhận máu đầu tiên",
-        icon: "🩸",
-        earned: totalReceived >= 1,
-        earnedDate: totalReceived >= 1 ? formatDate(donationList[0]?.donation_date || warehouseDonationsList2[0]?.donation_date) : null,
-      },
-      {
-        id: 2,
-        name: "Người nhận tích cực",
-        description: "Đã tạo 3 yêu cầu máu thành công",
-        icon: "✅",
-        earned: completedRequests >= 3,
-        earnedDate: completedRequests >= 3 ? formatDate(bloodRequests.filter(r => r.status === "completed" || r.status === "matched")[2]?.createdAt) : null,
-        progress: Math.min((completedRequests / 3) * 100, 100),
-      },
-      {
-        id: 3,
-        name: "Người nhận kiên trì",
-        description: "Đã nhận máu 5 lần",
-        icon: "💪",
-        earned: totalReceived >= 5,
-        earnedDate: null,
-        progress: Math.min((totalReceived / 5) * 100, 100),
-      },
-      {
-        id: 4,
-        name: "Yêu cầu khẩn cấp",
-        description: "Đã tạo yêu cầu khẩn cấp",
-        icon: "🚨",
-        earned: emergencyRequests > 0,
-        earnedDate: emergencyRequests > 0 ? formatDate(bloodRequests.find(r => r.is_emergency)?.createdAt) : null,
-        progress: emergencyRequests > 0 ? 100 : 0,
-      },
-      {
-        id: 5,
-        name: "Quản lý tốt",
-        description: "Tạo 10 yêu cầu máu",
-        icon: "📋",
-        earned: totalRequests >= 10,
-        earnedDate: totalRequests >= 10 ? formatDate(bloodRequests[9]?.createdAt) : null,
-        progress: Math.min((totalRequests / 10) * 100, 100),
-      },
-      {
-        id: 6,
-        name: "Cộng đồng cùng tiến",
-        description: "Sử dụng hệ thống thường xuyên (5+ yêu cầu)",
-        icon: "🤝",
-        earned: totalRequests >= 5,
-        earnedDate: totalRequests >= 5 ? formatDate(bloodRequests[4]?.createdAt) : null,
-        progress: Math.min((totalRequests / 5) * 100, 100),
-      },
-    ];
-  };
+  
 
 
 
@@ -418,9 +287,7 @@ export default function UserDashboard() {
 
         <div className="container mx-auto px-4 py-8 flex-grow">
           <Tabs defaultValue="profile" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-1">
-              <TabsTrigger value="profile">Hồ sơ</TabsTrigger>
-            </TabsList>
+            
 
             <TabsContent value="profile" className="space-y-6">
               <Card className="shadow-lg border-0">
@@ -461,60 +328,22 @@ export default function UserDashboard() {
                               Nhóm máu {donor.blood_type}
                             </Badge>
                           )}
-                          {/* Loyalty Level Badge - chỉ hiển thị khi đạt thành tích */}
-                          {user?.role === "donor" && (donationRecords?.count || 0) >= 3 && (
-                            <Badge className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-3 py-1.5 text-sm shadow-sm">
-                              <Award className="w-3 h-3 mr-1" />
-                              {(donationRecords?.count || 0) >= 10 ? "Người hùng Vàng" :
-                                (donationRecords?.count || 0) >= 5 ? "Người hùng Bạc" : "Người hùng Đồng"}
-                            </Badge>
-                          )}
-                          {user?.role === "recipient" && (bloodRequests?.length || 0) >= 2 && (
-                            <Badge className="bg-gradient-to-r from-blue-400 to-cyan-500 text-white px-3 py-1.5 text-sm shadow-sm">
-                              <Award className="w-3 h-3 mr-1" />
-                              Thành viên tích cực
-                            </Badge>
-                          )}
-                        </div>
-
-                        {/* Account Stats */}
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
-                          <div className="bg-white/80 backdrop-blur-sm rounded-lg p-3 text-center border border-white/50">
-                            <div className="text-2xl font-bold text-red-600">
-                              {userProfile.blood_type ? userProfile.blood_type : "Chưa có thông tin"}
-                            </div>
-                            <div className="text-xs text-gray-600 font-medium">Nhóm máu</div>
-                          </div>
+                        
                         </div>
 
                         <p className="text-gray-600 mt-3 text-sm">
                           <span className="inline-flex items-center">
-                            <span className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></span>
-                            Hoạt động • {user?.email || "Chưa có thông tin"}
+                            <CheckCircle className="w-4 h-4 text-green-500 mr-1" />
+                            {donor?.cooldown_until
+                              ? (
+                                <>
+                                  Ngày nghỉ ngơi: {formatDate(donor.cooldown_until)}
+                                  <span className="mx-2">•</span>
+                                  Thêm 7 ngày nghỉ ngơi: {formatDate(new Date(new Date(donor.cooldown_until).getTime() + 7 * 24 * 60 * 60 * 1000).toISOString())}
+                                </>
+                              )
+                              : "Không có hạn chế"}
                           </span>
-                          {/* Hiển thị thông tin cấp độ dựa trên thành tích */}
-                          {user?.role === "donor" && (donationRecords?.count || 0) > 0 && (
-                            <span className="block mt-1 text-xs">
-                              🏆 Cấp độ: {(donationRecords?.count || 0) >= 10 ? "Người hùng Vàng" :
-                                (donationRecords?.count || 0) >= 5 ? "Người hùng Bạc" :
-                                  (donationRecords?.count || 0) >= 3 ? "Người hùng Đồng" : "Thành viên mới"}
-                            </span>
-                          )}
-                          {user?.role === "donor" && (donationRecords?.count || 0) === 0 && (
-                            <span className="block mt-1 text-xs text-gray-500">
-                              💡 Hãy hiến máu lần đầu để nhận cấp độ đầu tiên!
-                            </span>
-                          )}
-                          {user?.role === "recipient" && (bloodRequests?.length || 0) >= 2 && (
-                            <span className="block mt-1 text-xs">
-                              🏆 Cấp độ: Thành viên tích cực
-                            </span>
-                          )}
-                          {user?.role === "recipient" && (bloodRequests?.length || 0) < 2 && (
-                            <span className="block mt-1 text-xs text-gray-500">
-                              💡 Thành viên mới - Chào mừng bạn đến với hệ thống!
-                            </span>
-                          )}
                         </p>
                       </div>
                     </div>
@@ -759,51 +588,7 @@ export default function UserDashboard() {
                               </div>
                             </div>
 
-                            {/* Achievement Progress */}
-                            {(donationRecords?.count || 0) > 0 && (
-                              <div className="mt-4 p-4 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg border border-yellow-200">
-                                <div className="flex items-center space-x-3">
-                                  <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center">
-                                    <Award className="w-5 h-5 text-yellow-600" />
-                                  </div>
-                                  <div className="flex-1">
-                                    <label className="text-xs font-semibold text-yellow-700 uppercase tracking-wide mb-1 block">Tiến độ thành tích</label>
-                                    <p className="font-semibold text-yellow-800 text-base">
-                                      {(donationRecords?.count || 0) >= 10 ? "🏆 Đã đạt cấp cao nhất!" :
-                                        (donationRecords?.count || 0) >= 5 ? `Còn ${10 - (donationRecords?.count || 0)} lần để đạt Người hùng Vàng` :
-                                          (donationRecords?.count || 0) >= 3 ? `Còn ${5 - (donationRecords?.count || 0)} lần để đạt Người hùng Bạc` :
-                                            `Còn ${3 - (donationRecords?.count || 0)} lần để đạt Người hùng Đồng`}
-                                    </p>
-                                    <div className="w-full bg-yellow-200 rounded-full h-2 mt-2">
-                                      <div
-                                        className="bg-gradient-to-r from-yellow-400 to-orange-500 h-2 rounded-full transition-all duration-500"
-                                        style={{
-                                          width: `${Math.min(((donationRecords?.count || 0) / 10) * 100, 100)}%`
-                                        }}
-                                      ></div>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-
-                            {/* First Time Donor Encouragement */}
-                            {(donationRecords?.count || 0) === 0 && (
-                              <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
-                                <div className="flex items-center space-x-3">
-                                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                                    <Heart className="w-5 h-5 text-blue-600" />
-                                  </div>
-                                  <div className="flex-1">
-                                    <label className="text-xs font-semibold text-blue-700 uppercase tracking-wide mb-1 block">Bắt đầu hành trình</label>
-                                    <p className="font-semibold text-blue-800 text-base">Hãy hiến máu lần đầu để bắt đầu hành trình cứu người!</p>
-                                    <p className="text-xs text-blue-600 mt-1">
-                                      ✨ Bạn sẽ nhận được 50 điểm và cấp độ "Người hùng Đồng" sau lần hiến đầu tiên
-                                    </p>
-                                  </div>
-                                </div>
-                              </div>
-                            )}
+                            {/* Thành tích đã được gỡ bỏ */}
                           </div>
                         </div>
                       )}
@@ -919,23 +704,7 @@ export default function UserDashboard() {
                               </div>
                             </div>
 
-                            {/* Achievement Status for Recipients */}
-                            {(bloodRequests?.length || 0) >= 2 && (
-                              <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg border border-blue-200">
-                                <div className="flex items-center space-x-3">
-                                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                                    <Award className="w-5 h-5 text-blue-600" />
-                                  </div>
-                                  <div className="flex-1">
-                                    <label className="text-xs font-semibold text-blue-700 uppercase tracking-wide mb-1 block">Trạng thái thành viên</label>
-                                    <p className="font-semibold text-blue-800 text-base">Thành viên tích cực</p>
-                                    <p className="text-xs text-blue-600 mt-1">
-                                      🎉 Bạn đã sử dụng hệ thống {bloodRequests?.length || 0} lần - Cảm ơn sự tin tưởng!
-                                    </p>
-                                  </div>
-                                </div>
-                              </div>
-                            )}
+                            {/* Trạng thái thành viên theo thành tích đã gỡ bỏ */}
 
                             {/* New Member Welcome */}
                             {(bloodRequests?.length || 0) < 2 && (
