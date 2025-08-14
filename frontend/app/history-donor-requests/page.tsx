@@ -83,7 +83,7 @@ interface DonorDonationRequest {
   }
   separated_component?: ["RBC" | "plasma" | "platelet"]
   notes: string
-  status: "pending" | "approved" | "rejected"
+  status: "pending" | "approved" | "rejected" | "completed"
   createdAt: string
   updatedAt: string
 }
@@ -97,6 +97,7 @@ export default function DonorRequestHistoryPage() {
   const [total, setTotal] = useState(0);
   const [pending, setPending] = useState(0);
   const [approved, setApproved] = useState(0);
+  const [completed, setCompleted] = useState(0);
   const [rejected, setRejected] = useState(0);
   const [sortOrder, setSortOrder] = useState<"newest" | "oldest" | "status">("newest")
   const [cancellingId, setCancellingId] = useState<string | null>(null)
@@ -124,9 +125,12 @@ export default function DonorRequestHistoryPage() {
         console.log("Fetched donor requests:", response2.data)
         setTotal(response2.data.total || 0)
         setPending(response2.data.status_summary.pending || 0)
-        setApproved(response2.data.status_summary.approved || 0)
+  setApproved(response2.data.status_summary.approved || 0)
         setRejected(response2.data.status_summary.rejected || 0)
         setDonationRequests(response2.data.requests || [])
+  // Derive completed count on client if backend summary doesn't include it
+  const completedCount = (response2.data.requests || []).filter((r: DonorDonationRequest) => r.status === "completed").length
+  setCompleted(completedCount)
       } catch (error: any) {
         console.error("Error fetching donor requests:", error)
         console.error("Error details:", error.response?.data)
@@ -195,16 +199,10 @@ export default function DonorRequestHistoryPage() {
 
     try {
       setCancellingId(requestId)
-      await api.put(`/donation-requests/donor-donation-request/reject/${requestId}`)
+  await api.put(`/donation-requests/donor-donation-request/reject/${requestId}`)
 
       // Cập nhật state local
-      setDonationRequests(prev =>
-        prev.map(req =>
-          req._id === requestId
-            ? { ...req, status: "cancelled" }
-            : req
-        )
-      )
+  setDonationRequests(prev => prev.map(req => req._id === requestId ? { ...req, status: "rejected" } : req))
 
       setRejected(prev => prev + 1)
       setPending(prev => prev - 1)
@@ -374,7 +372,7 @@ export default function DonorRequestHistoryPage() {
                 <Card>
                   <CardContent className="p-6 text-center">
                     <div className="text-2xl font-bold text-green-600">
-                      {approved}
+                      {completed}
                     </div>
                     <p className="text-sm text-gray-600">Hoàn tất</p>
                   </CardContent>
@@ -473,7 +471,7 @@ export default function DonorRequestHistoryPage() {
                                 <div className="flex flex-wrap gap-1 mt-1">
                                   {translateDonationType(request.donation_type)}
                                   <br />
-                                  {request.donation_type === "separated" && request.separated_component?.length > 0 ? (
+                                  {request.donation_type === "separated" && Array.isArray(request.separated_component) && request.separated_component.length > 0 ? (
                                     "Những thành phần: " + request.separated_component.map(translateBloodComponent).join(", ")
                                   ) : ""}
                                 </div>

@@ -1,6 +1,7 @@
 import DonorDonationRequest from "../models/DonorDonationRequest.js";
 import Hospital from "../models/Hospital.js";
 import User from "../models/User.js";
+import DonorProfile from "../models/DonorProfile.js";
 import nodemailer from "nodemailer";
 
 export async function createDonorDonationRequest(req, res) {
@@ -306,6 +307,48 @@ export async function approveDonationRequestById(req, res) {
     });
   } catch (error) {
     console.error("Error approving donation request:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+}
+
+export async function completeDonationRequestById(req, res) {
+  try {
+    const { request_id } = req.params;
+
+    if (!request_id) {
+      return res.status(400).json({ message: "Request ID is required" });
+    }
+
+    // Tìm request
+    const request = await DonorDonationRequest.findById(request_id)
+      .populate("user_id", "full_name email")
+      .populate("hospital", "name address");
+
+    if (!request) {
+      return res.status(404).json({ message: "Donation request not found" });
+    }
+
+    // Cập nhật trạng thái thành completed
+    request.status = "completed";
+    await request.save();
+
+    // Cập nhật cooldown của donor: donation_date + 7 ngày
+    const donationDate = new Date(request.donation_date);
+    const cooldownUntil = new Date(donationDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+    const donorProfile = await DonorProfile.findOne({ user_id: request.user_id._id });
+    if (donorProfile) {
+      donorProfile.cooldown_until = cooldownUntil;
+      await donorProfile.save();
+    }
+
+    return res.status(200).json({
+      message: "Donation request marked as completed and cooldown updated",
+      request,
+      cooldown_until: donorProfile?.cooldown_until || cooldownUntil,
+    });
+  } catch (error) {
+    console.error("Error completing donation request:", error);
     return res.status(500).json({ message: "Internal server error" });
   }
 }

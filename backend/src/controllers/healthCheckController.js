@@ -1,6 +1,7 @@
 import HealthCheck from "../models/HealthCheck.js";
 import CheckIn from "../models/CheckIn.js";
 import Hospital from "../models/Hospital.js";
+import BloodTest from "../models/BloodTest.js";
 
 export async function createHealthCheck(req, res) {
   try {
@@ -103,7 +104,7 @@ export async function markHealthCheckPassed(req, res) {
 
 
 
-    // Cập nhật overall_result thành "passed"
+  // Cập nhật overall_result thành "passed"
     healthCheck.overall_result = "passed";
     await healthCheck.save();
 
@@ -130,10 +131,31 @@ export async function markHealthCheckPassed(req, res) {
         select: "donation_date donation_time_range donation_type separated_component notes status",
       });
 
+    // Tự động tạo bản ghi xét nghiệm máu (BloodTest) ở trạng thái pending nếu chưa tồn tại
+    let bloodTest = await BloodTest.findOne({ healthcheck_id: healthCheck._id });
+    if (!bloodTest) {
+      try {
+        bloodTest = await BloodTest.create({
+          user_id: checkIn.user_id?._id || checkIn.user_id,
+          user_profile_id: checkIn.userprofile_id?._id || checkIn.userprofile_id,
+          hospital_id: checkIn.hospital_id?._id || checkIn.hospital_id,
+          healthcheck_id: healthCheck._id,
+          // Các trường bắt buộc, sẽ cập nhật sau khi có kết quả xét nghiệm thực tế
+          HBsAg: false,
+          hemoglobin: 0,
+          status: "pending",
+        });
+      } catch (err) {
+        console.error("Auto-create blood test failed:", err);
+        // Không chặn quy trình nếu tạo blood test thất bại
+      }
+    }
+
     return res.status(200).json({
       message: "Health check marked as passed.",
       healthCheck,
-      checkIn
+      checkIn,
+      bloodTest,
     });
   } catch (error) {
     console.error("Error marking health check passed:", error);
@@ -264,6 +286,7 @@ export async function getAllCheckInStatusesByHospitalId(req, res) {
             _id: healthCheck._id,
             checkin_id: healthCheck.checkin_id,
             overall_result: healthCheck.overall_result,
+            createdAt: healthCheck.createdAt,
           },
           status, // "passed", "failed", or "pending"
         };

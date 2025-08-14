@@ -137,6 +137,19 @@ export default function UserDashboard() {
       try {
         const response = await api.get(`/users/user-profile/${user?._id}`)
         setUserProfile(response.data.profile)
+
+        // If user is a donor, also fetch the active donor profile
+        if (user?.role === "donor") {
+          try {
+            const donorRes = await api.get(`/users/donor-profile/active/${user._id}`)
+            setDonor(donorRes.data.profile)
+          } catch (err: any) {
+            // It's okay if donor profile doesn't exist yet
+            if (err?.response?.status !== 404) {
+              console.error("Failed to fetch donor profile:", err?.response?.data || err)
+            }
+          }
+        }
       } catch (error: any) {
         console.error("Failed to fetch recipient profile or hospital:", error);
         if (error.response?.status === 404) {

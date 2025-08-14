@@ -25,16 +25,33 @@ export default function HealthCheckFormPage() {
   const searchParams = useSearchParams()
   const bloodUnitId = searchParams.get("bloodUnitId") || ""
   const name = searchParams.get("name") || ""
+  // Default shelf life for whole blood units (days)
+  const DEFAULT_SHELF_LIFE_DAYS = 35;
+
+  // Helper: format Date to yyyy-mm-dd (local time)
+  const formatYMD = (date: Date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  };
+
+  // Helper: add days (local time)
+  const addDays = (date: Date, days: number) => {
+    const result = new Date(date);
+    result.setDate(result.getDate() + days);
+    return result;
+  };
   const [form, setForm] = useState({
-    bloodGroupABO: undefined,
-    bloodGroupRh: undefined,
+  bloodGroupABO: "",
+  bloodGroupRh: "",
     collectionDate: "",
     anticoagulantSolution: "",
     expiryDate: "",
     storageTemperature: "",
     irradiated: false,
     notes: "",
-    volumeOrWeight: 0,
+  volumeOrWeight: 250,
     name: "",
     email: "",
     phone: "",
@@ -71,16 +88,20 @@ export default function HealthCheckFormPage() {
       try {
         const response = await api.get(`/whole-blood/whole-blood-unit/${bloodUnitId}`);
         const data = response.data;
+        const collectionDateStr = new Date(data.unit.collectionDate).toISOString().split("T")[0];
+        const expiryDateStr = data.unit.expiryDate ? new Date(data.unit.expiryDate).toISOString().split("T")[0] : "";
+        const computedExpiry = expiryDateStr || formatYMD(addDays(new Date(collectionDateStr), DEFAULT_SHELF_LIFE_DAYS));
         setForm({
           bloodGroupABO: data.unit.bloodGroupABO,
           bloodGroupRh: data.unit.bloodGroupRh,
-          collectionDate: new Date(data.unit.collectionDate).toISOString().split("T")[0],
+          collectionDate: collectionDateStr,
           anticoagulantSolution: data.unit.anticoagulantSolution,
-          expiryDate: new Date(data.unit.expiryDate).toISOString().split("T")[0],
+          expiryDate: computedExpiry,
           storageTemperature: data.unit.storageTemperature,
           irradiated: data.unit.irradiated,
           notes: data.unit.notes,
-          volumeOrWeight: data.unit.volumeOrWeight,
+          // Policy: whole blood volume fixed at 250 ml
+          volumeOrWeight: 250,
           name: data.unit.user_id.full_name,
           email: data.unit.user_id.email,
           phone: data.unit.user_id.phone,
@@ -106,10 +127,31 @@ export default function HealthCheckFormPage() {
 
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value, type, checked } = e.target;
+    const { name, value } = e.target;
+    const type = (e.target as HTMLInputElement).type;
+    if (name === "volumeOrWeight") {
+      // Ensure number, clamp between 0 and 250 ml
+      const num = Number(value);
+      const safe = Number.isFinite(num) ? Math.max(0, Math.min(250, num)) : 0;
+      setForm((prev) => ({ ...prev, volumeOrWeight: safe }));
+      return;
+    }
+    if (name === "collectionDate") {
+      // When donation date changes, auto-calc expiry date
+      if (!value) {
+        setForm((prev) => ({ ...prev, collectionDate: "", expiryDate: "" }));
+        return;
+      }
+      // Parse yyyy-mm-dd in local time to avoid TZ shift
+      const [y, m, d] = value.split("-").map(Number);
+      const col = new Date(y, (m || 1) - 1, d || 1);
+      const exp = addDays(col, DEFAULT_SHELF_LIFE_DAYS);
+      setForm((prev) => ({ ...prev, collectionDate: value, expiryDate: formatYMD(exp) }));
+      return;
+    }
     setForm((prev) => ({
       ...prev,
-      [name]: type === "checkbox" ? checked : value,
+      [name]: type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
     }));
   };
 
@@ -121,13 +163,15 @@ export default function HealthCheckFormPage() {
 
   async function saveField(): Promise<void> {
     try {
+  // Force whole blood volume to fixed 250 ml
+  const vol = 250;
       await api.put(`/whole-blood/whole-blood-unit/${bloodUnitId}`, {
         bloodGroupABO: form.bloodGroupABO,
         bloodGroupRh: form.bloodGroupRh,
         collectionDate: form.collectionDate ? new Date(form.collectionDate) : null,
         anticoagulantSolution: form.anticoagulantSolution,
         expiryDate: form.expiryDate ? new Date(form.expiryDate) : null,
-        volumeOrWeight: form.volumeOrWeight,
+        volumeOrWeight: vol,
         storageTemperature: form.storageTemperature,
         irradiated: form.irradiated,
         notes: form.notes,
@@ -164,7 +208,7 @@ export default function HealthCheckFormPage() {
         await api.get(`/whole-blood/whole-blood-unit/${bloodUnitId}/email-blood-type`);
         await api.put(`/users/user-profile/set-blood-type`, {
           user_id: form.user_id,
-          blood_type: form.bloodGroupABO + form.bloodGroupRh,
+          blood_type: (form.bloodGroupABO || "") + (form.bloodGroupRh || ""),
         });
         toast.success("Đã gửi email thông tin nhóm máu cho người dùng");
       }
@@ -176,10 +220,12 @@ export default function HealthCheckFormPage() {
 
   async function acceptForm(): Promise<void> {
     try {
+  // Enforce fixed volume of 250 ml before accept
+  const vol = 250;
       await api.put(`/whole-blood/whole-blood-unit/${bloodUnitId}/donate`);
       toast.success("Dán nhãn hiến máu thành công!")
       emailBloodTypeToUser();
-      router.push("/staff/dashboard");
+  router.push("/staff/dashboard/donation-requests");
     } catch (error) {
       toast.error("Có lỗi xảy ra khi chấp nhận đơn khám!")
     }
@@ -189,7 +235,7 @@ export default function HealthCheckFormPage() {
     try {
       await api.put(`/whole-blood/whole-blood-unit/${bloodUnitId}/not-eligible`);
       toast.success("Dán nhãn không phù hợp thành công!")
-      router.push("/staff/dashboard");
+  router.push("/staff/dashboard/donation-requests");
     } catch (error) {
       toast.error("Có lỗi xảy ra khi chấp nhận đơn khám!")
     }
@@ -253,9 +299,6 @@ export default function HealthCheckFormPage() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <Button type="button" onClick={() => saveField()} className="mt-6">
-                    Lưu
-                  </Button>
                 </div>
               </div>
               <div>
@@ -284,9 +327,6 @@ export default function HealthCheckFormPage() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <Button type="button" onClick={() => saveField()} className="mt-6">
-                    Lưu
-                  </Button>
                 </div>
               </div>
               <div>
@@ -295,9 +335,6 @@ export default function HealthCheckFormPage() {
                     <Label htmlFor="collectionDate">Ngày hiến máu</Label>
                     <Input name="collectionDate" type="date" value={form.collectionDate} onChange={handleChange} />
                   </div>
-                  <Button type="button" onClick={() => saveField()} className="mt-6">
-                    Lưu
-                  </Button>
                 </div>
               </div>
               <div>
@@ -306,9 +343,6 @@ export default function HealthCheckFormPage() {
                     <Label htmlFor="anticoagulantSolution">Tên dung dịch chống đông, bảo quản (nếu có)</Label>
                     <Input name="anticoagulantSolution" type="text" value={form.anticoagulantSolution} onChange={handleChange} />
                   </div>
-                  <Button type="button" onClick={() => saveField()} className="mt-6">
-                    Lưu
-                  </Button>
                 </div>
               </div>
               <div>
@@ -317,20 +351,25 @@ export default function HealthCheckFormPage() {
                     <Label htmlFor="expiryDate">Ngày hết hạn</Label>
                     <Input name="expiryDate" type="date" value={form.expiryDate} onChange={handleChange} />
                   </div>
-                  <Button type="button" onClick={() => saveField()} className="mt-6">
-                    Lưu
-                  </Button>
                 </div>
               </div>
               <div>
                 <div className="flex items-end gap-2">
                   <div className="flex-1">
-                    <Label htmlFor="volumeOrWeight">Thể tích máu (ml)</Label>
-                    <Input name="volumeOrWeight" type="number" value={form.volumeOrWeight} onChange={handleChange} />
+                    <Label htmlFor="volumeOrWeight">Thể tích máu (ml) — cố định 250 ml</Label>
+                    <Input
+                      name="volumeOrWeight"
+                      type="number"
+                      value={form.volumeOrWeight}
+                      onChange={handleChange}
+                      min={0}
+                      max={250}
+                      step={1}
+                      placeholder="Ví dụ: 250"
+                      readOnly
+                      disabled
+                    />
                   </div>
-                  <Button type="button" onClick={() => saveField()} className="mt-6">
-                    Lưu
-                  </Button>
                 </div>
               </div>
               <div>
@@ -339,9 +378,6 @@ export default function HealthCheckFormPage() {
                     <Label htmlFor="storageTemperature">Nhiệt độ bảo quản (ví dụ: "2-6°C")</Label>
                     <Input name="storageTemperature" type="text" value={form.storageTemperature} onChange={handleChange} />
                   </div>
-                  <Button type="button" onClick={() => saveField()} className="mt-6">
-                    Lưu
-                  </Button>
                 </div>
               </div>
 
@@ -356,9 +392,6 @@ export default function HealthCheckFormPage() {
                       rows={2}
                     />
                   </div>
-                  <Button type="button" onClick={() => saveField()} className="mt-6">
-                    Lưu
-                  </Button>
                 </div>
               </div>
 

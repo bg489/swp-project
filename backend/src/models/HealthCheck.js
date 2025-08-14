@@ -15,6 +15,10 @@ const healthCheckSchema = new mongoose.Schema(
     weight: Number,
     blood_volume_allowed: Number,
     can_donate_whole_blood: Boolean,
+    has_collected_blood: {
+      type: Boolean,
+      default: false,
+    },
     can_donate_components: Boolean,
     has_chronic_disease: Boolean,
     is_pregnant: Boolean,

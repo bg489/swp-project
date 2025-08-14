@@ -6,7 +6,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Heart,
@@ -87,7 +86,7 @@ interface DonorDonationRequest {
   }
   separated_component?: "RBC" | "plasma" | "platelet"
   notes: string
-  status: "pending" | "approved" | "rejected"
+  status: "pending" | "approved" | "rejected" | "completed"
   createdAt: string
   updatedAt: string
 }
@@ -107,11 +106,11 @@ export default function DonationRequestsManagement() {
   const [plasmaUnits, setPlasmaUnits] = useState<any>([])
   const [platelet, setPlateletUnits] = useState<any>([])
   const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState("all")
-  const [searchTerm, setSearchTerm] = useState("")
-  const [sortBy, setSortBy] = useState("newest")
   const [bloodSeperated, setBloodSeperated] = useState("whole")
   const [requestFilter, setRequestFilter] = useState("newest")
+  const [checkInOrder, setCheckInOrder] = useState("newest")
+  const [healthCheckOrder, setHealthCheckOrder] = useState("newest")
+  const [bloodTestOrder, setBloodTestOrder] = useState("newest")
 
   // Stats states
   const [total, setTotal] = useState(0)
@@ -142,6 +141,7 @@ export default function DonationRequestsManagement() {
     switch (status) {
       case "pending": return "Đang chờ duyệt";
       case "approved": return "Đã duyệt";
+  case "completed": return "Đã hoàn tất";
       case "rejected": return "Đã từ chối";
       case "verified": return "Đã xác minh";
       case "unverified": return "Chưa xác minh";
@@ -152,7 +152,7 @@ export default function DonationRequestsManagement() {
       case "failed": return "Bị từ chối";
       case "not_eligible": return "Không phù hợp truyền";
       case "transfused": return "Đã truyền";
-      default: return "Không rõ";
+      default: return "Không có vấn đề";
     }
   }
 
@@ -160,7 +160,7 @@ export default function DonationRequestsManagement() {
     switch (type) {
       case "whole": return "Máu toàn phần";
       case "separated": return "Thành phần máu";
-      default: return "Không rõ";
+      default: return "Không có vấn đề";
     }
   }
 
@@ -175,7 +175,9 @@ export default function DonationRequestsManagement() {
   }
 
   const formatDate = (dateStr: string) => {
+    if (!dateStr) return "";
     const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return "";
     const day = String(date.getDate()).padStart(2, "0");
     const month = String(date.getMonth() + 1).padStart(2, "0");
     const year = date.getFullYear();
@@ -329,26 +331,123 @@ export default function DonationRequestsManagement() {
     }
   }
 
-  const filteredRequests = donationRequests
-    .filter(req => {
-      if (filter === "all") return true
-      return req.status === filter
-    })
-    .filter(req =>
-      (req?.user_id.full_name || req.user_id.email || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-      req.user_id.email.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-    .sort((a, b) => {
-      if (sortBy === "newest") {
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      } else {
-        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+  async function handleCompleteStatus(_id: any, currentStatus?: string): Promise<void> {
+    if (!window.confirm("Xác nhận người hiến đã hiến máu thành công và hoàn tất yêu cầu?")) {
+      return
+    }
+
+    try {
+      const res = await api.put(`/donation-requests/donor-donation-request/complete/${_id}`)
+
+      // Update list locally
+      setDonationRequests((prev: DonorDonationRequest[]) =>
+        prev.map((req: any) => (req._id === _id ? { ...req, status: "completed" } : req))
+      )
+      // Adjust counters if transitioning from approved -> completed
+      if (currentStatus === "approved") {
+        setApproved((prev: number) => (prev > 0 ? prev - 1 : 0))
       }
-    })
+
+      toast.success("Đã đánh dấu hoàn tất và cập nhật ngày nghỉ ngơi cho người dùng")
+    } catch (error: any) {
+      console.error("Error completing request:", error)
+      const errorMessage = error.response?.data?.message || "Đã xảy ra lỗi khi hoàn tất yêu cầu."
+      toast.error(errorMessage)
+    }
+  }
 
   const handleLogout = () => {
     logout()
   }
+
+  // Sort donation requests by Ngày đăng ký hiến (donation_date) primarily, fallback to createdAt
+  const orderedDonationRequests = [...donationRequests].sort((a, b) => {
+    const at = new Date(a?.donation_date ?? a?.createdAt ?? 0).getTime()
+    const bt = new Date(b?.donation_date ?? b?.createdAt ?? 0).getTime()
+    return requestFilter === "oldest" ? at - bt : bt - at
+  })
+
+  // Sort check-ins by donor's Ngày đăng ký hiến if present, else by check-in createdAt
+  const orderedCheckIns = [...checkIns].sort((a, b) => {
+    const at = new Date(a?.donorDonationRequest_id?.donation_date ?? a?.createdAt ?? 0).getTime()
+    const bt = new Date(b?.donorDonationRequest_id?.donation_date ?? b?.createdAt ?? 0).getTime()
+    return checkInOrder === "oldest" ? at - bt : bt - at
+  })
+
+  // Sort health-checks by donor's Ngày đăng ký hiến via checkIn if present, else by checkIn/healthCheck timestamps
+  const orderedHealthChecks = [...healthChecks].sort((a: any, b: any) => {
+    const at = new Date(
+      a?.checkIn?.donorDonationRequest_id?.donation_date ??
+      a?.checkIn?.createdAt ??
+      a?.healthCheck?.createdAt ?? 0
+    ).getTime()
+    const bt = new Date(
+      b?.checkIn?.donorDonationRequest_id?.donation_date ??
+      b?.checkIn?.createdAt ??
+      b?.healthCheck?.createdAt ?? 0
+    ).getTime()
+    return healthCheckOrder === "oldest" ? at - bt : bt - at
+  })
+
+  // Sort blood-tests by donor's Ngày đăng ký hiến if available on the record, else by createdAt
+  const orderedBloodTests = [...bloodTests].sort((a: any, b: any) => {
+    const at = new Date(a?.donorDonationRequest_id?.donation_date ?? a?.createdAt ?? 0).getTime()
+    const bt = new Date(b?.donorDonationRequest_id?.donation_date ?? b?.createdAt ?? 0).getTime()
+    return bloodTestOrder === "oldest" ? at - bt : bt - at
+  })
+
+  // Sort blood units (Đơn vị máu) by collectionDate primarily, then by createdAt — newest first
+  const orderedWholeUnits = [...bloodUnits].sort((a: any, b: any) => {
+    const at = new Date(a?.collectionDate ?? a?.createdAt ?? 0).getTime()
+    const bt = new Date(b?.collectionDate ?? b?.createdAt ?? 0).getTime()
+    return bt - at
+  })
+  const orderedRbcUnits = [...rbcUnits].sort((a: any, b: any) => {
+    const at = new Date(a?.collectionDate ?? a?.createdAt ?? 0).getTime()
+    const bt = new Date(b?.collectionDate ?? b?.createdAt ?? 0).getTime()
+    return bt - at
+  })
+  const orderedPlasmaUnits = [...plasmaUnits].sort((a: any, b: any) => {
+    const at = new Date(a?.collectionDate ?? a?.createdAt ?? 0).getTime()
+    const bt = new Date(b?.collectionDate ?? b?.createdAt ?? 0).getTime()
+    return bt - at
+  })
+  const orderedPlateletUnits = [...platelet].sort((a: any, b: any) => {
+    const at = new Date(a?.collectionDate ?? a?.createdAt ?? 0).getTime()
+    const bt = new Date(b?.collectionDate ?? b?.createdAt ?? 0).getTime()
+    return bt - at
+  })
+
+  // Build a set of donor donation request IDs that already have a blood unit marked as 'donated'
+  const getRequestIdFromUnit = (unit: any): string | undefined => {
+    const id = unit?.donorDonationRequest_id?._id
+      ?? unit?.donorDonationRequest_id
+      ?? unit?.donor_donation_request_id?._id
+      ?? unit?.donor_donation_request_id
+      ?? unit?.donorRequest_id?._id
+      ?? unit?.donorRequest_id
+      ?? unit?.donationRequest_id?._id
+      ?? unit?.donationRequest_id
+      ?? unit?.checkin?.donorDonationRequest_id?._id
+      ?? unit?.checkin?.donorDonationRequest_id
+      ?? unit?.checkIn?.donorDonationRequest_id?._id
+      ?? unit?.checkIn?.donorDonationRequest_id
+      ?? unit?.bloodTest?.donorDonationRequest_id?._id
+      ?? unit?.bloodTest?.donorDonationRequest_id
+      ?? unit?.healthCheck?.donorDonationRequest_id?._id
+      ?? unit?.healthCheck?.donorDonationRequest_id
+    return id ? String(id) : undefined
+  }
+
+  const donatedRequestIds = new Set<string>([
+    ...orderedWholeUnits,
+    ...orderedRbcUnits,
+    ...orderedPlasmaUnits,
+    ...orderedPlateletUnits,
+  ]
+    .filter((u: any) => u?.status === "donated")
+    .map((u: any) => getRequestIdFromUnit(u))
+    .filter(Boolean) as string[])
 
   async function handleUnverifiedStatus(_id: any, arg1: string): Promise<void> {
     if (!window.confirm("Bạn có chắc chắn muốn hủy xác minh thông tin này?")) {
@@ -546,48 +645,7 @@ export default function DonationRequestsManagement() {
           </Card>
         </div>
 
-        {/* Filters and Search */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Bộ lọc và tìm kiếm</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1">
-                <div className="relative">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Tìm kiếm theo tên hoặc email..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-              </div>
-              <Select value={filter} onValueChange={setFilter}>
-                <SelectTrigger className="w-48">
-                  <Filter className="h-4 w-4 mr-2" />
-                  <SelectValue placeholder="Lọc theo trạng thái" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tất cả</SelectItem>
-                  <SelectItem value="pending">Chờ xử lý</SelectItem>
-                  <SelectItem value="approved">Đã chấp nhận</SelectItem>
-                  <SelectItem value="rejected">Đã từ chối</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="Sắp xếp theo" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="newest">Mới nhất</SelectItem>
-                  <SelectItem value="oldest">Cũ nhất</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </CardContent>
-        </Card>
+        
 
         {/* Donation Requests List */}
         <Tabs defaultValue="donation-requests" className="space-y-6">
@@ -604,7 +662,7 @@ export default function DonationRequestsManagement() {
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
                   <span>Quản lý yêu cầu hiến máu</span>
-                  <Select onValueChange={setRequestFilter} defaultValue="newest">
+                  <Select onValueChange={setRequestFilter} value={requestFilter}>
                     <SelectTrigger className="w-48">
                       <SelectValue placeholder="Sắp xếp theo" />
                     </SelectTrigger>
@@ -636,7 +694,7 @@ export default function DonationRequestsManagement() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {donationRequests.map((request: any) => (
+                    {orderedDonationRequests.map((request: any) => (
                       <div
                         key={request._id}
                         className="p-4 border rounded-lg hover:bg-gray-50 transition space-y-2"
@@ -656,7 +714,7 @@ export default function DonationRequestsManagement() {
                             </Badge>
                             <p className="text-sm text-gray-600">Ngày tạo: {formatDate(request.createdAt)}</p>
 
-                            {/* Nút xử lý nếu còn trạng thái pending */}
+                            {/* Nút xử lý theo trạng thái */}
                             {request.status === "pending" && (
                               <div className="flex gap-2 mt-2">
                                 <Button
@@ -675,6 +733,13 @@ export default function DonationRequestsManagement() {
                                 </Button>
                               </div>
                             )}
+              {(request.status === "approved" && donatedRequestIds.has(String(request._id))) || request.status === "donated" ? (
+                              <div className="flex gap-2 mt-2">
+                <Button size="sm" variant="default" onClick={() => handleCompleteStatus(request._id, request.status)}>
+                                  Hoàn tất
+                                </Button>
+                              </div>
+              ) : null}
                           </div>
                         </div>
                       </div>
@@ -685,12 +750,12 @@ export default function DonationRequestsManagement() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="check-in" className="space-y-6">
+    <TabsContent value="check-in" className="space-y-6">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
                   <span>Check in hiến máu</span>
-                  <Select defaultValue="newest">
+      <Select value={checkInOrder} onValueChange={setCheckInOrder}>
                     <SelectTrigger className="w-48">
                       <SelectValue placeholder="Sắp xếp theo" />
                     </SelectTrigger>
@@ -707,7 +772,7 @@ export default function DonationRequestsManagement() {
 
               <CardContent>
                 <div className="space-y-4">
-                  {checkIns.map((checkIn: any) => (
+                  {orderedCheckIns.map((checkIn: any) => (
                     <div
                       key={checkIn._id}
                       className="p-4 border rounded-lg hover:bg-gray-50 transition space-y-2"
@@ -743,9 +808,7 @@ export default function DonationRequestsManagement() {
                           <Badge className={getStatusColor(checkIn.status)}>
                             {translateStatus(checkIn.status)}
                           </Badge>
-                          <p className="text-sm text-gray-600">
-                            Ngày điểm danh: {formatDate(checkIn.createdAt)}
-                          </p>
+                          {/* Ngày điểm danh removed per request */}
 
                           {/* Nút xử lý trạng thái */}
                           {checkIn.status === "in_progress" && (
@@ -775,12 +838,12 @@ export default function DonationRequestsManagement() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="health-check" className="space-y-6">
+    <TabsContent value="health-check" className="space-y-6">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
                   <span className="text-xl font-semibold text-gray-900">Quản lý khám hiến máu</span>
-                  <Select defaultValue="newest">
+      <Select value={healthCheckOrder} onValueChange={setHealthCheckOrder}>
                     <SelectTrigger className="w-48 border rounded-md bg-gray-100 focus:ring-2 focus:ring-blue-500">
                       <SelectValue placeholder="Sắp xếp theo" />
                     </SelectTrigger>
@@ -796,16 +859,42 @@ export default function DonationRequestsManagement() {
               </CardHeader>
 
               <CardContent className="space-y-4">
-                {healthChecks.map((checkInData: any) => (
+                {orderedHealthChecks.map((checkInData: any) => (
                   <div
                     key={checkInData.checkIn._id}
                     className="p-4 border rounded-lg bg-white shadow-md hover:shadow-xl transition-all duration-200 space-y-4 cursor-pointer"
-                    onClick={() => handleCardClick(checkInData.healthCheck._id, checkInData.checkIn.user_id.full_name, checkInData.checkIn.donorDonationRequest_id.donation_type)}
+                    onClick={() =>
+                      handleCardClick(
+                        checkInData.healthCheck._id,
+                        checkInData.checkIn.user_id.full_name,
+                        // Safely determine donation_type for navigation
+                        checkInData.checkIn?.donorDonationRequest_id?.donation_type ??
+                          checkInData.healthCheck?.donation_type ??
+                          "whole"
+                      )
+                    }
                   >
-                    {/* Thông tin Người Dùng và Bệnh Viện */}
+                    {/* 1) Yêu cầu hiến máu */}
+                    {checkInData.checkIn.donorDonationRequest_id && (
+                      <div className="space-y-2">
+                        <h4 className="font-semibold text-gray-900">Yêu cầu hiến máu</h4>
+                        <p className="text-sm"><strong>Ngày đăng ký hiến:</strong> {formatDate(checkInData.checkIn.donorDonationRequest_id.donation_date)}</p>
+                        <p className="text-sm"><strong>Thời gian:</strong> {checkInData.checkIn.donorDonationRequest_id.donation_time_range.from} - {checkInData.checkIn.donorDonationRequest_id.donation_time_range.to}</p>
+                        <p className="text-sm"><strong>Loại hiến máu:</strong> {checkInData.checkIn.donorDonationRequest_id.donation_type === "whole" ? "Toàn phần" : "Tách thành phần"}</p>
+                        {checkInData.checkIn.donorDonationRequest_id.donation_type === "separated" && (
+                          <p className="text-sm"><strong>Thành phần:</strong> {checkInData.checkIn.donorDonationRequest_id.separated_component.map(translateBloodComponent).join(", ")}</p>
+                        )}
+                        <p className="text-sm"><strong>Ghi chú:</strong> {checkInData.checkIn.donorDonationRequest_id.notes || "Không có"}</p>
+                        <p className="text-sm"><strong>Trạng thái yêu cầu:</strong> {translateStatus(checkInData.checkIn.donorDonationRequest_id.status)}</p>
+                        <hr />
+                      </div>
+                    )}
+
+                    {/* 2) Check-in */}
                     <div className="flex justify-between items-start space-x-6">
                       <div className="space-y-2 flex-1">
-                        <p className="text-lg font-semibold text-gray-900">{checkInData.checkIn.user_id.full_name}</p>
+                        <h4 className="font-semibold text-gray-900">Check-in</h4>
+                        <p className="text-sm text-gray-600"><strong>Họ tên:</strong> {checkInData.checkIn.user_id.full_name}</p>
                         <p className="text-sm text-gray-600"><strong>Email:</strong> {checkInData.checkIn.user_id.email}</p>
                         <p className="text-sm text-gray-600"><strong>CCCD:</strong> {checkInData.checkIn.userprofile_id?.cccd || "Không có"}</p>
                         <p className="text-sm text-gray-600"><strong>Giới tính:</strong> {checkInData.checkIn.user_id.gender}</p>
@@ -813,33 +902,18 @@ export default function DonationRequestsManagement() {
                         <p className="text-sm text-gray-600"><strong>Ngày sinh:</strong> {formatDate(checkInData.checkIn.user_id.date_of_birth)}</p>
                         <p className="text-sm text-gray-600"><strong>Bệnh viện:</strong> {checkInData.checkIn.hospital_id.name}</p>
                         <p className="text-sm text-gray-600"><strong>Địa chỉ:</strong> {checkInData.checkIn.hospital_id.address}</p>
-
-                        {/* Hiển thị thông tin đăng ký hiến máu */}
-                        {checkInData.checkIn.donorDonationRequest_id && (
-                          <div className="mt-4 space-y-2">
-                            <hr />
-                            <p className="text-sm"><strong>Ngày đăng ký hiến:</strong> {formatDate(checkInData.checkIn.donorDonationRequest_id.donation_date)}</p>
-                            <p className="text-sm"><strong>Thời gian:</strong> {checkInData.checkIn.donorDonationRequest_id.donation_time_range.from} - {checkInData.checkIn.donorDonationRequest_id.donation_time_range.to}</p>
-                            <p className="text-sm"><strong>Loại hiến máu:</strong> {checkInData.checkIn.donorDonationRequest_id.donation_type === "whole" ? "Toàn phần" : "Tách thành phần"}</p>
-                            {checkInData.checkIn.donorDonationRequest_id.donation_type === "separated" && (
-                              <p className="text-sm"><strong>Thành phần:</strong> {checkInData.checkIn.donorDonationRequest_id.separated_component.map(translateBloodComponent).join(", ")}</p>
-                            )}
-                            <p className="text-sm"><strong>Ghi chú:</strong> {checkInData.checkIn.donorDonationRequest_id.notes || "Không có"}</p>
-                            <p className="text-sm"><strong>Trạng thái yêu cầu:</strong> {translateStatus(checkInData.checkIn.donorDonationRequest_id.status)}</p>
-                          </div>
-                        )}
+                        {/* Ngày điểm danh removed per request */}
                       </div>
 
-                      {/* Thông tin trạng thái và các hành động */}
+                      {/* Trạng thái và hành động của Check-in */}
                       <div className="flex flex-col items-end gap-1">
                         <Badge className={getStatusColor(checkInData.status)}>{translateStatus(checkInData.status)}</Badge>
-                        {/* Nút xử lý trạng thái */}
                         {checkInData.status === "in_progress" && (
                           <div className="flex gap-2 mt-2">
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => handleVerifiedStatus(checkInData.checkIn._id, "verified")}
+                              onClick={(e) => { e.stopPropagation(); handleVerifiedStatus(checkInData.checkIn._id, "verified") }}
                               className="bg-green-500 text-white hover:bg-green-600"
                             >
                               Xác minh
@@ -847,7 +921,7 @@ export default function DonationRequestsManagement() {
                             <Button
                               size="sm"
                               variant="destructive"
-                              onClick={() => handleUnverifiedStatus(checkInData.checkIn._id, "unverified")}
+                              onClick={(e) => { e.stopPropagation(); handleUnverifiedStatus(checkInData.checkIn._id, "unverified") }}
                               className="bg-red-500 text-white hover:bg-red-600"
                             >
                               Huỷ xác minh
@@ -857,21 +931,20 @@ export default function DonationRequestsManagement() {
                       </div>
                     </div>
 
-                    {/* Thông tin HealthCheck */}
-                    <div className="mt-4 space-y-2">
+                    {/* 3) Khám */}
+                    <div className="mt-2 space-y-2">
+                      <h4 className="font-semibold text-gray-900">Khám</h4>
                       <div className="text-sm">
                         <strong>Trạng thái sức khỏe:</strong> {translateStatus(checkInData.healthCheck.status)}
                       </div>
                       <div className="text-sm">
                         <strong>Health Check ID:</strong> {checkInData.healthCheck._id}
                       </div>
-                    </div>
-
-                    {/* Trạng thái tổng của check-in */}
-                    <div className="mt-4 space-y-2">
-                      <div className="text-sm">
-                        <strong>Trạng thái tổng:</strong> {translateStatus(checkInData.status)}
-                      </div>
+                      {checkInData.healthCheck?.createdAt && (
+                        <div className="text-sm">
+                          <strong>Ngày khám:</strong> {formatDate(checkInData.healthCheck.createdAt)}
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -879,12 +952,12 @@ export default function DonationRequestsManagement() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="blood-test" className="space-y-6">
+    <TabsContent value="blood-test" className="space-y-6">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
                   <span className="text-xl font-semibold text-gray-900">Xét nghiệm máu</span>
-                  <Select defaultValue="newest">
+      <Select value={bloodTestOrder} onValueChange={setBloodTestOrder}>
                     <SelectTrigger className="w-48 border rounded-md bg-gray-100 focus:ring-2 focus:ring-blue-500">
                       <SelectValue placeholder="Sắp xếp theo" />
                     </SelectTrigger>
@@ -900,18 +973,29 @@ export default function DonationRequestsManagement() {
               </CardHeader>
 
               <CardContent className="space-y-4">
-                {bloodTests.map((bloodTestData: any) => (
+                {orderedBloodTests.map((bloodTestData: any) => (
                   <div
                     key={bloodTestData._id}
                     className="p-4 border rounded-lg bg-white shadow-md hover:shadow-xl transition-all duration-200 space-y-4 cursor-pointer"
                     onClick={() => handleBloodTestClick(bloodTestData._id, bloodTestData.user_id.full_name, bloodTestData.is_seperated, bloodTestData.separated_component)}
                   >
-                    {/* Thông tin Người Dùng và Bệnh Viện */}
+                    {/* Thông tin Người Dùng và Bệnh Viện (giống Check-in của Khám) */}
                     <div className="flex justify-between items-start space-x-6">
-                      <div className="space-y-2 flex-1">
-                        <p className="text-lg font-semibold text-gray-900">{bloodTestData.user_id.full_name}</p>
+                      <div className="space-y-1 flex-1">
+                        <p className="text-sm text-gray-600"><strong>Họ tên:</strong> {bloodTestData.user_id.full_name}</p>
                         <p className="text-sm text-gray-600"><strong>Email:</strong> {bloodTestData.user_id.email}</p>
-                        <p className="text-sm text-gray-600"><strong>CCCD:</strong> {bloodTestData.userprofile_id?.cccd || "Không có"}</p>
+                        <p className="text-sm text-gray-600">
+                          <strong>CCCD:</strong>{" "}
+                          {
+                            bloodTestData?.userprofile_id?.cccd ??
+                            bloodTestData?.user_profile_id?.cccd ??
+                            bloodTestData?.checkin?.userprofile_id?.cccd ??
+                            bloodTestData?.checkIn?.userprofile_id?.cccd ??
+                            bloodTestData?.userProfile?.cccd ??
+                            bloodTestData?.user_profile?.cccd ??
+                            "Không có"
+                          }
+                        </p>
                         <p className="text-sm text-gray-600"><strong>Giới tính:</strong> {bloodTestData.user_id.gender}</p>
                         <p className="text-sm text-gray-600"><strong>SĐT:</strong> {bloodTestData.user_id.phone}</p>
                         <p className="text-sm text-gray-600"><strong>Ngày sinh:</strong> {formatDate(bloodTestData.user_id.date_of_birth)}</p>
@@ -977,7 +1061,7 @@ export default function DonationRequestsManagement() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                  {bloodSeperated === "whole" && bloodUnits.map((blood: any) => (
+                  {bloodSeperated === "whole" && orderedWholeUnits.map((blood: any) => (
                     <Card key={blood._id} className="relative cursor-pointer" onClick={() => handleBloodUnit(blood._id)}>
                       <CardHeader className="pb-2">
                         <div className="flex items-center justify-between">
@@ -1011,7 +1095,7 @@ export default function DonationRequestsManagement() {
                     </Card>
                   ))}
 
-                  {bloodSeperated === "RBC" && rbcUnits.map((blood: any) => (
+                  {bloodSeperated === "RBC" && orderedRbcUnits.map((blood: any) => (
                     <Card key={blood._id} className="relative cursor-pointer" onClick={() => handleBloodUnit(blood._id)}>
                       <CardHeader className="pb-2">
                         <div className="flex items-center justify-between">
@@ -1045,7 +1129,7 @@ export default function DonationRequestsManagement() {
                     </Card>
                   ))}
 
-                  {bloodSeperated === "plasma" && plasmaUnits.map((blood: any) => (
+                  {bloodSeperated === "plasma" && orderedPlasmaUnits.map((blood: any) => (
                     <Card key={blood._id} className="relative cursor-pointer" onClick={() => handleBloodUnit(blood._id)}>
                       <CardHeader className="pb-2">
                         <div className="flex items-center justify-between">
@@ -1079,7 +1163,7 @@ export default function DonationRequestsManagement() {
                     </Card>
                   ))}
 
-                  {bloodSeperated === "platelet" && platelet.map((blood: any) => (
+                  {bloodSeperated === "platelet" && orderedPlateletUnits.map((blood: any) => (
                     <Card key={blood._id} className="relative cursor-pointer" onClick={() => handleBloodUnit(blood._id)}>
                       <CardHeader className="pb-2">
                         <div className="flex items-center justify-between">
