@@ -423,6 +423,25 @@ export default function DonationRequestsManagement() {
     return bt - at
   })
 
+  // Tìm Ngày hiến thực tế (actual) gần nhất từ các đơn vị máu theo user và bệnh viện
+  const getLatestDonationDate = (userId?: string, hospitalId?: string): Date | undefined => {
+    if (!userId || !hospitalId) return undefined;
+    const takeDate = (u: any): number => new Date(u?.collectionDate ?? u?.createdAt ?? 0).getTime();
+    const sameUserHosp = (u: any) =>
+      (u?.user_id?._id ?? u?.user_id) === userId && (u?.hospital_id?._id ?? u?.hospital_id) === hospitalId;
+
+    const allUnits = [
+      ...bloodUnits.filter(sameUserHosp),
+      ...rbcUnits.filter(sameUserHosp),
+      ...plasmaUnits.filter(sameUserHosp),
+      ...platelet.filter(sameUserHosp),
+    ];
+    if (!allUnits.length) return undefined;
+    const latest = allUnits.reduce((acc, cur) => (takeDate(cur) > takeDate(acc) ? cur : acc));
+    const t = takeDate(latest);
+    return t ? new Date(t) : undefined;
+  }
+
   // Build a set of donor donation request IDs that already have a blood unit marked as 'donated'
   const getRequestIdFromUnit = (unit: any): string | undefined => {
     const id = unit?.donorDonationRequest_id?._id
@@ -453,6 +472,14 @@ export default function DonationRequestsManagement() {
     .filter((u: any) => u?.status === "donated")
     .map((u: any) => getRequestIdFromUnit(u))
     .filter(Boolean) as string[])
+
+  // Display helper: if any blood unit is marked 'donated' for this request, show status 'donated'
+  const getDisplayStatusForRequest = (req: DonorDonationRequest): string => {
+    const id = String(req?._id)
+    if (!id) return req?.status as string
+    if (req?.status === "completed") return "completed"
+    return donatedRequestIds.has(id) ? "donated" : (req?.status as string)
+  }
 
   async function handleUnverifiedStatus(_id: any, arg1: string): Promise<void> {
     if (!window.confirm("Bạn có chắc chắn muốn hủy xác minh thông tin này?")) {
@@ -666,7 +693,7 @@ export default function DonationRequestsManagement() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
-                  <span>Quản lý yêu cầu hiến máu</span>
+                  <span>Quản lý hiến máu</span>
                   <Select onValueChange={setRequestFilter} value={requestFilter}>
                     <SelectTrigger className="w-48">
                       <SelectValue placeholder="Sắp xếp theo" />
@@ -677,7 +704,7 @@ export default function DonationRequestsManagement() {
                     </SelectContent>
                   </Select>
                 </CardTitle>
-                <CardDescription>Quản lý các yêu cầu hiến máu đã gửi bởi người dùng</CardDescription>
+                <CardDescription>Quản lý hiến máu đã gửi bởi người dùng</CardDescription>
                 <StatusSummary summary={{ pending: pending, approved: approved, rejected: rejected }} />
               </CardHeader>
 
@@ -714,9 +741,14 @@ export default function DonationRequestsManagement() {
                             <p><strong>Ghi chú:</strong> {request.notes || "Không có"}</p>
                           </div>
                           <div className="flex flex-col items-end gap-1">
-                            <Badge className={getStatusColor(request.status)}>
-                              {translateStatus(request.status)}
-                            </Badge>
+                            {(() => {
+                              const displayStatus = getDisplayStatusForRequest(request)
+                              return (
+                                <Badge className={getStatusColor(displayStatus)}>
+                                  {translateStatus(displayStatus)}
+                                </Badge>
+                              )
+                            })()}
                             <p className="text-sm text-gray-600">Ngày tạo: {formatDate(request.createdAt)}</p>
 
                             {/* Nút xử lý theo trạng thái */}
@@ -1021,8 +1053,20 @@ export default function DonationRequestsManagement() {
                       <Badge className={getStatusColor(bloodTestData.status)}>{translateStatus(bloodTestData.status)}</Badge>
                     </div>
 
-                    {/* Thông tin HealthCheck */}
+                    {/* Thông tin Xét nghiệm & Lịch hiến */}
                     <div className="mt-4 space-y-2">
+
+                      {/* Ngày hiến thực tế từ đơn vị máu (nếu có) */}
+                      {(() => {
+                        const uid = bloodTestData?.user_id?._id ?? bloodTestData?.user_id;
+                        const hid = bloodTestData?.hospital_id?._id ?? bloodTestData?.hospital_id;
+                        const latest = getLatestDonationDate(uid, hid);
+                        return (
+                          <div className="text-sm">
+                            <strong>Ngày hiến:</strong> {latest ? formatDate(latest.toString()) : "Chưa có"}
+                          </div>
+                        );
+                      })()}
                       {bloodTestData.is_seperated ? <div className="text-sm">
                         <strong>Thành phần máu:</strong> {bloodTestData.separated_component.map(translateBloodComponent).join(", ")}
                       </div> : ""}
@@ -1034,6 +1078,9 @@ export default function DonationRequestsManagement() {
                       </div>
                       <div className="text-sm">
                         <strong>Huyết sắc tố (g/l):</strong> {bloodTestData.hemoglobin}
+                      </div>
+                      <div className="text-sm">
+                        <strong>Ngày xét nghiệm:</strong> {bloodTestData?.createdAt ? formatDate(bloodTestData.createdAt) : "Chưa có"}
                       </div>
                     </div>
 

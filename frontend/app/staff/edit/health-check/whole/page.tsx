@@ -230,7 +230,7 @@ export default function HealthCheckFormPage() {
       <div className="container mx-auto p-4 w-full max-w-6xl flex-1">
         <Card>
           <CardHeader>
-            <CardTitle className="text-xl">Khám sức khỏe hiến máu toàn phần{name ? ` - ${name}` : ""}</CardTitle>
+            <CardTitle className="text-xl">Khám sức khỏe hiến máu {name ? ` - ${name}` : ""}</CardTitle>
             {form.createdAt ? (
               <p className="text-sm text-muted-foreground mt-1">
                 Ngày khám: {new Date(form.createdAt).toLocaleString("vi-VN", { year: "numeric", month: "2-digit", day: "2-digit" })}
