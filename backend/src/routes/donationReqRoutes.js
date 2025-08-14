@@ -4,8 +4,7 @@ import {
     getDonorDonationRequestsByUserId,
     rejectDonationRequestById,
     getDonorDonationRequestsByHospitalId,
-    approveDonationRequestById,
-    completeDonationRequestById
+    approveDonationRequestById
 } from "../controllers/donorDonationRequestController.js";
 
 const router = express.Router();
@@ -15,6 +14,5 @@ router.get("/donor-donation-request/user/:user_id", getDonorDonationRequestsByUs
 router.put("/donor-donation-request/reject/:request_id", rejectDonationRequestById);
 router.get("/donor-donation-request/hospital/:hospital_id", getDonorDonationRequestsByHospitalId);
 router.put("/donor-donation-request/approve/:request_id", approveDonationRequestById);
-router.put("/donor-donation-request/complete/:request_id", completeDonationRequestById);
 
 export default router;

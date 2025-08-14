@@ -64,12 +64,11 @@ export default function HealthCheckFormPage() {
   ];
 
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const target = e.target as HTMLInputElement;
-    const { name, value, type, checked } = target;
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value, type, checked } = e.target;
     setForm((prev) => ({
       ...prev,
-      [name]: type === "checkbox" ? checked : name === "hemoglobin" ? Number(value) : value,
+      [name]: type === "checkbox" ? checked : value,
     }));
   };
 
@@ -95,7 +94,7 @@ export default function HealthCheckFormPage() {
     try {
       await api.put(`/blood-test/blood-test/${bloodTestId}/fail`);
       toast.success("Từ chối thành công!")
-  router.push("/staff/dashboard/donation-requests");
+      router.push("/staff/dashboard");
     } catch (error) {
       toast.error("Có lỗi xảy ra khi từ chối đơn khám!")
     }
@@ -123,7 +122,7 @@ export default function HealthCheckFormPage() {
         notes: "",
       })
       toast.success("Chấp nhận thành công!")
-  router.push("/staff/dashboard/donation-requests");
+      router.push("/staff/dashboard");
     } catch (error) {
       toast.error("Có lỗi xảy ra khi chấp nhận đơn khám!")
     }
@@ -142,9 +141,12 @@ export default function HealthCheckFormPage() {
               <div>
                 <div className="flex items-end gap-2">
                   <div className="flex-1">
-                    <Label htmlFor="hemoglobin">Huyết sắc tố (Trên 120g/l)</Label>
+                    <Label htmlFor="hemoglobin">Huyết sắc tố (Trên 120g/l, trên 125g/l nếu hiến trên 350ml)</Label>
                     <Input name="hemoglobin" type="number" value={form.hemoglobin} onChange={handleChange} />
                   </div>
+                  <Button type="button" onClick={() => saveField()} className="mt-6">
+                    Lưu
+                  </Button>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
